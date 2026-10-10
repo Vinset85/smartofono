@@ -1,0 +1,62 @@
+[Unit]
+Description=Videocitofono - AEC + volumi audio (Raspiaudio MIC+ V3)
+# Bug noto Raspiaudio MIC+ V3 su RPi5: il MEMS via ALSA diretto e' a
+# noise floor; solo PulseAudio applica boost software utile.
+#
+# AEC: caricato `module-echo-cancel` di PulseAudio (via pipewire-pulse)
+# con sink_master/source_master ESPLICITI sui device ALSA fisici. La
+# variante PulseAudio (a differenza del modulo nativo PipeWire) instrada
+# correttamente il playback al sink fisico mantenendo il riferimento AEC.
+#
+# Pipeline:
+#   browser HA -> aplay -> pulse default(=ec_sink) -> AEC -> speaker fisico
+#   mic fisico -> AEC (sottrae ec_sink) -> ec_source(=default) -> ffmpeg
+# Risultato: ffmpeg cattura il mic SENZA l'eco dell'audio talkback HA.
+#
+# Source mic @ 140%: ridotto da 200% per abbassare noise floor MEMS.
+# AGC WebRTC + boost ffmpeg (+6dB) compensano. Con 200% l'AGC tirava
+# su il rumore di fondo nei silenzi. Sink speaker @ 100%: amp
+# MAX98357A udibile, non eccessivo.
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Requires=pipewire-pulse.service
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '\
+  SINK=alsa_output.platform-soc_107c000000_sound.stereo-fallback; \
+  SRC=alsa_input.platform-soc_107c000000_sound.stereo-fallback; \
+  for i in $(seq 1 60); do \
+    pactl list short sinks   2>/dev/null | grep -q "$SINK" && \
+    pactl list short sources 2>/dev/null | grep -q "$SRC"  && break; \
+    sleep 0.5; \
+  done; \
+  pactl list short modules 2>/dev/null | awk "/module-echo-cancel/{print \\$1}" | xargs -r -n1 pactl unload-module; \
+  pactl load-module module-echo-cancel \
+    source_name=ec_source \
+    sink_name=ec_sink \
+    sink_master="$SINK" \
+    source_master="$SRC" \
+    aec_method=webrtc \
+    use_master_format=true \
+    aec_args="\"analog_gain_control=0 digital_gain_control=1 noise_suppression=1 voice_detection=1 high_pass_filter=1 extended_filter=1\""; \
+  for i in 1 2 3; do \
+    pactl set-default-source ec_source; \
+    pactl set-default-sink   ec_sink; \
+    sleep 1; \
+    [ "$(pactl get-default-sink)"   = "ec_sink"   ] && \
+    [ "$(pactl get-default-source)" = "ec_source" ] && break; \
+  done; \
+  pactl set-source-volume "$SRC"     140%; \
+  pactl set-source-mute   "$SRC"     0; \
+  pactl set-sink-volume   "$SINK"    100%; \
+  pactl set-sink-mute     "$SINK"    0; \
+  pactl set-source-volume ec_source  140%; \
+  pactl set-source-mute   ec_source  0; \
+  pactl set-sink-volume   ec_sink    100%; \
+  pactl set-sink-mute     ec_sink    0 \
+'
+
+[Install]
+WantedBy=default.target

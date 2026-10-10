@@ -1,0 +1,10 @@
+# CH340 del lettore PN532: evita che ModemManager/brltty lo catturino.
+# NON usare SYSTEMD_WANTS qui: riavviare nfc-prep al plug ri-resetta l'USB
+# e può far fallire il touch (1a86:e5e3) sullo stesso hub interno.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Dopo tune termico / CPU idle il kernel sospende il CH340 dopo pochi secondi
+# → PN532 timeout / frame mismatch. Tieni sempre alimentato il lettore NFC.
+SUBSYSTEM=="usb", ATTR{idVendor}=="1a86", ATTR{idProduct}=="7523", \
+  ATTR{power/control}="on", ATTR{power/autosuspend}="-1"

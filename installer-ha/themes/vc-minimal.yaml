@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Tema "Videocitofono Minimal": fondo bianco sporco, card bianche, angoli
+# morbidi. Ispirato allo stile UI Lovelace Minimalist ma in chiaro.
+#
+# Va applicato PER VISTA (`theme:` nella view `vc-minimal`), non globalmente,
+# cosi' il resto di Home Assistant non cambia aspetto. Serve soprattutto a
+# garantire il fondo chiaro anche sui dispositivi che seguono il tema scuro di
+# sistema: i blocchi della plancia usano pastelli tenui, che su fondo nero
+# perderebbero contrasto.
+# ---------------------------------------------------------------------------
+Videocitofono Minimal:
+  # --- Superfici ----------------------------------------------------------
+  primary-background-color: "#f3f5f7"
+  secondary-background-color: "#ffffff"
+  card-background-color: "#ffffff"
+  ha-card-background: "#ffffff"
+  lovelace-background: "#f3f5f7"
+  app-header-background-color: "#f3f5f7"
+  app-header-text-color: "#1f2430"
+  divider-color: "rgba(31,36,48,0.08)"
+
+  # --- Testo --------------------------------------------------------------
+  primary-text-color: "#1f2430"
+  secondary-text-color: "#6b7280"
+  text-primary-color: "#ffffff"
+  disabled-text-color: "rgba(31,36,48,0.38)"
+
+  # --- Accento: il verde "porta aperta" usato nei blocchi principali -------
+  primary-color: "#2f7d4f"
+  accent-color: "#2f7d4f"
+  state-icon-color: "#4a5b6b"
+  paper-item-icon-color: "#4a5b6b"
+  paper-item-icon-active-color: "#2f7d4f"
+
+  # --- Card: senza bordo, ombra appena accennata, angoli molto morbidi ----
+  ha-card-border-radius: "18px"
+  ha-card-border-width: "0"
+  ha-card-box-shadow: "0 1px 3px rgba(16,24,40,0.06)"
+
+  # --- Spaziatura -----------------------------------------------------------
+  # Le prime due riguardano le colonne di sezioni della vista, le altre due la
+  # griglia interna di ciascuna sezione: vanno tenute uguali, altrimenti i
+  # blocchi affiancati dentro una sezione risultano piu' vicini fra loro di
+  # quanto lo siano dal registro nella colonna laterale.
+  ha-view-sections-column-gap: 14px
+  ha-view-sections-row-gap: 14px
+  ha-section-grid-column-gap: 14px
+  ha-section-grid-row-gap: 14px

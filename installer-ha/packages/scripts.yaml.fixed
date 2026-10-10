@@ -1,0 +1,528 @@
+cancello_ingresso:
+  sequence:
+  - action: switch.toggle
+    metadata: {}
+    data: {}
+    target:
+      entity_id: switch.sonoff_10023adcda_3
+  alias: Cancello Ingresso
+  description: ''
+  icon: mdi:boom-gate-outline
+cancello_strada:
+  sequence:
+  - action: switch.toggle
+    metadata: {}
+    data: {}
+    target:
+      entity_id: switch.sonoff_10023adcda_4
+  alias: Cancello Strada
+  description: ''
+  icon: mdi:boom-gate
+videocitofono_stop_ringtone:
+  alias: Videocitofono - Stop Suoneria
+  description: Ferma la suoneria avviata dal popup chiamata
+  icon: mdi:bell-off
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: |
+        try {
+          if (window.vcRingVisitor && window.vcRingVisitor.stop) {
+            window.vcRingVisitor.stop();
+          }
+          if (window._vcRing) {
+            window._vcRing.pause();
+            window._vcRing.currentTime = 0;
+            window._vcRing = null;
+          }
+          if (window._vcRingTimer) {
+            clearTimeout(window._vcRingTimer);
+            window._vcRingTimer = null;
+          }
+        } catch(e) { console.warn('vcRing stop:', e); }
+videocitofono_chiudi:
+  alias: Videocitofono - Chiudi chiamata
+  description: Ferma suoneria, teardown LiveKit, esce dalla view Conversazione e notifica il RPi (mqtt chiamata=terminata).
+  icon: mdi:phone-hangup
+  sequence:
+  - action: script.videocitofono_beep_call_close
+  - action: pyscript.update_registro_videocitofono
+    data:
+      azione: rifiutata
+  - action: script.videocitofono_stop_ringtone
+  - action: browser_mod.javascript
+    data:
+      code: "(async () => {\n  try {\n    const sv = document.getElementById('vc-selfview');\n    if (sv) sv.remove();\n \
+        \   if (window.vcLK && window.vcLK.isActive && window.vcLK.isActive()) {\n      await window.vcLK.stop();\n    }\n\
+        \    window._vcVideoUp = null;\n    window._vcAudioUp = null;\n  } catch(e) { console.warn('vc chiudi cleanup:', e);\
+        \ }\n})();\n"
+  - action: browser_mod.navigate
+    data:
+      path: /lovelace
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/chiamata
+      payload: terminata
+      qos: 1
+      retain: false
+  - if:
+    - condition: state
+      entity_id: input_boolean.videocitofono_video_uplink_attivo
+      state: 'on'
+    then:
+    - action: script.videocitofono_video_uplink_stop
+  - if:
+    - condition: state
+      entity_id: input_boolean.videocitofono_audio_uplink_attivo
+      state: 'on'
+    then:
+    - action: script.videocitofono_audio_uplink_stop
+videocitofono_video_uplink_start:
+  alias: Videocitofono - Video uplink START
+  description: Browser pubblica camera+mic alla LiveKit room "videocitofono" (server self-hosted su 192.168.1.160:7880). Il
+    consumer Pi e' LiveKitSubscribeClient (livekit-rtc Python SDK), avviato dal cambio schermata su MQTT videocitofono/responder/video=on.
+    Sostituisce il vecchio path WHIP/go2rtc che soffriva di encoder stalls (Chrome droppava fps a 0 senza RTCP feedback) e
+    cookie ingress instabile.
+  icon: mdi:video-account
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.videocitofono_video_uplink_attivo
+  - action: browser_mod.javascript
+    data:
+      code: "(async () => {\n  try {\n    if (window._vcVideoUp && window._vcVideoUp.active) {\n      console.warn('vcVideoUp\
+        \ gia attivo'); return;\n    }\n    const hassEl = document.querySelector('home-assistant');\n    const hass = hassEl\
+        \ && hassEl.hass;\n    if (!hass || !hass.callWS) throw new Error('hass.callWS non disponibile');\n    // Carica modulo\
+        \ helper LiveKit (idempotente).\n    if (!window.vcLK) {\n      await new Promise((res, rej) => {\n        const s\
+        \ = document.createElement('script');\n        s.src = '/local/vc-livekit.js?v=1';\n        s.onload = res; s.onerror\
+        \ = () => rej(new Error('load vc-livekit.js'));\n        document.head.appendChild(s);\n      });\n      await new\
+        \ Promise(r => setTimeout(r, 50));\n    }\n    if (!window.vcLK) throw new Error('window.vcLK non inizializzato');\n\
+        \    // Riusa stream pre-warmato dall'apertura popup, altrimenti acquisisci.\n    let stream;\n    const warm = window._vcVideoWarm;\n\
+        \    if (warm && warm.stream && !warm.consumed) {\n      warm.consumed = true;\n      stream = warm.stream;\n    \
+        \  try { warm.pc && warm.pc.close(); } catch(e){}\n      if (window._vcVideoWarmTimer) {\n        clearTimeout(window._vcVideoWarmTimer);\n\
+        \        window._vcVideoWarmTimer = null;\n      }\n      console.log('vcVideoUp riuso warmup stream (eta=', Date.now()-warm.t0,\
+        \ 'ms)');\n    } else {\n      stream = await navigator.mediaDevices.getUserMedia({\n        video: { width: { ideal:\
+        \ 480 }, height: { ideal: 480 }, frameRate: { ideal: 15, max: 20 } },\n        audio: { channelCount: 1, sampleRate:\
+        \ 48000, echoCancellation: true, noiseSuppression: true, autoGainControl: true }\n      });\n    }\n    await window.vcLK.start({\
+        \ stream, audioOnly: false });\n    window._vcVideoUp = { stream, active: true, livekit: true };\n    console.log('vcVideoUp\
+        \ LiveKit publish ok');\n    // Selfview \"picture-in-picture\" overlay: piccolo <video>\n    // floating in basso-sinistra\
+        \ che mostra la propria camera\n    // (stesso MediaStream pubblicato), per il rispondente che\n    // vuole sapere\
+        \ come e' inquadrato.\n    try {\n      const old = document.getElementById('vc-selfview');\n      if (old) old.remove();\n\
+        \      const sv = document.createElement('video');\n      sv.id = 'vc-selfview';\n      sv.muted = true; sv.autoplay\
+        \ = true; sv.playsInline = true;\n      sv.srcObject = stream;\n      Object.assign(sv.style, {\n        position:\
+        \ 'fixed', bottom: '24px', left: '24px',\n        width: '140px', height: '105px', objectFit: 'cover',\n        borderRadius:\
+        \ '10px', border: '2px solid #fff',\n        boxShadow: '0 4px 12px rgba(0,0,0,.5)',\n        zIndex: '100000', background:\
+        \ '#000', transform: 'scaleX(-1)'\n      });\n      sv.title = 'Click: Picture-in-Picture chiamata';\n      sv.addEventListener('click',\
+        \ () => {\n        try {\n          if (document.pictureInPictureElement) { document.exitPictureInPicture(); return;\
+        \ }\n          function deepVideos(root, out){\n            if (!root) return;\n            try {\n              root.querySelectorAll('video').forEach(v\
+        \ => out.push(v));\n              root.querySelectorAll('*').forEach(el => { if (el.shadowRoot) deepVideos(el.shadowRoot,\
+        \ out); });\n            } catch(e){}\n          }\n          const vids = []; deepVideos(document, vids);\n     \
+        \     const main = vids\n            .filter(v => v.id !== 'vc-selfview' && v.videoWidth > 0)\n            .sort((a,b)\
+        \ => (b.videoWidth*b.videoHeight) - (a.videoWidth*a.videoHeight))[0];\n          if (main && main.requestPictureInPicture)\
+        \ {\n            main.requestPictureInPicture().catch(e => console.warn('PiP fail:', e));\n          }\n        }\
+        \ catch(e) { console.warn('PiP toggle err:', e); }\n      });\n      document.body.appendChild(sv);\n    } catch(e){\
+        \ console.warn('selfview err:', e); }\n    // Notifica RPi che il publisher LiveKit e' pronto: il consumer\n    //\
+        \ livekit-rtc Pi parte e sottoscrive al primo participant_connected.\n    try {\n      hass.callService('mqtt', 'publish',\
+        \ {\n        topic: 'videocitofono/responder/video',\n        payload: 'on', qos: 1, retain: false\n      });\n  \
+        \  } catch(e){ console.warn('mqtt publish video=on err:', e); }\n    return;\n"
+videocitofono_video_uplink_stop:
+  alias: Videocitofono - Video uplink STOP
+  description: Chiude la sessione LiveKit (publish camera+mic) e libera il MediaStream. Pubblica MQTT videocitofono/responder/video=off
+    per far tornare il RPi alla schermata di chiamata.
+  icon: mdi:video-off
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: "(async () => {\n  try {\n    try {\n      if (document.pictureInPictureElement) {\n        await document.exitPictureInPicture().catch(()=>{});\n\
+        \      }\n      const sv = document.getElementById('vc-selfview');\n      if (sv) sv.remove();\n    } catch(e){ console.warn('selfview\
+        \ cleanup err:', e); }\n    if (window.vcLK && window.vcLK.isActive && window.vcLK.isActive()) {\n      await window.vcLK.stop();\n\
+        \      console.log('vcVideoUp LiveKit fermato');\n    }\n    window._vcVideoUp = null;\n    window._vcAudioUp = null;\n\
+        \  } catch (e) { console.warn('vcVideoUp stop:', e); }\n})();\n"
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/responder/video
+      payload: 'off'
+      qos: 1
+      retain: false
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.videocitofono_video_uplink_attivo
+videocitofono_audio_uplink_start:
+  alias: Videocitofono - Audio uplink START
+  description: Browser pubblica solo mic alla LiveKit room "videocitofono" (server self-hosted su 192.168.1.160:7880). Il
+    consumer Pi e' LiveKitSubscribeClient audio-only avviato da MQTT videocitofono/responder/audio=on. Riusa il MediaStream
+    del pre-warm popup quando disponibile.
+  icon: mdi:microphone
+  sequence:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.videocitofono_audio_uplink_attivo
+  - action: pyscript.update_registro_videocitofono
+    data:
+      azione: talkback
+  - action: browser_mod.javascript
+    data:
+      code: "(async () => {\n  try {\n    if (window._vcAudioUp && window._vcAudioUp.active) {\n      console.warn('vcAudioUp\
+        \ gia attivo'); return;\n    }\n    if (window._vcVideoUp && window._vcVideoUp.active) {\n      // video gia' include\
+        \ audio nello stesso publish LiveKit\n      console.log('vcAudioUp: video uplink attivo, audio gia incluso');\n  \
+        \    const hassEl0 = document.querySelector('home-assistant');\n      const hass0 = hassEl0 && hassEl0.hass;\n   \
+        \   try {\n        hass0 && hass0.callService('mqtt', 'publish', {\n          topic: 'videocitofono/responder/audio',\n\
+        \          payload: 'on', qos: 1, retain: false\n        });\n      } catch(e){}\n      window._vcAudioUp = { active:\
+        \ true, sharedWithVideo: true };\n      return;\n    }\n    const hassEl = document.querySelector('home-assistant');\n\
+        \    const hass = hassEl && hassEl.hass;\n    if (!hass) throw new Error('hass non disponibile');\n    if (!window.vcLK)\
+        \ {\n      await new Promise((res, rej) => {\n        const s = document.createElement('script');\n        s.src =\
+        \ '/local/vc-livekit.js?v=1';\n        s.onload = res; s.onerror = () => rej(new Error('load vc-livekit.js'));\n \
+        \       document.head.appendChild(s);\n      });\n      await new Promise(r => setTimeout(r, 50));\n    }\n    let\
+        \ stream;\n    const warm = window._vcVideoWarm;\n    if (warm && warm.stream && !warm.consumed && warm.stream.getAudioTracks().length\
+        \ > 0) {\n      warm.consumed = true;\n      stream = warm.stream;\n      try { warm.pc && warm.pc.close(); } catch(e){}\n\
+        \      try { stream.getVideoTracks().forEach(t => t.stop()); } catch(e){}\n      if (window._vcVideoWarmTimer) {\n\
+        \        clearTimeout(window._vcVideoWarmTimer);\n        window._vcVideoWarmTimer = null;\n      }\n      console.log('vcAudioUp\
+        \ riuso warmup audio');\n    } else {\n      stream = await navigator.mediaDevices.getUserMedia({\n        audio:\
+        \ { channelCount: 1, sampleRate: 48000, echoCancellation: true, noiseSuppression: true, autoGainControl: true }\n\
+        \      });\n    }\n    await window.vcLK.start({ stream, audioOnly: true });\n    window._vcAudioUp = { stream, active:\
+        \ true, sharedWithVideo: false, livekit: true };\n    try {\n      hass.callService('mqtt', 'publish', {\n       \
+        \ topic: 'videocitofono/responder/audio',\n        payload: 'on', qos: 1, retain: false\n      });\n    } catch(e){\
+        \ console.warn('mqtt publish audio=on err:', e); }\n    console.log('vcAudioUp LiveKit publish ok');\n    return;\n"
+videocitofono_audio_uplink_stop:
+  alias: Videocitofono - Audio uplink STOP
+  description: Chiude la sessione LiveKit audio-only e libera il microfono. Pubblica MQTT videocitofono/responder/audio=off
+    cosi' il consumer livekit-rtc su RPi ferma il proprio loop e il player ffmpeg.
+  icon: mdi:microphone-off
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: "(async () => {\n  try {\n    const u = window._vcAudioUp;\n    if (!u) return;\n    if (u.sharedWithVideo) {\n\
+        \      window._vcAudioUp = null;\n      return;\n    }\n    if (window.vcLK && window.vcLK.isActive && window.vcLK.isActive())\
+        \ {\n      await window.vcLK.stop();\n    }\n    window._vcAudioUp = null;\n  } catch (e) { console.warn('vcAudioUp\
+        \ stop:', e); }\n})();\n"
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/responder/audio
+      payload: 'off'
+      qos: 1
+      retain: false
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.videocitofono_audio_uplink_attivo
+videocitofono_apri_porta:
+  alias: Videocitofono - Apri porta
+  description: Ferma suoneria, apre cancello pedonale, chiude popup, registra azione e notifica il RPi (mqtt chiamata=porta_aperta).
+    Il RPi mostra "Porta aperta" sulla CallingScreen per 3 secondi, poi torna a Home (UX feedback visivo che l'apertura e'
+    avvenuta). Cleanup video uplink e talkback alla fine, in modo che il RPi entri nello stato overlay PRIMA di ricevere responder/video=off
+    (che altrimenti farebbe la transition conversation -> calling).
+  icon: mdi:door-open
+  sequence:
+  - action: script.videocitofono_beep_door_open
+  - action: script.videocitofono_stop_ringtone
+  - action: script.cancello_ingresso
+  - action: pyscript.update_registro_videocitofono
+    data:
+      azione: apertura
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.stato_chiamata_videocitofono
+        state: 'on'
+      sequence:
+      - action: browser_mod.navigate
+        data:
+          path: /lovelace
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/chiamata
+      payload: porta_aperta
+      qos: 1
+      retain: false
+  - if:
+    - condition: state
+      entity_id: input_boolean.videocitofono_video_uplink_attivo
+      state: 'on'
+    then:
+    - action: script.videocitofono_video_uplink_stop
+  - if:
+    - condition: state
+      entity_id: input_boolean.videocitofono_audio_uplink_attivo
+      state: 'on'
+    then:
+    - action: script.videocitofono_audio_uplink_stop
+videocitofono_cambia_pin_admin:
+  alias: Videocitofono - Cambia PIN amministratore
+  description: Invia il nuovo PIN amministratore (helper input_text.videocitofono_admin_pin) al RPi via MQTT (set_admin_pin).
+    Il RPi valida (4-8 cifre numeriche), aggiorna users.json e pubblica evento admin_pin_changed/admin_pin_error. Dopo l'invio
+    l'helper viene svuotato per non lasciare il PIN visibile in HA. Validazione lato HA per feedback immediato all'utente.
+  icon: mdi:shield-refresh
+  mode: single
+  variables:
+    pin_value: '{{ states(''input_text.videocitofono_admin_pin'') | trim }}'
+  sequence:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: "{{ pin_value not in ['unavailable','unknown',''] and\n   pin_value.isdigit() and 4 <= pin_value |\
+          \ length <= 8 }}"
+      sequence:
+      - action: mqtt.publish
+        data:
+          topic: videocitofono/cmd
+          qos: 1
+          retain: false
+          payload: '{"action":"set_admin_pin","pin": {{ pin_value | tojson }} }'
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.videocitofono_admin_pin
+        data:
+          value: ''
+      - action: persistent_notification.create
+        data:
+          title: Videocitofono
+          message: Nuovo PIN amministratore inviato al Raspberry ({{ pin_value | length }} cifre). L'utente "admin" e' stato
+            creato/aggiornato; il PIN appena digitato e' stato rimosso dall'helper per sicurezza.
+          notification_id: videocitofono_admin_pin
+    default:
+    - action: persistent_notification.create
+      data:
+        title: Videocitofono
+        message: PIN amministratore non valido. Inserisci 4-8 cifre numeriche nel campo "Nuovo PIN" e riprova.
+        notification_id: videocitofono_admin_pin
+videocitofono_test_chiamata:
+  alias: Videocitofono - Test chiamata
+  description: Simula una chiamata pubblicando MQTT (chiamata_in_corso per ~25s, poi annullata)
+  icon: mdi:phone-incoming
+  variables:
+    camp_id: '{%- set v = states(''input_text.videocitofono_campanello1_id'') | trim -%} {%- if v and v not in [''unavailable'',''unknown'']
+      %}{{ v }}{% else %}mario_rossi{% endif -%}'
+  mode: restart
+  sequence:
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/chiamata
+      payload: '{"stato":"chiamata_in_corso","campanello":"{{ camp_id }}"}'
+      qos: 1
+      retain: false
+  - delay: 00:00:25
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/chiamata
+      payload: annullata
+      qos: 1
+      retain: false
+videocitofono_carica_defaults:
+  alias: Videocitofono - Carica defaults
+  description: Ripristina helper HA ai valori in videocitofono_defaults.json e propaga al RPi
+  icon: mdi:backup-restore
+  sequence:
+  - action: pyscript.videocitofono_carica_defaults
+  - action: script.videocitofono_applica_config
+videocitofono_applica_config:
+  alias: Videocitofono - Applica configurazione
+  description: Raccoglie tutti i valori dei pannelli Famiglie/Accessi/Aspetto e li invia all'unità esterna RPi tramite MQTT
+    (videocitofono/cmd set_config). I valori `unavailable` o vuoti vengono ignorati.
+  icon: mdi:cloud-upload
+  mode: restart
+  variables:
+    cfg: "{%- macro num(eid, default) -%}\n  {%- set v = states(eid) -%}\n  {%- if v in ['unavailable','unknown',''] %}{{\
+      \ default }}{% else %}{{ v }}{%- endif -%}\n{%- endmacro -%} {%- macro txt(eid) -%}\n  {%- set v = states(eid) -%}\n\
+      \  {%- if v in ['unavailable','unknown'] %}{% else %}{{ v }}{%- endif -%}\n{%- endmacro -%} {%- macro boolv(eid) -%}\n\
+      \  {%- set v = states(eid) -%}\n  {%- if v in ['unavailable','unknown'] %}null{% elif v == 'on' %}true{% else %}false{%\
+      \ endif -%}\n{%- endmacro -%} {%- set ns = namespace(camp=[]) -%} {%- for n in [1,2,3,4] -%}\n  {%- set cid = states('input_text.videocitofono_campanello'\
+      \ ~ n ~ '_id') | trim -%}\n  {%- set cnm = states('input_text.videocitofono_campanello' ~ n ~ '_nome') | trim -%}\n\
+      \  {%- set cic = states('input_select.videocitofono_campanello' ~ n ~ '_icona') -%}\n  {%- if cic in ['unavailable','unknown','default','']\
+      \ %}{% set cic = '' %}{% endif -%}\n  {%- if cid and cid not in ['unavailable','unknown'] -%}\n    {%- set entry = {'id':\
+      \ cid, 'nome': cnm or cid, 'icona': cic} -%}\n    {%- set ns.camp = ns.camp + [entry] -%}\n  {%- endif -%}\n{%- endfor\
+      \ -%} {%- set out = {} -%} {%- if ns.camp %}{% set out = dict(out, **{'campanelli': ns.camp}) %}{% endif -%}\n{%- set\
+      \ ui = {} -%} {%- set ind = txt('input_text.videocitofono_indirizzo') | trim -%} {%- if ind %}{% set ui = dict(ui, indirizzo=ind)\
+      \ %}{% endif -%} {%- set ba = states('input_number.videocitofono_brightness_active') -%} {%- if ba not in ['unavailable','unknown','']\
+      \ %}{% set ui = dict(ui, brightness_active_pct=(ba | int)) %}{% endif -%} {%- set bi = states('input_number.videocitofono_brightness_idle')\
+      \ -%} {%- if bi not in ['unavailable','unknown',''] %}{% set ui = dict(ui, brightness_idle_pct=(bi | int)) %}{% endif\
+      \ -%} {%- set idl = states('input_number.videocitofono_idle_dim_timeout') -%} {%- if idl not in ['unavailable','unknown','']\
+      \ %}{% set ui = dict(ui, idle_dim_sec=(idl | int)) %}{% endif -%} {%- set ss = states('input_number.videocitofono_screensaver_timeout')\
+      \ -%} {%- if ss not in ['unavailable','unknown',''] %}{% set ui = dict(ui, screensaver_timeout_sec=(ss | int)) %}{%\
+      \ endif -%} {%- set lng = txt('input_select.videocitofono_lingua') | trim -%} {%- if lng %}{% set ui = dict(ui, language=lng)\
+      \ %}{% endif -%} {%- set sf = txt('input_select.videocitofono_sfondo') | trim -%} {%- if sf %}{% set ui = dict(ui, sfondo=sf)\
+      \ %}{% endif -%} {%- set dnd = states('input_boolean.videocitofono_dnd') -%} {%- if dnd not in ['unavailable','unknown']\
+      \ %}{% set ui = dict(ui, dnd=(dnd=='on')) %}{% endif -%} {%- set vfb = states('input_number.videocitofono_volume_feedback')\
+      \ -%} {%- if vfb not in ['unavailable','unknown',''] %}{% set ui = dict(ui, feedback_volume=((vfb | float) / 100.0))\
+      \ %}{% endif -%} {%- if ui %}{% set out = dict(out, ui=ui) %}{% endif -%}\n{%- set mo = {} -%} {%- set me = states('input_boolean.videocitofono_motion_enabled')\
+      \ -%} {%- if me not in ['unavailable','unknown'] %}{% set mo = dict(mo, enabled=(me=='on')) %}{% endif -%} {%- set ms\
+      \ = states('input_number.videocitofono_motion_sensitivity') -%} {%- if ms not in ['unavailable','unknown',''] %}{% set\
+      \ mo = dict(mo, area_thresh_pct=(ms | float)) %}{% endif -%} {%- if mo %}{% set out = dict(out, motion=mo) %}{% endif\
+      \ -%}\n{%- set pn = {} -%} {%- set pne = states('input_boolean.videocitofono_pin_enabled') -%} {%- if pne not in ['unavailable','unknown']\
+      \ %}{% set pn = dict(pn, enabled=(pne=='on')) %}{% endif -%} {%- if pn %}{% set out = dict(out, pin=pn) %}{% endif -%}\n\
+      {%- set fa = {} -%} {%- set fae = states('input_boolean.videocitofono_face_enabled') -%} {%- if fae not in ['unavailable','unknown']\
+      \ %}{% set fa = dict(fa, enabled=(fae=='on')) %}{% endif -%} {%- set faliv = states('input_boolean.videocitofono_liveness')\
+      \ -%} {%- if faliv not in ['unavailable','unknown'] %}{% set fa = dict(fa, liveness_enabled=(faliv=='on')) %}{% endif\
+      \ -%} {%- set faauto = states('input_boolean.videocitofono_auto_recognize') -%} {%- if faauto not in ['unavailable','unknown']\
+      \ -%}\n  {%- set ar = {'enabled': (faauto=='on')} -%}\n  {%- set fa = dict(fa, auto_recognize=ar) -%}\n{%- endif -%}\
+      \ {%- if fa %}{% set out = dict(out, face_recognition=fa) %}{% endif -%}\n{%- set fi = {} -%} {%- set fie = states('input_boolean.videocitofono_finger_enabled')\
+      \ -%} {%- if fie not in ['unavailable','unknown'] %}{% set fi = dict(fi, enabled=(fie=='on')) %}{% endif -%} {%- if\
+      \ fi %}{% set out = dict(out, fingerprint=fi) %}{% endif -%}\n{%- set nf = {} -%} {%- set nfe = states('input_boolean.videocitofono_nfc_enabled')\
+      \ -%} {%- if nfe not in ['unavailable','unknown'] %}{% set nf = dict(nf, enabled=(nfe=='on')) %}{% endif -%} {%- if\
+      \ nf %}{% set out = dict(out, nfc=nf) %}{% endif -%}\n{%- set au = {} -%} {%- set ae = states('input_boolean.videocitofono_audio_locale_enabled')\
+      \ -%} {%- if ae not in ['unavailable','unknown'] %}{% set au = dict(au, enabled=(ae=='on')) %}{% endif -%} {%- set vsp = states('input_number.videocitofono_volume_speaker')\
+      \ -%} {%- if vsp not in ['unavailable','unknown',''] %}{% set au = dict(au, volume_speaker_pct=(vsp | int)) %}{% endif\
+      \ -%} {%- set vmc = states('input_number.videocitofono_volume_microfono') -%} {%- if vmc not in ['unavailable','unknown','']\
+      \ %}{% set au = dict(au, volume_mic_pct=(vmc | int)) %}{% endif -%} {%- set sn = txt('input_select.videocitofono_suoneria')\
+      \ | trim -%} {%- if sn %}{% set au = dict(au, suoneria=sn) %}{% endif -%} {%- if au %}{% set out = dict(out, audio=au)\
+      \ %}{% endif -%}\n{%- set tt = {} -%} {%- set vts = states('input_number.videocitofono_volume_tts') -%} {%- if vts not\
+      \ in ['unavailable','unknown',''] %}{% set tt = dict(tt, volume=((vts | float) / 100.0)) %}{% endif -%} {%- if tt %}{%\
+      \ set out = dict(out, tts=tt) %}{% endif -%}\n{#- Bug Jinja: 'set' dentro un for crea variabile scope-locale al\n  \
+      \  loop, quindi accumulare con `set ai = dict(ai, **{...})` ricrea\n    un dict vuoto ad ogni iterazione e fuori dal\
+      \ loop ai resta {}.\n    Workaround: namespace mutabile. -#}\n{%- set ains = namespace(d={}) -%} {%- for k, ent in [('pin','input_select.videocitofono_metodo_pin_icona'),\n\
+      \                   ('face','input_select.videocitofono_metodo_face_icona'),\n                   ('fingerprint','input_select.videocitofono_metodo_fingerprint_icona'),\n\
+      \                   ('nfc','input_select.videocitofono_metodo_nfc_icona')] -%}\n  {%- set v = states(ent) -%}\n  {%-\
+      \ if v in ['unavailable','unknown','default',''] %}{% set v = '' %}{% endif -%}\n  {%- set ains.d = dict(ains.d, **{k:\
+      \ v}) -%}\n{%- endfor -%} {%- if ains.d %}{% set out = dict(out, access_icons=ains.d) %}{% endif -%}\n{{ out | tojson\
+      \ }}"
+  sequence:
+  - choose:
+    - conditions: '{{ cfg | from_json | length > 0 }}'
+      sequence:
+      - action: mqtt.publish
+        data:
+          topic: videocitofono/cmd
+          qos: 1
+          retain: false
+          payload: '{"action":"set_config","persist_default":true,"config": {{ cfg }} }'
+      - action: pyscript.videocitofono_refresh_icone
+      - action: persistent_notification.create
+        data:
+          title: Videocitofono
+          message: 'Configurazione inviata all''unità esterna ({{ (cfg | from_json) | list | length }} sezioni: {{ (cfg |
+            from_json) | list | join('', '') }}).'
+          notification_id: videocitofono_applica_config
+    default:
+    - action: persistent_notification.create
+      data:
+        title: Videocitofono
+        message: Nessun valore valido da inviare (tutti gli helper sono unavailable o vuoti).
+        notification_id: videocitofono_applica_config
+  - if:
+    - condition: template
+      value_template: '{{ states(''input_text.videocitofono_admin_pin'') not in [''unavailable'',''unknown'',''''] }}'
+    then:
+    - action: mqtt.publish
+      data:
+        topic: videocitofono/cmd
+        qos: 1
+        retain: false
+        payload: '{"action":"set_admin_pin","pin": {{ states(''input_text.videocitofono_admin_pin'') | tojson }} }'
+videocitofono_beep_call_open:
+  alias: Videocitofono - Beep apertura chiamata
+  description: 'Feedback acustico breve "pickup" (due toni ascendenti) quando l''utente risponde audio o video. Suoni sintetizzati
+    via Web Audio API: niente file esterni, latenza ~0ms (decode-free), funziona offline.'
+  icon: mdi:phone-incoming
+  mode: parallel
+  max: 5
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: "try {\n  const AC = window.AudioContext || window.webkitAudioContext;\n  if (!AC) return;\n  const ctx = window._vcBeepCtx\
+        \ || (window._vcBeepCtx = new AC());\n  if (ctx.state === 'suspended') { try { ctx.resume(); } catch(e){} }\n  const\
+        \ t0 = ctx.currentTime;\n  function ping(start, freq, dur) {\n    const osc = ctx.createOscillator();\n    const g\
+        \ = ctx.createGain();\n    osc.type = 'sine';\n    osc.frequency.value = freq;\n    g.gain.setValueAtTime(0, start);\n\
+        \    g.gain.linearRampToValueAtTime(0.18, start + 0.01);\n    g.gain.exponentialRampToValueAtTime(0.0001, start +\
+        \ dur);\n    osc.connect(g).connect(ctx.destination);\n    osc.start(start);\n    osc.stop(start + dur + 0.02);\n\
+        \  }\n  ping(t0, 660, 0.10);\n  ping(t0 + 0.11, 990, 0.14);\n} catch(e) { console.warn('vcBeep open err:', e); }\n"
+videocitofono_beep_call_close:
+  alias: Videocitofono - Beep chiusura chiamata
+  description: Feedback acustico breve "hangup" (due toni discendenti) quando l'utente chiude la chiamata. Sintetizzato via
+    Web Audio API.
+  icon: mdi:phone-hangup
+  mode: parallel
+  max: 5
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: "try {\n  const AC = window.AudioContext || window.webkitAudioContext;\n  if (!AC) return;\n  const ctx = window._vcBeepCtx\
+        \ || (window._vcBeepCtx = new AC());\n  if (ctx.state === 'suspended') { try { ctx.resume(); } catch(e){} }\n  const\
+        \ t0 = ctx.currentTime;\n  function ping(start, freq, dur) {\n    const osc = ctx.createOscillator();\n    const g\
+        \ = ctx.createGain();\n    osc.type = 'sine';\n    osc.frequency.value = freq;\n    g.gain.setValueAtTime(0, start);\n\
+        \    g.gain.linearRampToValueAtTime(0.18, start + 0.01);\n    g.gain.exponentialRampToValueAtTime(0.0001, start +\
+        \ dur);\n    osc.connect(g).connect(ctx.destination);\n    osc.start(start);\n    osc.stop(start + dur + 0.02);\n\
+        \  }\n  ping(t0, 720, 0.12);\n  ping(t0 + 0.13, 480, 0.18);\n} catch(e) { console.warn('vcBeep close err:', e); }\n"
+videocitofono_beep_door_open:
+  alias: Videocitofono - Beep apertura porta
+  description: Feedback acustico singolo (beep alto stile citofono) quando l'utente apre la porta dal popup. Sintetizzato
+    via Web Audio API.
+  icon: mdi:door-open
+  mode: parallel
+  max: 5
+  sequence:
+  - action: browser_mod.javascript
+    data:
+      code: "try {\n  const AC = window.AudioContext || window.webkitAudioContext;\n  if (!AC) return;\n  const ctx = window._vcBeepCtx\
+        \ || (window._vcBeepCtx = new AC());\n  if (ctx.state === 'suspended') { try { ctx.resume(); } catch(e){} }\n  const\
+        \ t0 = ctx.currentTime;\n  // Square wave per timbro \"buzzer\" tipico apriporta.\n  const osc = ctx.createOscillator();\n\
+        \  const g = ctx.createGain();\n  osc.type = 'square';\n  osc.frequency.value = 1320;\n  g.gain.setValueAtTime(0,\
+        \ t0);\n  g.gain.linearRampToValueAtTime(0.12, t0 + 0.01);\n  g.gain.setValueAtTime(0.12, t0 + 0.30);\n  g.gain.exponentialRampToValueAtTime(0.0001,\
+        \ t0 + 0.42);\n  osc.connect(g).connect(ctx.destination);\n  osc.start(t0);\n  osc.stop(t0 + 0.45);\n} catch(e) {\
+        \ console.warn('vcBeep door err:', e); }\n"
+videocitofono_test_suoneria:
+  alias: Videocitofono - Test suoneria
+  description: Avvia una breve suoneria (8s) tramite popup chiamata
+  icon: mdi:music-circle
+  variables:
+    camp_id: '{%- set v = states(''input_text.videocitofono_campanello1_id'') | trim -%} {%- if v and v not in [''unavailable'',''unknown'']
+      %}{{ v }}{% else %}mario_rossi{% endif -%}'
+  mode: restart
+  sequence:
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/chiamata
+      payload: '{"stato":"chiamata_in_corso","campanello":"{{ camp_id }}"}'
+      qos: 1
+      retain: false
+  - delay: 00:00:08
+  - action: script.videocitofono_chiudi
+videocitofono_crea_guest_pin:
+  alias: Videocitofono - Crea PIN ospite
+  description: Genera un PIN ospite con etichetta/durata/usi/scope dagli input
+  icon: mdi:key-plus
+  mode: parallel
+  sequence:
+  - service: pyscript.videocitofono_create_guest_pin
+    data:
+      label: '{{ states(''input_text.videocitofono_guest_label'') | default('''', true) }}'
+      valid_hours: '{{ states(''input_number.videocitofono_guest_valid_hours'') | float(24) }}'
+      max_uses: '{{ states(''input_number.videocitofono_guest_max_uses'') | int(1) }}'
+      scope: '{{ states(''input_select.videocitofono_guest_scope'') | default(''porta'', true) }}'
+videocitofono_revoca_guest_pin:
+  alias: Videocitofono - Revoca PIN ospite
+  description: Revoca un PIN ospite dato il suo id
+  icon: mdi:key-remove
+  mode: parallel
+  fields:
+    id:
+      description: ID del PIN ospite da revocare
+      example: abc123
+  sequence:
+  - service: pyscript.videocitofono_revoke_guest_pin
+    data:
+      id_: '{{ id }}'
+videocitofono_riavvia_app:
+  alias: Videocitofono - Riavvia app su RPi
+  icon: mdi:restart
+  mode: single
+  sequence:
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/cmd
+      qos: 1
+      payload: >-
+        {"action":"restart_app","token":"{{ states('input_text.videocitofono_cmd_token') | default('') }}"}
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono
+      message: Riavvio app richiesto sul Raspberry.
+      notification_id: videocitofono_riavvia_app
+videocitofono_pulisci_registro:
+  alias: Videocitofono - Pulisci registro chiamate
+  icon: mdi:broom
+  mode: single
+  sequence:
+  - action: pyscript.pulisci_registro_videocitofono
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono
+      message: Registro chiamate e video locali HA puliti.
+      notification_id: videocitofono_pulisci_registro

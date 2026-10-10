@@ -1,0 +1,83 @@
+{
+  "type": "vertical-stack",
+  "title": "Salute Videocitofono",
+  "cards": [
+    {
+      "type": "horizontal-stack",
+      "cards": [
+        {
+          "type": "gauge",
+          "entity": "sensor.videocitofono_health",
+          "attribute": "temp_c",
+          "name": "Temperatura",
+          "min": 30,
+          "max": 85,
+          "severity": {"green": 30, "yellow": 65, "red": 75},
+          "needle": true
+        },
+        {
+          "type": "gauge",
+          "entity": "sensor.videocitofono_health",
+          "attribute": "cpu_pct",
+          "name": "CPU",
+          "min": 0,
+          "max": 100,
+          "needle": true
+        },
+        {
+          "type": "gauge",
+          "entity": "sensor.videocitofono_health",
+          "attribute": "mem_pct",
+          "name": "Memoria",
+          "min": 0,
+          "max": 100,
+          "needle": true
+        }
+      ]
+    },
+    {
+      "type": "entities",
+      "title": "Sottosistemi",
+      "entities": [
+        {"entity": "sensor.videocitofono_health", "name": "Riepilogo", "attribute": "status_summary"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "nfc_status", "name": "NFC"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "mqtt_connected", "name": "MQTT"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "motion_status", "name": "Motion"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "go2rtc_status", "name": "go2rtc"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "net_gw_ms", "name": "Latenza gateway (ms)"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "service_mode", "name": "Modalità servizio"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "pending_calls", "name": "Chiamate in coda"}
+      ]
+    },
+    {
+      "type": "markdown",
+      "content": "{% set s = state_attr('sensor.videocitofono_health', 'status_summary') | default('—') %}\n{% set down = state_attr('sensor.videocitofono_health', 'status_down') | default('') %}\n**Stato:** {{ s }}{% if down %} — {{ down }}{% endif %}"
+    },
+    {
+      "type": "button",
+      "name": "Riavvia app RPi",
+      "icon": "mdi:restart",
+      "tap_action": {"action": "call-service", "service": "script.videocitofono_riavvia_app"}
+    },
+    {
+      "type": "history-graph",
+      "title": "Trend 24h",
+      "hours_to_show": 24,
+      "refresh_interval": 60,
+      "entities": [
+        {"entity": "sensor.videocitofono_temp", "name": "Temperatura"},
+        {"entity": "sensor.videocitofono_cpu", "name": "CPU"}
+      ]
+    },
+    {
+      "type": "entities",
+      "title": "Statistiche 24h",
+      "entities": [
+        {"entity": "sensor.videocitofono_temp_media_24h", "name": "Temp media"},
+        {"entity": "sensor.videocitofono_temp_max_24h", "name": "Temp max"},
+        {"entity": "sensor.videocitofono_cpu_media_24h", "name": "CPU media"},
+        {"entity": "sensor.videocitofono_cpu_max_24h", "name": "CPU max"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,282 @@
+# Vista Home ridisegnata - stile "Glassmorphism" (modello fornito).
+# Iniettata in .storage/lovelace.lovelace come vista 0 da scripts/apply_glass_dashboard.py
+# Dipendenze: card-mod, mushroom, button-card (nav). Tema: Glassmorphism (per-vista).
+title: Home
+path: home
+icon: mdi:home
+type: sections
+max_columns: 3
+theme: Glassmorphism
+subview: false
+sections:
+  # ============ COLONNA 1: OROLOGIO + METEO + INFO ============
+  - type: grid
+    column_span: 1
+    cards:
+      # --- Orologio + data ---
+      - type: custom:button-card
+        entity: sensor.time
+        name: " "
+        show_icon: false
+        show_state: true
+        show_label: true
+        label: |
+          [[[
+            const d = new Date();
+            const giorni = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+            const mesi = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+            return d.getDate() + ' ' + mesi[d.getMonth()] + ' ' + d.getFullYear();
+          ]]]
+        styles:
+          card:
+            - background: none
+            - border: none
+            - box-shadow: none
+            - padding: 4px 6px 0 6px
+          grid:
+            - grid-template-areas: '"s" "l"'
+            - grid-template-rows: min-content min-content
+          state:
+            - font-size: 64px
+            - font-weight: 300
+            - letter-spacing: 1px
+            - color: white
+            - justify-self: start
+            - line-height: 1.0
+          label:
+            - font-size: 16px
+            - color: rgba(255,255,255,0.65)
+            - justify-self: start
+            - text-transform: capitalize
+            - padding-top: 2px
+      # --- Meteo ---
+      - type: custom:button-card
+        entity: weather.forecast_casa
+        show_name: false
+        show_state: false
+        show_icon: false
+        tap_action:
+          action: more-info
+        custom_fields:
+          ico: |
+            [[[
+              const m = {'clear-night':'🌙','cloudy':'☁️','fog':'🌫️','hail':'🌨️','lightning':'⛈️','lightning-rainy':'⛈️','partlycloudy':'⛅','pouring':'🌧️','rainy':'🌧️','snowy':'❄️','snowy-rainy':'🌨️','sunny':'☀️','windy':'🌬️','windy-variant':'🌬️','exceptional':'⚠️'};
+              return '<span style="font-size:54px">'+(m[entity.state]||'🌡️')+'</span>';
+            ]]]
+          temp: |
+            [[[ return '<span style="font-size:40px;font-weight:300;color:#fff">'+Math.round(entity.attributes.temperature)+'°</span>'; ]]]
+          det: |
+            [[[
+              const a = entity.attributes;
+              const w = a.wind_speed!=null ? Math.round(a.wind_speed)+' '+(a.wind_speed_unit||'km/h') : '–';
+              const h = a.humidity!=null ? a.humidity+'%' : '–';
+              return '<div style="text-align:right;color:rgba(255,255,255,0.62);font-size:12px;line-height:1.5">Vento '+w+'<br>Umidità '+h+'</div>';
+            ]]]
+        styles:
+          card:
+            - padding: 14px 16px
+          grid:
+            - grid-template-areas: '"ico temp" "ico det"'
+            - grid-template-columns: 1fr 1fr
+            - align-items: center
+          custom_fields:
+            ico:
+              - justify-self: start
+            temp:
+              - justify-self: end
+              - align-self: end
+            det:
+              - justify-self: end
+      # --- Titolo sezione INFO ---
+      - type: markdown
+        content: "INFO CASA"
+        card_mod:
+          style: |
+            ha-card {
+              background: none !important; border: none !important;
+              box-shadow: none !important; backdrop-filter: none !important;
+              padding: 6px 6px 0 6px !important; margin-top: 6px;
+            }
+            ha-card h1, ha-card p { color: rgba(255,255,255,0.55) !important;
+              font-size: 13px !important; letter-spacing: 2px; font-weight: 600;
+              margin: 0 !important; }
+      - type: custom:mushroom-template-card
+        primary: Luci accese
+        secondary: |
+          {{ states.light | selectattr('state','eq','on') | list | count }} luci attive
+        icon: mdi:lightbulb-group
+        icon_color: amber
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/home
+      - type: custom:mushroom-template-card
+        primary: Cancello strada
+        secondary: "{{ 'Aperto' if is_state('lock.quadro_generale','unlocked') else 'Chiuso' }}"
+        icon: >-
+          {{ 'mdi:gate-open' if is_state('lock.quadro_generale','unlocked') else 'mdi:gate' }}
+        icon_color: "{{ 'red' if is_state('lock.quadro_generale','unlocked') else 'green' }}"
+        tap_action:
+          action: more-info
+        entity: lock.quadro_generale
+
+  # ============ COLONNA 2: SICUREZZA + MULTIMEDIA ============
+  - type: grid
+    column_span: 1
+    cards:
+      - type: heading
+        heading: SICUREZZA
+        heading_style: subtitle
+      - type: custom:mushroom-alarm-control-panel-card
+        entity: alarm_control_panel.blink_casa
+        name: Allarme
+        fill_container: true
+        states:
+          - armed_home
+          - armed_away
+          - disarmed
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: lock.quadro_generale
+            name: Cancello
+            icon: mdi:gate
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-template-card
+            primary: Telecamere
+            secondary: Trullo
+            icon: mdi:cctv
+            icon_color: blue
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/vcp-sicurezza
+      - type: heading
+        heading: MULTIMEDIA
+        heading_style: subtitle
+      - type: custom:mushroom-media-player-card
+        entity: media_player.altoparlanti
+        name: Altoparlanti
+        use_media_info: true
+        media_controls:
+          - play_pause_stop
+          - next
+        volume_controls:
+          - volume_buttons
+        fill_container: true
+      - type: custom:mushroom-media-player-card
+        entity: media_player.tv_del_soggiorno_2
+        name: TV Soggiorno
+        use_media_info: true
+        media_controls:
+          - play_pause_stop
+        fill_container: true
+
+  # ============ COLONNA 3: FAMIGLIA + VIDEOCITOFONO ============
+  - type: grid
+    column_span: 1
+    cards:
+      - type: heading
+        heading: FAMIGLIA
+        heading_style: subtitle
+      - type: grid
+        columns: 2
+        square: true
+        cards:
+          - type: custom:button-card
+            entity: person.mario_rossi
+            show_entity_picture: true
+            show_name: true
+            show_state: true
+            size: 70px
+            name: Vincenzo
+            styles:
+              card:
+                - padding: 12px
+              img_cell:
+                - border-radius: 50%
+                - overflow: hidden
+                - width: 70px
+                - height: 70px
+              entity_picture:
+                - border-radius: 50%
+              name:
+                - font-size: 13px
+                - color: white
+                - padding-top: 8px
+              state:
+                - font-size: 11px
+                - color: rgba(255,255,255,0.55)
+            state:
+              - value: home
+                styles:
+                  img_cell:
+                    - border: 3px solid '#43d17a'
+              - operator: '!='
+                value: home
+                styles:
+                  img_cell:
+                    - border: 3px solid '#ff5a5a'
+          - type: custom:button-card
+            entity: person.giulia_bianchi
+            show_entity_picture: true
+            show_name: true
+            show_state: true
+            size: 70px
+            name: Stefania
+            styles:
+              card:
+                - padding: 12px
+              img_cell:
+                - border-radius: 50%
+                - overflow: hidden
+                - width: 70px
+                - height: 70px
+              entity_picture:
+                - border-radius: 50%
+              name:
+                - font-size: 13px
+                - color: white
+                - padding-top: 8px
+              state:
+                - font-size: 11px
+                - color: rgba(255,255,255,0.55)
+            state:
+              - value: home
+                styles:
+                  img_cell:
+                    - border: 3px solid '#43d17a'
+              - operator: '!='
+                value: home
+                styles:
+                  img_cell:
+                    - border: 3px solid '#ff5a5a'
+      - type: heading
+        heading: VIDEOCITOFONO
+        heading_style: subtitle
+      - type: custom:mushroom-template-card
+        primary: Apri videocitofono
+        secondary: Citofono, telecamere, accessi
+        icon: mdi:doorbell-video
+        icon_color: cyan
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/videocitfono
+      - type: custom:mushroom-template-card
+        primary: Simula campanello
+        secondary: Test chiamata
+        icon: mdi:bell-ring
+        icon_color: orange
+        tap_action:
+          action: call-service
+          service: script.videocitofono_simulate_doorbell
+
+  # ============ BARRA DI NAVIGAZIONE (template decluttering ufficiale) ============
+  - type: grid
+    column_span: 3
+    cards:
+      - type: custom:decluttering-card
+        template: bottom-menu-fixed
+        variables:
+          - active_path: /lovelace/home

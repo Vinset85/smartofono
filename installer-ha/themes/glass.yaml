@@ -1,0 +1,65 @@
+# Tema "Glassmorphism" per le dashboard videocitofono / casa.
+# Effetto vetro scuro + sfondo sfocato, ispirato al modello fornito.
+# Richiede: card-mod (per card-mod-card / card-mod-root / card-mod-view).
+# Applicare con `theme: Glassmorphism` a livello di vista (non globale),
+# cosi' l'header viene nascosto SOLO nelle viste ridisegnate.
+Glassmorphism:
+  # --- Palette base ---
+  primary-color: "#4ea1ff"
+  accent-color: "#4ea1ff"
+  app-header-background-color: "transparent"
+  app-header-text-color: "rgba(255,255,255,0.9)"
+  primary-background-color: "#0e1116"
+  secondary-background-color: "#0e1116"
+  divider-color: "rgba(255,255,255,0.08)"
+
+  # --- Testo ---
+  primary-text-color: "#ffffff"
+  secondary-text-color: "rgba(255,255,255,0.62)"
+  text-primary-color: "#ffffff"
+  disabled-text-color: "rgba(255,255,255,0.38)"
+
+  # --- Icone ---
+  state-icon-color: "rgba(255,255,255,0.9)"
+  paper-item-icon-color: "rgba(255,255,255,0.9)"
+  paper-item-icon-active-color: "#ffd45e"
+
+  # --- Card (vetro) ---
+  ha-card-background: "rgba(22,26,34,0.55)"
+  card-background-color: "rgba(22,26,34,0.55)"
+  ha-card-border-radius: "20px"
+  ha-card-border-width: "1px"
+  ha-card-border-color: "rgba(255,255,255,0.07)"
+  ha-card-box-shadow: "0 8px 30px rgba(0,0,0,0.35)"
+
+  # --- Mushroom ---
+  mush-rgb-card-background: "22,26,34"
+  mush-card-border-radius: "20px"
+  mush-control-border-radius: "14px"
+  mush-icon-border-radius: "14px"
+  mush-card-primary-font-weight: "600"
+
+  # --- Sfondo dashboard: foto sfocata (modello) + overlay scuro leggibilita' ---
+  # Per cambiare foto: sostituire /local/sfondi/bg.jpg
+  lovelace-background: >-
+    linear-gradient(rgba(8,10,14,0.55), rgba(8,10,14,0.72)),
+    url('/local/sfondi/bg.jpg') center / cover no-repeat fixed
+
+  # --- card-mod globale (attivo dove il tema e' applicato) ---
+  # NB: header/sidebar nascosti via kiosk_mode (config dashboard), non qui.
+  card-mod-theme: Glassmorphism
+  card-mod-view: |
+    :host {
+      --ha-view-sections-column-gap: 16px;
+      --ha-view-sections-row-gap: 16px;
+    }
+  # Effetto vetro su ogni card
+  card-mod-card: |
+    ha-card {
+      background: rgba(22,26,34,0.55) !important;
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 20px !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35) !important;
+    }

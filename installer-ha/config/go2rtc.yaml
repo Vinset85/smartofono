@@ -1,0 +1,101 @@
+# go2rtc Home Assistant addon (a889bffc_go2rtc) — distribution relay
+# ============================================================================
+# Architettura:
+#   [RPi camera] → rpicam-vid → go2rtc(RPi:1984) ─RTSP pull persistente─→
+#   go2rtc(HA:1984) → browser (WebRTC LAN locale, RTT <10ms)
+#
+# Razionale:
+# - Il link WiFi del RPi è inaffidabile (RTT 700-900ms, bufferbloat severo).
+#   Mettere WebRTC direttamente browser↔RPi significa fare ICE/DTLS handshake
+#   su quel path lentissimo: cold-start 5+ secondi e drop frequenti.
+# - go2rtc su HA mantiene UNA sola connessione RTSP persistente verso RPi.
+#   Il producer rpicam-vid resta sempre attivo (consumer always-on = HA),
+#   quindi keyframes e GOP corrente sono già in buffer su HA.
+# - I client browser parlano WebRTC SOLO con HA (LAN cablata, RTT <10ms).
+#   Cold-start atteso: <1 secondo. Multi-client: 1 sola connessione al RPi
+#   indipendentemente dal numero di tablet/browser aperti.
+#
+# Quando si caglerà il RPi via Ethernet, l'architettura non va toccata:
+# il vantaggio multi-client e il pre-warm del producer restano comunque utili.
+
+streams:
+  # Stesso nome dello stream sul RPi per non dover toccare la card Lovelace
+  # (custom:webrtc-camera con url: pi5cam_h264 continua a funzionare puntando
+  # al go2rtc HA che ora è il suo server di default via integration WebRTC).
+  pi5cam_h264:
+    # rtsp://...#video=copy → no transcoding, passa H.264 raw end-to-end.
+    # #audio=copy → trasporta anche la traccia Opus (microfono VoiceHAT
+    # del RPi, vedi installer-rpi/config/go2rtc.yaml). Senza questo hint
+    # go2rtc seleziona solo la traccia video del producer RTSP e il browser
+    # HA non riceve l'uplink audio dal visitatore.
+    # rtsp_transport=tcp forza TCP invece di UDP: su WiFi marcio del RPi,
+    # UDP perderebbe pacchetti a raffica; TCP ritrasmette e mantiene il flusso
+    # integro al costo di latenza più alta sul primo hop (mascherata dal buffer
+    # WebRTC del browser che fa jitter compensation).
+    - rtsp://192.168.1.185:8554/pi5cam_h264?rtsp_transport=tcp#video=copy#audio=copy
+
+  # Alias di pi5cam_h264 per non rompere camera.record dell'automation
+  # videocitofono che storicamente puntava a pi5cam_av. Adesso pi5cam_h264
+  # ha gia' video+audio (vedi sopra) quindi questo punta allo stesso source.
+  # Mantenuto come alias separato per chiarezza semantica nelle action HA
+  # (pi5cam_av = "stream pensato per la registrazione MP4 con audio sync").
+  pi5cam_av:
+    - rtsp://192.168.1.185:8554/pi5cam_h264?rtsp_transport=tcp#video=copy#audio=copy
+
+  # NOTA: lo stream "responder_av" (uplink browser->RPi via WHIP) e' stato
+  # rimosso nel refactor 2026-04 a favore di LiveKit self-hosted
+  # (192.168.1.160:7880). Il browser HA ora pubblica camera+mic come
+  # participant LiveKit; il Pi consuma via livekit-rtc Python SDK
+  # (vedi installer-rpi/app/modules/livekit_client.py).
+  # Vantaggi: niente encoder stalls (RTCP gestito da libwebrtc), niente
+  # cookie ingress, riconnessione automatica.
+  # go2rtc resta SOLO per RPi -> HA video (RTSP pull persistente).
+
+api:
+  listen: ":1984"
+  origin: "*"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  # Bind ESPLICITO solo sull'IP LAN dell'HA (no 0.0.0.0): l'addon gira con
+  # host_network: true, quindi ascolta su tutte le interfacce dell'host se
+  # listen=":8555" — incluse le bridge Docker (172.30.x). Questo fa pubblicare
+  # a go2rtc candidate ICE "host" multipli che il browser non può raggiungere
+  # (172.x sono interne all'host HA), portando ICE a ripiegare su candidate
+  # "prflx" (peer-reflexive) o STUN. Forzando il bind a 192.168.1.160 viene
+  # pubblicato un solo host candidate LAN, raggiungibile dai client interni.
+  # I pacchetti UDP che arrivano dal WAN (browser remoto) hanno comunque
+  # destination IP 192.168.1.160 dopo il NAT del router → arrivano qui.
+  listen: "192.168.1.160:8555"
+  candidates:
+    # Candidate "host" per browser in LAN (tablet/PC interni): connessione
+    # diretta host↔host, RTT <10ms, zero NAT traversal.
+    - 192.168.1.160:8555
+    # Candidate per browser remoti via DuckDNS: hostname risolto a runtime
+    # all'IP pubblico del router. Più affidabile di "stun:" perché:
+    # 1) non dipende da STUN server esterni che possono throttle/down,
+    # 2) gestisce IP pubblico dinamico via DDNS già esistente.
+    # PORTA 8190 (NON 8555): l'IliadBox limita le porte esterne pubbliche
+    # a max 8191 (per riservare range alti ad altri servizi interni Iliad),
+    # quindi nel port-forward del router abbiamo:
+    #   esterna UDP/TCP 8190 → interna 192.168.1.160:8555
+    # Il browser remoto deve quindi colpire la PORTA ESTERNA 8190; il NAT
+    # del router la traduce sulla porta interna 8555 dove go2rtc ascolta.
+    - casa-esempio.duckdns.org:8190
+    # Fallback srflx via STUN: scopre dinamicamente IP pubblico + porta
+    # esterna mappata dal NAT (utile se il router non preserva la porta
+    # nel forward, anche se IliadBox in genere lo fa).
+    - stun:8555
+  ice_servers:
+    # STUN pubblico Google: usato sia da go2rtc per scoprire IP pubblico
+    # (vedi candidate "stun:8555" sopra), sia dal browser remoto per
+    # scoprire i propri candidate srflx. Senza questo, da remoto il browser
+    # offrirebbe solo candidate host del proprio LAN privato → no media flow.
+    - urls: [stun:stun.l.google.com:19302]
+
+log:
+  level: info
+  api: warn
+  exec: info

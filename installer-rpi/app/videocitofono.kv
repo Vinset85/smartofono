@@ -1,0 +1,1102 @@
+#:kivy 2.3.0
+
+# ============================================================================
+# Videocitofono - Postazione Esterna - Kivy stylesheet
+# ============================================================================
+
+# Palette
+#:set BG_DARK    (0.07, 0.09, 0.12, 1)
+#:set BG_PANEL   (0.13, 0.15, 0.20, 1)
+#:set ACCENT     (0.27, 0.62, 0.96, 1)
+#:set ACCENT_DK  (0.18, 0.45, 0.75, 1)
+#:set OK         (0.18, 0.74, 0.42, 1)
+#:set KO         (0.90, 0.30, 0.30, 1)
+#:set TEXT       (0.95, 0.95, 0.97, 1)
+#:set MUTED      (0.65, 0.68, 0.72, 1)
+
+
+# StencilBox: FloatLayout con stencil clipping dei children al proprio
+# rettangolo. Usato per fare un object-fit: cover su Image che eccede il
+# container (vedi <FaceScreen> camera preview). Eredita da FloatLayout
+# (NON da StencilView) cosi' i children con size_hint vengono dimensionati
+# correttamente; lo stencil e' implementato a mano via canvas instructions.
+<StencilBox@FloatLayout>:
+    size_hint: 1, 1
+    canvas.before:
+        StencilPush
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        StencilUse
+    canvas.after:
+        StencilUnUse
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        StencilPop
+
+
+<RoundButton>:
+    background_normal: ''
+    background_color: 0, 0, 0, 0
+    color: TEXT
+    font_size: '22sp'
+    canvas.before:
+        Color:
+            rgba: self.bg_color_pressed if self.state == 'down' else self.bg_color
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: self.radius
+
+
+<CallButton>:
+    orientation: 'horizontal'
+    padding: '32dp', '24dp', '32dp', '24dp'
+    spacing: '32dp'
+    size_hint_y: None
+    height: '220dp'
+    # Card "dark glass" con sfumatura su pressione
+    canvas.before:
+        Color:
+            rgba: (0.10, 0.12, 0.16, 0.85) if self.state == 'down' else (0.13, 0.15, 0.20, 0.62)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: self.radius
+        # Bordo sottile chiaro per effetto vetro
+        Color:
+            rgba: 1, 1, 1, 0.06
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, self.radius[0])
+            width: 1.2
+    # Avatar circolare (Image se path, altrimenti emoji line-style)
+    FloatLayout:
+        size_hint_x: None
+        width: '150dp'
+        Image:
+            source: root.icona if root.icona else ''
+            allow_stretch: True
+            keep_ratio: True
+            size_hint: None, None
+            size: self.parent.width * 0.95, self.parent.width * 0.95
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            opacity: 1 if root.icona else 0
+        Label:
+            text: root.icona_emoji
+            font_name: 'Symbola'
+            font_size: '96sp'
+            color: TEXT
+            opacity: 0 if root.icona else 1
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+    Label:
+        text: root.nominativo
+        font_size: '60sp'
+        bold: True
+        color: TEXT
+        halign: 'left'
+        valign: 'middle'
+        text_size: self.size
+        shorten: True
+        shorten_from: 'right'
+
+
+<IconAccessButton>:
+    orientation: 'vertical'
+    padding: '12dp'
+    spacing: 0
+    canvas.before:
+        Color:
+            rgba: (0.10, 0.12, 0.16, 0.85) if self.state == 'down' else (0.13, 0.15, 0.20, 0.62)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: self.radius
+        Color:
+            rgba: 1, 1, 1, 0.06
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, self.radius[0])
+            width: 1.2
+    FloatLayout:
+        size_hint: 1, 1
+        # 1) Icona vettoriale (preferita): line-art disegnata via canvas
+        VectorIcon:
+            icon_type: root.icon_type
+            icon_color: TEXT
+            size_hint: None, None
+            size: min(self.parent.width, self.parent.height) * 0.66, min(self.parent.width, self.parent.height) * 0.66
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            opacity: 1 if root.icon_type else 0
+        # 2) Fallback PNG (retro-compat) - usato solo se manca icon_type
+        Image:
+            source: root.icona if (not root.icon_type and root.icona) else ''
+            allow_stretch: True
+            keep_ratio: True
+            mipmap: True
+            color: 1, 1, 1, 1
+            size_hint: None, None
+            size: min(self.parent.width, self.parent.height) * 0.62, min(self.parent.width, self.parent.height) * 0.62
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            opacity: 1 if (not root.icon_type and root.icona) else 0
+        # 3) Fallback glyph unicode (retro-compat)
+        Label:
+            text: root.simbolo if (not root.icon_type and not root.icona) else ''
+            font_name: 'Symbola'
+            font_size: min(self.parent.width, self.parent.height) * 0.62
+            color: TEXT
+            size_hint: None, None
+            size: self.parent.width, self.parent.height
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            halign: 'center'
+            valign: 'middle'
+            opacity: 0 if (root.icon_type or root.icona) else 1
+
+
+<HomeScreen>:
+    # Sfondo immagine astratta sfocata (full screen). bg_source dinamico
+    # (sfondo personalizzato) con fallback su assets/bg.png.
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        # Velo scuro per leggibilità testo
+        Color:
+            rgba: 0, 0, 0, 0.18
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '28dp', '40dp', '28dp', '32dp'
+        spacing: '20dp'
+        Label:
+            text: root.offline_banner
+            opacity: 1 if root.offline_banner else 0
+            size_hint_y: None
+            height: '36dp' if root.offline_banner else 0
+            font_size: '15sp'
+            bold: True
+            color: 1, 0.75, 0.35, 1
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        # Spazio elastico in alto (mostra parte dello sfondo)
+        Widget:
+            size_hint_y: 0.22
+        # Lista campanelli (scroll, 1 colonna) - card glass
+        ScrollView:
+            do_scroll_x: False
+            GridLayout:
+                id: lista_campanelli
+                cols: 1
+                spacing: '16dp'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: 0, 0, 0, '4dp'
+        # Bottoniera in basso (metodi accesso attivi, quadrati glass).
+        GridLayout:
+            id: bottoniera_accessi
+            cols: 4
+            spacing: '14dp'
+            size_hint_y: None
+            height: (self.width / max(self.cols, 1)) if (self.width and self.cols) else '180dp'
+
+
+# ============================================================================
+# Stile condiviso schermate "interne" (Calling/Pin/Face/Finger/Nfc/Result)
+# Sfondo dinamico identico a HomeScreen (root.bg_source con fallback assets/bg.png),
+# velo scuro per leggibilita', card "dark glass" per i contenuti.
+# ============================================================================
+
+<GlassCard@BoxLayout>:
+    canvas.before:
+        Color:
+            rgba: 0.13, 0.15, 0.20, 0.62
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [22]
+        Color:
+            rgba: 1, 1, 1, 0.06
+        Line:
+            rounded_rectangle: (self.x, self.y, self.width, self.height, 22)
+            width: 1.2
+
+
+<CallingScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.45
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '28dp', '40dp', '28dp', '40dp'
+        spacing: '24dp'
+        Widget:
+            size_hint_y: 0.18
+        Label:
+            id: titolo_chiamata
+            text: root.title_text
+            font_size: '72sp'
+            bold: True
+            color: TEXT
+            size_hint_y: None
+            height: self.texture_size[1] if self.texture_size else 0
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.width, None
+        Label:
+            id: nominativo_chiamato
+            text: root.nominativo
+            font_size: '42sp'
+            color: 0.95, 0.95, 0.97, 0.85
+            size_hint_y: None
+            height: self.texture_size[1] if self.texture_size else 0
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.width, None
+        Label:
+            id: timer_label
+            text: root.timer_text
+            font_size: '38sp'
+            bold: True
+            color: 1, 1, 1, 0.7
+            size_hint_y: None
+            height: '60dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        Widget:
+        RoundButton:
+            text: 'Annulla chiamata'
+            bg_color: KO
+            bg_color_pressed: (0.65, 0.18, 0.18, 1)
+            font_size: '34sp'
+            bold: True
+            size_hint_y: None
+            height: '160dp'
+            radius: [28]
+            on_release: root.annulla()
+
+
+<ConversationScreen>:
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    FloatLayout:
+        BoxLayout:
+            orientation: 'vertical'
+            padding: '20dp', 0, '20dp', '20dp'
+            spacing: '14dp'
+            size_hint: 1, 1
+            Image:
+                id: video
+                allow_stretch: True
+                keep_ratio: True
+                size_hint: 1, 1
+            RoundButton:
+                text: 'Chiudi chiamata'
+                bg_color: KO
+                bg_color_pressed: (0.65, 0.18, 0.18, 1)
+                font_size: '34sp'
+                bold: True
+                size_hint_y: None
+                height: '140dp'
+                radius: [28]
+                on_release: root.on_close()
+        # Selfview "picture-in-picture": preview locale rpicam in alto-dx,
+        # snapshot JPEG da go2rtc locale ogni 200ms (vedi conversation.py).
+        # Aggiornato solo durante la chiamata video, opacity 0 quando il
+        # texture non e' ancora pronto per evitare flash bianco.
+        Image:
+            id: selfview
+            size_hint: None, None
+            size: '160dp', '120dp'
+            pos_hint: {'right': 0.97, 'top': 0.97}
+            allow_stretch: True
+            keep_ratio: True
+            opacity: 0
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 0.9
+                Rectangle:
+                    pos: self.x - 2, self.y - 2
+                    size: self.width + 4, self.height + 4
+                Color:
+                    rgba: 0, 0, 0, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        # Overlay che copre il video durante hold "Porta aperta" /
+        # "Chiamata terminata" (3s prima del torna-a-home).
+        # IMPORTANTE: quando overlay_text e' vuoto deve avere size 0,0
+        # (collapsed) altrimenti rimane sovrapposto al BoxLayout del
+        # bottone "Chiudi chiamata" e intercetta i touch anche con
+        # disabled=True (un Layout disabled in Kivy non blocca il
+        # dispatch ai children; basta un canvas/aria invisibile per
+        # confondere il dispatcher e bloccare il bottone sotto).
+        FloatLayout:
+            id: overlay_box
+            size_hint: (1, 1) if root.overlay_text else (None, None)
+            size: (0, 0) if not root.overlay_text else (100, 100)
+            opacity: 1 if root.overlay_text else 0
+            disabled: not root.overlay_text
+            canvas.before:
+                Color:
+                    rgba: (0, 0, 0, 0.78) if root.overlay_text else (0, 0, 0, 0)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Label:
+                text: root.overlay_text
+                font_size: '72sp'
+                bold: True
+                color: TEXT
+                halign: 'center'
+                valign: 'middle'
+                size_hint: 0.9, None
+                height: self.texture_size[1] if self.texture_size else 0
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                text_size: self.width, None
+
+
+# Tasto numerico circolare stile iOS lock-screen: cerchio bianco
+# semi-trasparente al centro della cella, glyph bianco grande.
+# Il cerchio e' calcolato sulla dimensione minima della cella per
+# restare sempre cerchio anche se la cella non e' quadrata.
+# Diametro = 70% della cella (lascia aria fra i tasti).
+<GlassNumButton>:
+    background_normal: ''
+    background_color: 0, 0, 0, 0
+    color: 1, 1, 1, 0.95
+    # Cerchio leggermente piu' piccolo (86% di min(w,h)). Combinato con
+    # l'altezza riga ridotta del GridLayout, riduce sia la dimensione dei
+    # tasti sia il gap verticale tra le righe.
+    font_size: min(self.width, self.height) * 0.40
+    bold: False
+    canvas.before:
+        # Riempimento cerchio
+        Color:
+            rgba: (1, 1, 1, 0.40) if self.state == 'down' else (1, 1, 1, 0.20)
+        Ellipse:
+            pos: self.center_x - min(self.width, self.height) * 0.43, self.center_y - min(self.width, self.height) * 0.43
+            size: min(self.width, self.height) * 0.86, min(self.width, self.height) * 0.86
+        # Bordo sottile
+        Color:
+            rgba: 1, 1, 1, 0.18
+        Line:
+            ellipse: (self.center_x - min(self.width, self.height) * 0.43, self.center_y - min(self.width, self.height) * 0.43, min(self.width, self.height) * 0.86, min(self.width, self.height) * 0.86)
+            width: 1.2
+
+<PinActionButton>:
+    background_normal: ''
+    background_color: 0, 0, 0, 0
+
+<PinScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.55
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        # Padding orizzontale = 0: il margine 10% lo gestisce il GridLayout.
+        # Verticalmente solo un piccolo cuscinetto: il bilanciamento e'
+        # affidato a 3 spacer flessibili (uno sopra al titolo, uno tra
+        # messaggio e keypad, uno sotto al keypad) che hanno tutti
+        # size_hint_y=1 e dunque ricevono altezza uguale -> il blocco
+        # "Inserisci PIN + pallini" risulta centrato verticalmente nello
+        # spazio sopra il tastierino, e il tastierino centrato tra esso
+        # e il fondo schermo.
+        padding: 0, '12dp', 0, '12dp'
+        spacing: '4dp'
+        # Spacer flessibile sopra il titolo: bilancia lo spazio bianco
+        # superiore con quello fra messaggio e keypad.
+        Widget:
+            size_hint_y: 1
+        # Header: titolo "Inserisci PIN" centrato (X spostata nel tastierino).
+        # Piu' grande per maggiore presenza visiva.
+        Label:
+            text: 'Inserisci PIN'
+            font_size: '60sp'
+            bold: True
+            color: 1, 1, 1, 0.95
+            size_hint_y: None
+            height: '96dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        # Spaziatore tra titolo e display PIN (gap verticale dedicato).
+        Widget:
+            size_hint_y: None
+            height: '28dp'
+        # Display PIN: cerchi pieni (iOS-style). font Symbola per il
+        # rendering garantito di U+25CF anche su font di sistema senza
+        # quel glifo.
+        Label:
+            id: pin_display
+            text: root.pin_display
+            font_name: 'Symbola'
+            font_size: '52sp'
+            bold: True
+            color: 1, 1, 1, 0.95
+            size_hint_y: None
+            height: '64dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        # Riga messaggio (welcome / errori): font ingrandito in modo che
+        # "PIN errato" risulti immediatamente leggibile a distanza.
+        # Rosso se errore.
+        Label:
+            id: messaggio
+            text: root.messaggio
+            font_size: '44sp'
+            bold: True
+            color: KO if root.errore else (1, 1, 1, 0.80)
+            size_hint_y: None
+            height: '60dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        # Spacer flessibile SOPRA il keypad: insieme al gemello sotto
+        # mantiene il GridLayout centrato verticalmente nello spazio
+        # rimanente, indipendentemente dalla risoluzione.
+        Widget:
+            size_hint_y: 1
+        # Tastierino 3x4: larghezza 80% (margine 10% per lato), altezza
+        # fissata in modo che le righe siano compatte e i tasti non
+        # appaiano troppo distanziati verticalmente. row_force_default
+        # uniforma le 4 righe.
+        GridLayout:
+            cols: 3
+            spacing: '0dp', '0dp'
+            size_hint: 0.80, None
+            pos_hint: {'center_x': 0.5}
+            row_force_default: True
+            row_default_height: min(self.width / 3.6, (self.parent.height - dp(220)) / 4) if self.parent else self.width / 3.6
+            height: self.row_default_height * 4
+            GlassNumButton:
+                text: '1'
+                on_release: root.add_digit('1')
+            GlassNumButton:
+                text: '2'
+                on_release: root.add_digit('2')
+            GlassNumButton:
+                text: '3'
+                on_release: root.add_digit('3')
+            GlassNumButton:
+                text: '4'
+                on_release: root.add_digit('4')
+            GlassNumButton:
+                text: '5'
+                on_release: root.add_digit('5')
+            GlassNumButton:
+                text: '6'
+                on_release: root.add_digit('6')
+            GlassNumButton:
+                text: '7'
+                on_release: root.add_digit('7')
+            GlassNumButton:
+                text: '8'
+                on_release: root.add_digit('8')
+            GlassNumButton:
+                text: '9'
+                on_release: root.add_digit('9')
+            # X (chiusura): senza cerchio glass, solo glyph (contrasto
+            # iOS-like: i tasti azione si distinguono dai numerici).
+            PinActionButton:
+                color: 1, 1, 1, (0.95 if self.state == 'down' else 0.78)
+                text: '\u2715'
+                font_name: 'Symbola'
+                font_size: min(self.width, self.height) * 0.36
+                on_release: root.go_home()
+            GlassNumButton:
+                text: '0'
+                on_release: root.add_digit('0')
+            # Backspace: icona disegnata a canvas (pentagono "tag"
+            # con punta a sinistra + × interna). Visivamente molto
+            # piu' pulito del glyph U+232B di Symbola.
+            PinActionButton:
+                on_release: root.backspace()
+                canvas.before:
+                    PushMatrix
+                    # Centra l'icona nella cella e scalala al 36% della
+                    # dimensione minima (coerente con i numeri).
+                    Translate:
+                        xy: self.center_x, self.center_y
+                    Scale:
+                        xyz: min(self.width, self.height) * 0.0035, min(self.width, self.height) * 0.0035, 1
+                canvas:
+                    Color:
+                        rgba: 1, 1, 1, (0.98 if self.state == 'down' else 0.85)
+                    # Outline pentagono "tag" (punta a sinistra, lati
+                    # orizzontali, lato destro verticale). Coordinate
+                    # in unita' relative scalate sopra: 100 unita' = ~36% cella.
+                    Line:
+                        points: -50, 0, -22, 36, 60, 36, 60, -36, -22, -36, -50, 0
+                        width: 4
+                        cap: 'round'
+                        joint: 'round'
+                        close: True
+                    # × interna
+                    Line:
+                        points: -2, -16, 38, 16
+                        width: 4
+                        cap: 'round'
+                    Line:
+                        points: -2, 16, 38, -16
+                        width: 4
+                        cap: 'round'
+                canvas.after:
+                    PopMatrix
+        # Spacer finale: riempie lo spazio rimanente sotto il keypad
+        # mantenendo l'intero gruppo agganciato in alto.
+        Widget:
+            size_hint_y: 1
+
+
+<FaceScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.55
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp', '80dp', '20dp', '28dp'
+        spacing: '14dp'
+        # Header (titolo + sottotitolo) raggruppato in alto, distanziato.
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: '110dp'
+            spacing: '6dp'
+            Label:
+                text: 'Riconoscimento facciale'
+                font_size: '40sp'
+                bold: True
+                color: TEXT
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size
+            Label:
+                id: status_face
+                text: root.stato
+                font_size: '24sp'
+                bold: True
+                color: (0.20, 0.95, 0.65, 1) if root.face_detected else ACCENT
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size
+        # Card video con overlay AR (sagoma ovale + scan line + bracket).
+        # La preview e' "cover" (riempie il container e crop): cosi' la cam
+        # 640x480 landscape si vede grande in viewport portrait, senza bande
+        # nere. Il cropping e' al di sopra/sotto della scena, il volto
+        # centrale resta visibile e dentro la sagoma ovale.
+        GlassCard:
+            orientation: 'vertical'
+            padding: 0
+            FloatLayout:
+                size_hint: 1, 1
+                # 1) Cam preview (cover crop dentro StencilBox). Il video
+                # riempie l'intero rettangolo della card (nessun bordo).
+                StencilBox:
+                    id: cam_clip
+                    size_hint: 1, 1
+                    pos_hint: {'x': 0, 'y': 0}
+                    Image:
+                        id: cam_preview
+                        source: 'assets/placeholder_camera.png'
+                        allow_stretch: True
+                        keep_ratio: True
+                        size_hint: None, None
+                        # cover-fit (object-fit: cover): per coprire un
+                        # container WxH con una sorgente 4:3 (640x480) basta
+                        # prendere il max tra (H*4/3) e (W) per la larghezza
+                        # e il max tra (W*3/4) e (H) per l'altezza. Le due
+                        # formule danno sempre lo stesso aspect ratio 4:3.
+                        width: max(cam_clip.width, cam_clip.height * 4 / 3)
+                        height: max(cam_clip.height, cam_clip.width * 3 / 4)
+                        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                # 2) Overlay scansione (FUORI dallo StencilBox per non
+                # essere clippato). Disegna sagoma ovale bianca + linea
+                # orizzontale arancione che scorre lenta top->bottom.
+                FaceMeshOverlay:
+                    id: face_overlay
+                    size_hint: 1, 1
+                    pos_hint: {'x': 0, 'y': 0}
+                    phase: root.phase
+                    scanning: root.scanning
+                    face_detected: root.face_detected
+                # 3) Cover di avvio camera: copre l'area video finche' non
+                # arriva il primo frame live (evita di mostrare il frame
+                # "vecchio" della sessione precedente). Mostra il messaggio
+                # di stato (root.stato = "Avvio riconoscimento facciale") che
+                # pulsa dolcemente; svanisce con un fade quando la cam e'
+                # pronta (vedi FaceScreen._on_camera_ready).
+                BoxLayout:
+                    id: cam_startup
+                    orientation: 'vertical'
+                    size_hint: 1, 1
+                    pos_hint: {'x': 0, 'y': 0}
+                    canvas.before:
+                        Color:
+                            rgba: 0.04, 0.05, 0.08, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    Label:
+                        id: cam_startup_lbl
+                        text: root.stato
+                        font_size: '26sp'
+                        bold: True
+                        color: ACCENT
+                        halign: 'center'
+                        valign: 'middle'
+                        text_size: self.size
+        # Bottone Annulla in stile "glass card" coerente con HomeScreen
+        # (IconAccessButton): fondo scuro semi-trasparente, bordo sottile
+        # chiaro, angoli arrotondati, feedback al tocco.
+        Button:
+            text: 'Annulla'
+            font_size: '38sp'
+            bold: True
+            color: TEXT
+            background_normal: ''
+            background_down: ''
+            background_color: 0, 0, 0, 0
+            size_hint_y: None
+            height: '170dp'
+            on_release: root.go_home()
+            canvas.before:
+                Color:
+                    rgba: (0.10, 0.12, 0.16, 0.85) if self.state == 'down' else (0.13, 0.15, 0.20, 0.62)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [28]
+                Color:
+                    rgba: 1, 1, 1, 0.06
+                Line:
+                    rounded_rectangle: (self.x, self.y, self.width, self.height, 28)
+                    width: 1.4
+
+
+<FingerScreen>:
+    titolo: 'Riconoscimento impronta'
+    icon_type: 'fingerprint'
+    icona_emoji: ''
+    sottotitolo: 'Posiziona il dito sul lettore'
+    nota: 'Modulo non ancora installato (Fase 2 hardware)'
+
+
+<NfcScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.55
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp', '80dp', '20dp', '28dp'
+        spacing: '14dp'
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: '110dp'
+            spacing: '6dp'
+            Label:
+                text: 'Lettura NFC'
+                font_size: '40sp'
+                bold: True
+                color: TEXT
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size
+            Label:
+                text: root.stato
+                font_size: '24sp'
+                bold: True
+                color: KO if root.errore else (OK if not root.scanning else ACCENT)
+                halign: 'center'
+                valign: 'middle'
+                text_size: self.size
+        GlassCard:
+            orientation: 'vertical'
+            padding: 0
+            size_hint_y: 1
+            canvas.before:
+                Color:
+                    rgba: (0.50, 0.10, 0.10, 0.72) if root.errore else (0.13, 0.15, 0.20, 0.62)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [28]
+            FloatLayout:
+                id: nfc_icon_area
+                size_hint: 1, 1
+                VectorIcon:
+                    icon_type: root.icon_type
+                    icon_color: TEXT
+                    size_hint: None, None
+                    size: root.icon_px_w, root.icon_px_h
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    opacity: 1 if root.icon_type and root.icon_px_w else 0
+                Image:
+                    source: root.icona if (not root.icon_type and root.icona) else ''
+                    allow_stretch: False
+                    keep_ratio: True
+                    mipmap: True
+                    color: 1, 1, 1, 1
+                    size_hint: None, None
+                    size: root.icon_px_w, root.icon_px_h
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    opacity: 1 if (not root.icon_type and root.icona and root.icon_px_w) else 0
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint: 1, None
+                    height: '200dp'
+                    pos_hint: {'x': 0, 'y': 0}
+                    padding: '12dp', '16dp'
+                    spacing: '6dp'
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 0.35
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [18]
+                    Label:
+                        text: root.messaggio
+                        font_size: '36sp'
+                        bold: True
+                        color: KO if root.errore else TEXT
+                        size_hint_y: None
+                        height: '56dp'
+                        halign: 'center'
+                        valign: 'middle'
+                        text_size: self.size
+                    Label:
+                        text: root.dettaglio
+                        font_size: '22sp'
+                        color: KO if root.errore else MUTED
+                        size_hint_y: None
+                        height: '40dp'
+                        halign: 'center'
+                        valign: 'middle'
+                        text_size: self.size
+        Button:
+            text: 'Annulla'
+            font_size: '38sp'
+            bold: True
+            color: TEXT
+            background_normal: ''
+            background_down: ''
+            background_color: 0, 0, 0, 0
+            size_hint_y: None
+            height: '170dp'
+            on_release: root.go_home()
+            canvas.before:
+                Color:
+                    rgba: (0.10, 0.12, 0.16, 0.85) if self.state == 'down' else (0.13, 0.15, 0.20, 0.62)
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [28]
+                Color:
+                    rgba: 1, 1, 1, 0.06
+                Line:
+                    rounded_rectangle: (self.x, self.y, self.width, self.height, 28)
+                    width: 1.4
+
+
+<PlaceholderScreenBase>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.45
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '28dp', '40dp', '28dp', '32dp'
+        spacing: '20dp'
+        Label:
+            text: root.titolo
+            font_size: '46sp'
+            bold: True
+            color: TEXT
+            size_hint_y: None
+            height: '70dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        GlassCard:
+            orientation: 'vertical'
+            padding: '24dp'
+            FloatLayout:
+                VectorIcon:
+                    icon_type: root.icon_type
+                    icon_color: ACCENT
+                    size_hint: None, None
+                    size: min(self.parent.width, self.parent.height) * 0.85, min(self.parent.width, self.parent.height) * 0.85
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    opacity: 1 if root.icon_type else 0
+                Label:
+                    text: root.icona_emoji if not root.icon_type else ''
+                    font_name: 'Symbola'
+                    font_size: '220sp'
+                    color: ACCENT
+                    halign: 'center'
+                    valign: 'middle'
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    opacity: 0 if root.icon_type else 1
+        Label:
+            text: root.sottotitolo
+            font_size: '28sp'
+            bold: True
+            color: 1, 1, 1, 0.9
+            size_hint_y: None
+            height: '60dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        Label:
+            text: root.nota
+            font_size: '20sp'
+            color: 1, 1, 1, 0.55
+            size_hint_y: None
+            height: '50dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        RoundButton:
+            text: 'Indietro'
+            font_size: '26sp'
+            bold: True
+            bg_color: (0.40, 0.42, 0.46, 1)
+            size_hint_y: None
+            height: '110dp'
+            radius: [22]
+            on_release: root.go_home()
+
+
+<ResultScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.45
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '32dp', '60dp', '32dp', '40dp'
+        spacing: '24dp'
+        GlassCard:
+            orientation: 'vertical'
+            padding: '24dp'
+            # Se image_source e' presente mostra l'immagine (rimpicciolita
+            # ~65% per dare piu' enfasi al titolo sotto); altrimenti ricade
+            # sull'emoji classica (✓/✕).
+            AnchorLayout:
+                anchor_x: 'center'
+                anchor_y: 'center'
+                Image:
+                    source: root.image_source
+                    allow_stretch: True
+                    keep_ratio: True
+                    opacity: 1 if root.image_source else 0
+                    size_hint: (root.image_scale, root.image_scale) if root.image_source else (None, None)
+                    size: (0, 0) if not root.image_source else self.size
+                Label:
+                    text: '' if root.image_source else root.icona_emoji
+                    font_name: 'Symbola'
+                    font_size: '240sp'
+                    color: OK if root.success else KO
+                    opacity: 0 if root.image_source else 1
+                    size_hint_y: None if root.image_source else 1
+                    height: 0 if root.image_source else self.parent.height
+        Label:
+            text: root.titolo
+            font_size: '72sp'
+            bold: True
+            color: TEXT
+            size_hint_y: None
+            height: '120dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+        Label:
+            text: root.dettaglio
+            font_size: '26sp'
+            color: 1, 1, 1, 0.7
+            size_hint_y: None
+            height: '70dp'
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size
+
+
+<ScreensaverScreen>:
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    on_touch_down: root.go_home()
+    Image:
+        id: bg_image
+        source: root.bg_source if root.bg_source else ''
+        allow_stretch: True
+        keep_ratio: False
+        nocache: True
+        size_hint: 1, 1
+        pos_hint: {'x': 0, 'y': 0}
+        opacity: 1 if root.bg_source else 0
+    Widget:
+        size_hint: 1, 1
+        pos_hint: {'x': 0, 'y': 0}
+        canvas:
+            Color:
+                rgba: 0, 0, 0, 0.45 if root.bg_source else 0
+            Rectangle:
+                pos: self.pos
+                size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '32dp'
+        spacing: '12dp'
+        # Pixel shift anti burn-in: size/pos espliciti perche' il Screen e' un
+        # RelativeLayout e con size_hint toccherebbe lui la posizione.
+        size_hint: None, None
+        size: root.size
+        pos: root.shift_x, root.shift_y
+        # Spazio elastico in alto
+        Widget:
+            size_hint_y: 0.20
+        # Indirizzo (protagonista)
+        Label:
+            text: root.indirizzo
+            font_size: '96sp'
+            bold: True
+            color: 0.85, 0.87, 0.92, 1
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1] if self.texture_size else 0
+        # Linea sottile decorativa
+        Widget:
+            size_hint_y: None
+            height: '2dp'
+            canvas:
+                Color:
+                    rgba: 0.25, 0.28, 0.34, 1
+                Rectangle:
+                    pos: self.x + self.width*0.25, self.y
+                    size: self.width*0.5, self.height
+        # Ora corrente
+        Label:
+            text: root.ora_corrente
+            font_size: '64sp'
+            color: 0.55, 0.58, 0.64, 1
+            size_hint_y: None
+            height: '90dp'
+        # Data
+        Label:
+            text: root.data_corrente
+            font_size: '28sp'
+            color: 0.40, 0.43, 0.48, 1
+            size_hint_y: None
+            height: '50dp'
+        Widget:
+        Label:
+            text: 'Tocca o avvicinati per chiamare'
+            font_size: '20sp'
+            color: 0.30, 0.32, 0.36, 1
+            size_hint_y: None
+            height: '40dp'

@@ -1,0 +1,655 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+python_script:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+http:
+    # HA mantiene HTTPS interno su :8123 con il cert /ssl/ (gestito dall'addon
+    # Duck DNS). I client esterni non chiamano direttamente :8123, ma passano
+    # SEMPRE per Caddy edge :443 (vedi installer-ha/livekit/Caddyfile) che
+    # fa terminator TLS unificato per HA + LiveKit + token issuer su un solo
+    # origin (https://casa-esempio.duckdns.org). Cosi':
+    #   - getUserMedia funziona (secure context)
+    #   - LiveKit ws e token issuer sono same-origin (no CORS, no mixed-content)
+    #   - 1 solo port-forward sul router (443 invece di 8123)
+    ssl_certificate: /ssl/fullchain.pem
+    ssl_key: /ssl/privkey.pem
+    # Reverse proxy support: Caddy gira sull'host (loopback 127.0.0.1) e
+    # forwarda X-Forwarded-{For,Proto}. Senza trusted_proxies HA non vede
+    # i veri IP client e tutti i log/automation mostrano 127.0.0.1.
+    use_x_forwarded_for: true
+    trusted_proxies:
+      - 127.0.0.1
+      - ::1
+    
+media_player:
+  - platform: xiaomi_tv
+    host: 192.168.1.27
+    name: XiaomiTV
+
+sonoff:
+    # Credenziali del tuo account eWeLink: mettile in secrets.yaml, non qui.
+    username: !secret sonoff_username
+    password: !secret sonoff_password
+    mode: local
+    reload: always
+
+switch:
+  - platform: hikvisioncam
+    host: !secret hikvision_host
+    port: 8000
+    username: !secret hikvision_username
+    password: !secret hikvision_password
+    
+# Broker MQTT: integrazione UI → impostare host 192.168.1.185 port 1883 (RPi).
+# Video chiamate: LiveKit (vc-livekit-call). go2rtc HA resta solo per keep-alive RTSP.
+mqtt:
+  binary_sensor:
+    # Connettivita' RPi. ON = videocitofono online (birth "online" retain su
+    # videocitofono/status alla connessione); OFF = offline (Last-Will
+    # "offline" retain inviato dal broker se la connessione cade per
+    # crash/rete/spina). Usalo per un alert "citofono offline". NB: questa
+    # entita' NON ha `availability` (riporta proprio lo stato di presenza).
+    - name: "Videocitofono Online"
+      unique_id: vc_online
+      state_topic: "videocitofono/status"
+      payload_on: "online"
+      payload_off: "offline"
+      device_class: connectivity
+      icon: mdi:doorbell-video
+    - name: "Stato Chiamata Videocitofono"
+      state_topic: "videocitofono/chiamata"
+      # Availability condivisa (anchor &vc_avail) riusata da tutte le entita'
+      # MQTT del videocitofono: quando il RPi e' offline diventano
+      # "non disponibili" invece di mostrare valori vecchi.
+      availability: &vc_avail
+        - topic: "videocitofono/status"
+          payload_available: "online"
+          payload_not_available: "offline"
+      # L'app Kivy del RPi pubblica sia stringhe ("chiamata_in_corso",
+      # "annullata", "porta_aperta", "terminata") sia JSON
+      # ({"stato":"chiamata_in_corso","campanello":"famiglia_x"}).
+      # Normalizziamo in ON/OFF: il sensor passa OFF su QUALUNQUE payload
+      # diverso da "chiamata_in_corso" (annullata, porta_aperta, terminata,
+      # ecc.) cosi' il binary_sensor non aspetta off_delay quando HA
+      # pubblica un nuovo stato che richiede chiusura immediata della
+      # chiamata (es. "porta_aperta" e "terminata" usati per overlay UI
+      # sul RPi prima del torna-a-home).
+      value_template: >-
+        {% if value is string and value.startswith('{') %}
+          {% set s = (value | from_json).get('stato', '') %}
+        {% else %}
+          {% set s = value %}
+        {% endif %}
+        {% if s in ['chiamata_in_corso', 'risposto', 'risposto_audio', 'risposto_video'] %}ON{% else %}OFF{% endif %}
+      payload_on: "ON"
+      payload_off: "OFF"
+      # NIENTE off_delay: il binary_sensor passa OFF solo quando arriva
+      # un payload != "chiamata_in_corso" (annullata/terminata/porta_aperta).
+      # Il timeout di sicurezza (auto-chiusura dopo N secondi se nessuno
+      # ha chiuso manualmente) e' implementato via automation HA con
+      # `for: 00:03:00` sul trigger state ON, NON con off_delay (che
+      # cadrebbe e farebbe scattare l'automation di stop suoneria anche
+      # durante chiamate lunghe).
+  sensor:
+    - name: "Videocitofono Ultimo Campanello"
+      state_topic: "videocitofono/chiamata"
+      availability: *vc_avail
+      value_template: >-
+        {% if value is string and value.startswith('{') %}
+          {{ (value | from_json).get('campanello', 'sconosciuto') }}
+        {% else %}
+          sconosciuto
+        {% endif %}
+      icon: mdi:doorbell
+    # Stato grezzo della chiamata (chiamata_in_corso / risposto_audio /
+    # risposto_video / annullata / terminata / porta_aperta). Consumato
+    # dalla card custom:vc-livekit-call per chiudere la maschera di
+    # chiamata sugli ALTRI dispositivi quando uno risponde (dismiss
+    # deterministico via stato HA, indipendente dalla room LiveKit).
+    - name: "Videocitofono Stato Chiamata Raw"
+      unique_id: vc_stato_chiamata_raw
+      state_topic: "videocitofono/chiamata"
+      availability: *vc_avail
+      value_template: >-
+        {% if value is string and value.startswith('{') %}
+          {{ (value | from_json).get('stato', '') }}
+        {% else %}
+          {{ value }}
+        {% endif %}
+      icon: mdi:phone-log
+    # Lista volti registrati per riconoscimento facciale. Pubblicato
+    # con retain dal RPi su videocitofono/volti/library al boot e dopo
+    # ogni enroll/delete. Stato = numero persone, attributo `volti` =
+    # lista [{nome, foto}] consumata da custom:vc-volti-card.
+    - name: "Videocitofono Volti"
+      state_topic: "videocitofono/volti/library"
+      availability: *vc_avail
+      value_template: "{{ (value_json.volti | default([])) | length }}"
+      json_attributes_topic: "videocitofono/volti/library"
+      icon: mdi:face-recognition
+    # Lista tag NFC registrati. Retain su videocitofono/nfc/library.
+    # Stato = numero tag, attributo items = lista tag.
+    - name: "Videocitofono NFC"
+      state_topic: "videocitofono/nfc/library"
+      availability: *vc_avail
+      value_template: "{{ (value_json['items'] | default([])) | length }}"
+      json_attributes_topic: "videocitofono/nfc/library"
+      icon: mdi:nfc-variant
+    # Eventi RPi (iscrizione tag, errori NFC, ecc.) per feedback UI.
+    - name: "Videocitofono Evento"
+      state_topic: "videocitofono/evento"
+      availability: *vc_avail
+      value_template: "{{ value_json.tipo | default(value) }}"
+      json_attributes_topic: "videocitofono/evento"
+      icon: mdi:information-outline
+    # Health RPi (telemetria + status_summary degraded/down).
+    - name: "Videocitofono Health"
+      state_topic: "videocitofono/health"
+      availability: *vc_avail
+      value_template: "{{ value_json.status_summary | default('unknown') }}"
+      json_attributes_topic: "videocitofono/health"
+      icon: mdi:heart-pulse
+    # Stato lettore NFC hardware (online/offline).
+    - name: "Videocitofono NFC Reader"
+      state_topic: "videocitofono/nfc/status"
+      availability: *vc_avail
+      value_template: "{{ value_json.state | default('offline') }}"
+      json_attributes_topic: "videocitofono/nfc/status"
+      icon: mdi:nfc-search-variant
+    - name: "Videocitofono Anomalia"
+      state_topic: "videocitofono/anomaly"
+      availability: *vc_avail
+      value_template: "{{ value_json.reason | default('none') }}"
+      json_attributes_topic: "videocitofono/anomaly"
+      icon: mdi:alert-octagon-outline
+    # Lista PIN ospite (retain su videocitofono/guest_pins/list).
+    - name: "Videocitofono Guest PINs"
+      state_topic: "videocitofono/guest_pins/list"
+      availability: *vc_avail
+      value_template: "{{ (value_json.items | default([])) | length }}"
+      json_attributes_topic: "videocitofono/guest_pins/list"
+      icon: mdi:key-variant
+
+# Sensori template + statistiche per trend termico/CPU (recorder HA).
+template:
+  - sensor:
+      - name: "Videocitofono Temp"
+        unique_id: vc_health_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:thermometer
+        state: >-
+          {% set t = state_attr('sensor.videocitofono_health', 'temp_c') %}
+          {{ t if t is not none else none }}
+      - name: "Videocitofono CPU"
+        unique_id: vc_health_cpu
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:chip
+        state: >-
+          {% set c = state_attr('sensor.videocitofono_health', 'cpu_pct') %}
+          {{ c if c is not none else none }}
+
+sensor:
+  - platform: statistics
+    name: Videocitofono Temp Media 24h
+    unique_id: vc_temp_mean_24h
+    entity_id: sensor.videocitofono_temp
+    state_characteristic: mean
+    max_age:
+      hours: 24
+  - platform: statistics
+    name: Videocitofono Temp Max 24h
+    unique_id: vc_temp_max_24h
+    entity_id: sensor.videocitofono_temp
+    state_characteristic: value_max
+    max_age:
+      hours: 24
+  - platform: statistics
+    name: Videocitofono CPU Media 24h
+    unique_id: vc_cpu_mean_24h
+    entity_id: sensor.videocitofono_cpu
+    state_characteristic: mean
+    max_age:
+      hours: 24
+  - platform: statistics
+    name: Videocitofono CPU Max 24h
+    unique_id: vc_cpu_max_24h
+    entity_id: sensor.videocitofono_cpu
+    state_characteristic: value_max
+    max_age:
+      hours: 24
+
+command_line:
+  - sensor:
+      name: Registro Videocitofono
+      command: "cat /config/www/registro_videocitofono.json"
+      value_template: "ok"
+      scan_interval: 30
+      json_attributes:
+        - all
+
+input_boolean:
+  videocitofono_auto_recognize:
+    name: Riconoscimento volto automatico
+    icon: mdi:face-recognition
+    initial: true
+  videocitofono_liveness:
+    name: Anti-spoofing facciale (blink)
+    icon: mdi:eye-check
+    initial: true
+  videocitofono_audio_uplink_attivo:
+    name: Videocitofono Audio Uplink Attivo
+    icon: mdi:microphone
+  videocitofono_video_uplink_attivo:
+    name: Videocitofono Video Uplink Attivo
+    icon: mdi:video-account
+  videocitofono_motion_enabled:
+    name: Videocitofono Motion abilitato
+    icon: mdi:motion-sensor
+    initial: true
+  videocitofono_face_enabled:
+    name: Videocitofono Riconoscimento volto abilitato
+    icon: mdi:face-recognition
+    initial: true
+  videocitofono_finger_enabled:
+    name: Videocitofono Lettore impronta abilitato
+    icon: mdi:fingerprint
+    initial: false
+  videocitofono_pin_enabled:
+    name: Videocitofono PIN abilitato
+    icon: mdi:dialpad
+    initial: true
+  videocitofono_nfc_enabled:
+    name: Videocitofono NFC abilitato
+    icon: mdi:nfc-variant
+    initial: true
+  videocitofono_dnd:
+    name: Videocitofono Non Disturbare
+    icon: mdi:bell-off
+    initial: false
+  videocitofono_audio_locale_enabled:
+    name: Videocitofono Audio feedback locale
+    icon: mdi:volume-source
+    initial: true
+  videocitofono_voce_notturna:
+    name: Voce piu' bassa di notte
+    icon: mdi:weather-night
+    initial: true
+
+# Fascia notturna della voce di benvenuto. Senza `initial` perche' questi orari
+# sono una preferenza dell'utente: con initial tornerebbero al valore di fabbrica
+# a ogni riavvio di HA. Il primo popolamento lo fa pyscript/voce_notturna.py.
+input_datetime:
+  videocitofono_voce_notte_inizio:
+    name: Voce - inizio fascia notturna
+    icon: mdi:weather-night
+    has_date: false
+    has_time: true
+  videocitofono_voce_notte_fine:
+    name: Voce - fine fascia notturna
+    icon: mdi:weather-sunset-up
+    has_date: false
+    has_time: true
+
+input_number:
+  videocitofono_guest_valid_hours:
+    name: PIN ospite - durata (ore)
+    min: 1
+    max: 720
+    step: 1
+    initial: 24
+    unit_of_measurement: h
+    icon: mdi:timer-outline
+  videocitofono_guest_max_uses:
+    name: PIN ospite - usi max
+    min: 1
+    max: 50
+    step: 1
+    initial: 1
+    icon: mdi:counter
+  videocitofono_brightness_idle:
+    name: Luminosità a riposo (%)
+    min: 0
+    max: 100
+    step: 5
+    initial: 20
+    unit_of_measurement: '%'
+    icon: mdi:brightness-3
+  videocitofono_brightness_active:
+    name: Luminosità attiva (%)
+    min: 10
+    max: 100
+    step: 5
+    initial: 100
+    unit_of_measurement: '%'
+    icon: mdi:brightness-7
+  videocitofono_idle_dim_timeout:
+    name: Dim dopo (s)
+    min: 0
+    max: 600
+    step: 5
+    initial: 20
+    unit_of_measurement: s
+    icon: mdi:timer-sand
+  videocitofono_screensaver_timeout:
+    name: Screensaver dopo (s)
+    min: 0
+    max: 1800
+    step: 10
+    initial: 60
+    unit_of_measurement: s
+    icon: mdi:monitor-off
+  videocitofono_motion_sensitivity:
+    name: Sensibilità motion (% area)
+    min: 0.1
+    max: 10.0
+    step: 0.1
+    # Snapshot go2rtc: rumore JPEG ~3% tra frame; sotto 5% falsi positivi
+    # continui che impediscono dim/screensaver sul Pi.
+    initial: 5.0
+    unit_of_measurement: '%'
+    icon: mdi:motion-sensor
+  videocitofono_volume_speaker:
+    name: Volume casse RPi
+    min: 0
+    max: 100
+    step: 5
+    initial: 85
+    unit_of_measurement: '%'
+    icon: mdi:speaker
+  videocitofono_volume_microfono:
+    name: Volume microfono RPi
+    min: 0
+    max: 200
+    step: 10
+    initial: 200
+    unit_of_measurement: '%'
+    icon: mdi:microphone
+  videocitofono_volume_feedback:
+    name: Volume feedback acustici
+    min: 0
+    max: 100
+    step: 5
+    initial: 30
+    unit_of_measurement: '%'
+    icon: mdi:volume-medium
+  # Volume in uso adesso. Niente `initial`: lo imposta pyscript/voce_notturna.py
+  # in base alla fascia oraria, e con un valore di fabbrica all'avvio la voce
+  # sarebbe partita al volume diurno anche alle tre di notte.
+  videocitofono_volume_tts:
+    name: Volume voce di benvenuto
+    min: 0
+    max: 150
+    step: 5
+    unit_of_measurement: '%'
+    icon: mdi:account-voice
+  # I due valori per fascia. Anche qui nessun `initial`: sono preferenze, e le
+  # regolazioni fatte sullo slider qui sopra vengono memorizzate in uno di questi
+  # due a seconda dell'ora. `min: 10` e non 0 perche' senza `initial` HA crea
+  # l'helper al valore minimo: con lo zero disponibile il primo avvio lasciava la
+  # voce muta, e pyscript non poteva distinguerlo da una scelta dell'utente.
+  videocitofono_volume_tts_giorno:
+    name: Volume voce - giorno
+    min: 10
+    max: 150
+    step: 5
+    unit_of_measurement: '%'
+    icon: mdi:weather-sunny
+  videocitofono_volume_tts_notte:
+    name: Volume voce - notte
+    min: 10
+    max: 150
+    step: 5
+    unit_of_measurement: '%'
+    icon: mdi:weather-night
+
+# Pulsanti dashboard Videocitofono (Lovelace → automazioni in automations.yaml)
+input_button:
+  videocitofono_applica_config:
+    name: Videocitofono - Applica configurazione
+    icon: mdi:cloud-upload
+  videocitofono_riavvia_app:
+    name: Videocitofono - Riavvia app RPi
+    icon: mdi:restart
+  videocitofono_pulisci_registro:
+    name: Videocitofono - Pulisci registro chiamate
+    icon: mdi:broom
+  videocitofono_test_suoneria:
+    name: Videocitofono - Test suoneria
+    icon: mdi:bell-ring
+
+input_select:
+  videocitofono_lingua:
+    name: Lingua interfaccia RPi
+    options:
+      - it
+      - en
+    initial: it
+    icon: mdi:translate
+  videocitofono_guest_scope:
+    name: PIN ospite - cosa apre
+    options:
+      - porta
+      - cancello
+    initial: porta
+    icon: mdi:door
+  videocitofono_sfondo:
+    name: Sfondo screensaver
+    options:
+      - default
+      - trulli.jpg
+    initial: trulli.jpg
+    icon: mdi:image-multiple
+  videocitofono_suoneria:
+    name: Suoneria
+    options:
+      - classica
+      - campanello
+      - beep
+      - soft
+      - allerta
+    initial: classica
+    icon: mdi:music-note
+  # Icona avatar per ogni campanello. Le opzioni vengono popolate
+  # dinamicamente da pyscript.videocitofono_refresh_icone in base ai
+  # file presenti in /config/www/vc-icone/. Selezionando un nome file
+  # diverso da 'default', applica_config invia il filename nel campo
+  # campanelli[N].icona; il RPi risolve a app/assets/avatars/<file>.
+  videocitofono_campanello1_icona:
+    name: Campanello 1 - Icona
+    options:
+      - default
+      - icons8-homer-simpson-100.png
+    initial: icons8-homer-simpson-100.png
+    icon: mdi:account-circle
+  videocitofono_campanello2_icona:
+    name: Campanello 2 - Icona
+    options:
+      - default
+      - icons8-marge-simpson-100.png
+    initial: icons8-marge-simpson-100.png
+    icon: mdi:account-circle
+  videocitofono_campanello3_icona:
+    name: Campanello 3 - Icona
+    options:
+      - default
+      - icons8-cat-head-100.png
+    initial: icons8-cat-head-100.png
+    icon: mdi:account-circle
+  videocitofono_campanello4_icona:
+    name: Campanello 4 - Icona
+    options:
+      - default
+    initial: default
+    icon: mdi:account-circle
+  # Icone dei metodi di accesso (PIN/Volto/Impronta/NFC). Stessa libreria
+  # di /config/www/vc-icone/. 'default' = grafica vettoriale built-in del Pi.
+  videocitofono_metodo_pin_icona:
+    name: Metodo PIN - Icona
+    options:
+      - default
+      - icons8-keypad-100.png
+    initial: icons8-keypad-100.png
+    icon: mdi:dialpad
+  videocitofono_metodo_face_icona:
+    name: Metodo Volto - Icona
+    options:
+      - default
+      - icons8-face-id-100.png
+    initial: icons8-face-id-100.png
+    icon: mdi:face-recognition
+  videocitofono_metodo_fingerprint_icona:
+    name: Metodo Impronta - Icona
+    options:
+      - default
+      - icons8-fingerprint-100.png
+    initial: icons8-fingerprint-100.png
+    icon: mdi:fingerprint
+  videocitofono_metodo_nfc_icona:
+    name: Metodo NFC - Icona
+    options:
+      - default
+      - icons8-rfid-signal-100.png
+      - icons8-rfid-signal-500.png
+      - icons8-rfid-500.png
+    initial: icons8-rfid-500.png
+    icon: mdi:nfc-variant
+
+input_text:
+  chiamate_lette:
+    name: Chiamate Lette (timestamps JSON)
+    max: 255
+    initial: "[]"
+  videocitofono_audit:
+    name: Videocitofono audit (ultimi eventi)
+    max: 255
+    initial: "[]"
+  videocitofono_guest_label:
+    name: PIN ospite - etichetta
+    max: 64
+    initial: ""
+  videocitofono_campanello1_id:
+    name: Campanello 1 - ID
+    max: 64
+    pattern: "[a-zA-Z0-9_]*"
+    initial: "mario_rossi"
+  videocitofono_campanello1_nome:
+    name: Campanello 1 - Nominativo
+    max: 64
+    initial: "Mario Rossi"
+  videocitofono_campanello2_id:
+    name: Campanello 2 - ID
+    max: 64
+    pattern: "[a-zA-Z0-9_]*"
+    initial: "giulia_bianchi"
+  videocitofono_campanello2_nome:
+    name: Campanello 2 - Nominativo
+    max: 64
+    initial: "Giulia Bianchi"
+  videocitofono_campanello3_id:
+    name: Campanello 3 - ID
+    max: 64
+    pattern: "[a-zA-Z0-9_]*"
+    initial: "click"
+  videocitofono_campanello3_nome:
+    name: Campanello 3 - Nominativo
+    max: 64
+    initial: "Click"
+  videocitofono_campanello4_id:
+    name: Campanello 4 - ID
+    max: 64
+    pattern: "[a-zA-Z0-9_]*"
+    initial: ""
+  videocitofono_campanello4_nome:
+    name: Campanello 4 - Nominativo
+    max: 64
+    initial: ""
+  videocitofono_indirizzo:
+    name: Indirizzo mostrato (screensaver)
+    max: 64
+    initial: "Via Roma 1"
+  videocitofono_admin_pin:
+    name: PIN amministratore (4-8 cifre)
+    max: 8
+    mode: password
+    initial: ""
+    # Niente `pattern`: il campo nasce vuoto e lo script lo svuota di nuovo dopo
+    # aver inviato il PIN al citofono, ma la stringa vuota non rispetta
+    # "[0-9]{4,8}" e Home Assistant rifiutava di creare l'entita' del tutto
+    # ("provides state  which does not match expected pattern"), lasciando il
+    # campo non disponibile nella dashboard. Le 4-8 cifre le controllano lo
+    # script videocitofono_cambia_pin_admin e il Raspberry, che rifiutano un
+    # valore non valido con una notifica.
+  videocitofono_cmd_token:
+    name: Token MQTT cmd (RPi)
+    mode: password
+    initial: ""
+  videocitofono_lk_token:
+    name: Token issuer LiveKit
+    mode: password
+    initial: ""
+
+# ---------------------------------------------------------------------------
+# go2rtc keep-alive
+# ---------------------------------------------------------------------------
+# L'addon go2rtc è on-demand: il pull RTSP HA→RPi parte solo quando un client
+# WebRTC apre lo stream e si chiude pochi secondi dopo l'ultimo consumer.
+# Sulla rete attuale (RPi WiFi 700-900ms RTT) il cold-start del pull RTSP è
+# di 10-15s, troppo per essere mascherato all'apertura del popup chiamata.
+#
+# Soluzione: mantengo SEMPRE almeno un consumer attivo verso pi5cam_h264 con
+# una richiesta HTTP periodica al frame.jpeg (snapshot keyframe) ogni 5s.
+# Questo forza go2rtc a tenere il producer rpicam-vid attivo SUL RPi e la
+# connessione RTSP HA↔RPi sempre aperta. Costo trascurabile (~50 KB/req).
+# Quando il browser apre il popup, go2rtc HA ha GOP corrente in buffer e
+# serve il primo frame WebRTC in <1s.
+rest_command:
+  go2rtc_keepalive:
+    url: "http://192.168.1.160:1984/api/frame.jpeg?src=pi5cam_h264"
+    method: GET
+    timeout: 8
+
+  # --- Registrazione chiamata via LiveKit Egress ----------------------------
+  # Sostituiscono camera.record, che registrava dallo stream RTSP go2rtc del
+  # Pi: quel path non esiste piu' (go2rtc sul Pi e' disabilitato dopo lo
+  # Step C, il Pi pubblica solo in LiveKit).
+  #
+  # Chiamati in LAN diretta verso il token issuer sull'host (porta 8081), NON
+  # attraverso Caddy: il Caddyfile risponde 404 su /livekit-token/egress/*
+  # perche' questi endpoint scrivono file su disco.
+  #
+  # L'egress registra il partecipante `rpi` (camera+mic del citofono) in
+  # /config/www/videocitofono/<filename>, quindi il video e' subito servito
+  # come /local/videocitofono/<filename> per il popup e il registro chiamate.
+  videocitofono_egress_start:
+    url: "http://192.168.1.160:8081/egress/start"
+    method: POST
+    timeout: 10
+    content_type: "application/json"
+    headers:
+      X-VC-Egress: !secret vc_egress_secret
+    payload: '{"filename": "{{ filename }}"}'
+
+  # Senza egress_id ferma tutte le registrazioni attive della room: HA non
+  # deve conservare l'id fra lo squillo e la fine della chiamata. Va chiamato
+  # sempre a fine chiamata, altrimenti l'MP4 resta senza moov atom finale e
+  # non e' riproducibile.
+  videocitofono_egress_stop:
+    url: "http://192.168.1.160:8081/egress/stop"
+    method: POST
+    timeout: 10
+    content_type: "application/json"
+    headers:
+      X-VC-Egress: !secret vc_egress_secret
+    payload: '{}'

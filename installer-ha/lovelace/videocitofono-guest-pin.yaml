@@ -1,0 +1,52 @@
+type: vertical-stack
+title: PIN ospite
+cards:
+  - type: entities
+    title: Nuovo PIN ospite
+    entities:
+      - entity: input_text.videocitofono_guest_label
+      - entity: input_number.videocitofono_guest_valid_hours
+      - entity: input_number.videocitofono_guest_max_uses
+      - entity: input_select.videocitofono_guest_scope
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Crea PIN
+        icon: mdi:key-plus
+        tap_action:
+          action: call-service
+          service: script.videocitofono_crea_guest_pin
+      - type: button
+        name: Aggiorna lista
+        icon: mdi:refresh
+        tap_action:
+          action: call-service
+          service: pyscript.videocitofono_list_guest_pins
+  - type: entity
+    entity: sensor.videocitofono_guest_pins
+    name: PIN attivi
+  - type: markdown
+    content: >-
+      {% set items = state_attr('sensor.videocitofono_guest_pins', 'items') | default([]) %}
+      {% if items | length == 0 %}
+      Nessun PIN ospite attivo.
+      {% else %}
+      | Etichetta | PIN | Scadenza | Usi |
+      |---|---|---|---|
+      {% for p in items %}
+      | {{ p.label | default('—') }} | `{{ p.pin | default('?') }}` | {{ p.expires_human | default('—') }} | {{ p.uses | default(0) }}/{{ p.max_uses | default('?') }} |
+      {% endfor %}
+      {% endif %}
+  - type: markdown
+    content: >-
+      Per **revocare** un PIN, usa Developer Tools → Servizi:
+      `script.videocitofono_revoca_guest_pin` con `id` dalla tabella
+      (campo `id` di ogni voce in `items`).
+  - type: button
+    name: Revoca (inserisci id nello script)
+    icon: mdi:key-remove
+    tap_action:
+      action: call-service
+      service: script.videocitofono_revoca_guest_pin
+      service_data:
+        id: ""

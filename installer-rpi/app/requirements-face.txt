@@ -1,0 +1,16 @@
+# Face recognition (install-face-deps.sh / opzionale)
+# numpy: allineato a python3-numpy Debian (picamera2/simplejpeg apt)
+numpy>=1.24.2,<1.27
+onnxruntime>=1.18.0
+insightface>=0.7.3
+# insightface importa albumentations (mask_renderer) -> albucore + pydantic.
+# Catena fragile: versioni piu' nuove disattivano ArcFace all'import.
+#   - albumentations 2.0.8 richiede ESATTAMENTE albucore==0.0.24
+#     (con 0.1.x: KeyError <class 'numpy.uint32'> in type_definitions).
+#   - pydantic 2.13.x richiede pydantic-core 2.46.4
+#     (con 2.47.0: SystemError pydantic-core incompatibile).
+# Pin dell'intera catena per evitare regressioni post upgrade-deps.
+albumentations==2.0.8
+albucore==0.0.24
+pydantic-core>=2.46.4,<2.47
+opencv-python-headless>=4.10.0,<4.14

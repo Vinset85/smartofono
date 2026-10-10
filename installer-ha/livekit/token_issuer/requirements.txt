@@ -1,0 +1,7 @@
+livekit-api>=1.1.0,<2
+fastapi>=0.115.0,<0.137
+uvicorn[standard]>=0.30.0,<0.49
+pydantic>=2.7.0,<3
+# Dipendenza di livekit-api, dichiarata perche' issuer.py la importa
+# direttamente per il ClientTimeout delle chiamate egress.
+aiohttp>=3.9,<4

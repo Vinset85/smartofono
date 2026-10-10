@@ -1,0 +1,97 @@
+# go2rtc - configurazione videocitofono RPi5 (OTTIMIZZATA per latenza)
+#
+# Stream:
+#   pi5cam_h264  : 1280x720 H264 hardware-encoded + audio Opus dal microfono
+#                  VoiceHAT (I2S, plughw:2,0) - stream PRINCIPALE LIVE.
+#                  Tarato per WebRTC ultra low-latency (popup chiamata HA).
+#                  - inline SPS/PPS in ogni keyframe → primo frame istantaneo
+#                  - intra=15 (1 keyframe/0.5s) → join WebRTC <1s
+#                  - flush=1 → nessun buffer in uscita
+#                  - 720p30 @ 3Mbit/s → encode/decode più rapidi vs 1080p
+#                  - audio Opus 16kHz mono 32kbps con application=voip per
+#                    bassa latenza e ottimizzazione vocale
+#                  go2rtc unisce automaticamente le due `exec:` source come
+#                  tracce video+audio del medesimo stream WebRTC.
+#   pi5cam_sub   : 640x360 H264 (no audio) - stream secondario per snapshot.
+#                  ATTENZIONE: NON usare contemporaneamente a pi5cam_h264 perché
+#                  rpicam-vid non supporta consumer multipli sulla stessa cam.
+#                  Se serve uno snapshot durante una chiamata live, usare il
+#                  go2rtc relay HA che già copia il flusso pi5cam_h264.
+
+streams:
+  pi5cam_h264:
+    # intra=15 → 1 keyframe ogni 0.5s @ 30fps. Riduce a metà il "wait for
+    # keyframe" dopo il negoziato WebRTC: il primo frame visibile arriva in
+    # ≤500ms invece di ≤1s. Costo: ~+15% di bitrate (keyframes pesanti).
+    # Compensato lasciando 3 Mbit/s totali che restano sufficienti a 720p.
+    - exec:rpicam-vid -t 0 --nopreview --rotation 180
+        --width 1280 --height 720 --framerate 30
+        --codec h264 --profile baseline --level 4.2
+        --inline --intra 15 --flush 1
+        --bitrate 3000000 --libav-format h264 -o -#video=h264
+    # Audio Opus dal mic Raspiaudio MIC+ V3 via PulseAudio.
+    #
+    # PERCHE' VIA PULSEAUDIO (non plughw ALSA diretto)?
+    # Il mic MEMS della MIC+ V3 su Raspberry Pi 5 (bug noto Raspiaudio,
+    # vedi forum.raspiaudio.com) produce un livello digitale ridicolo
+    # via ALSA diretto (RMS ~6 / -75dBFS = noise floor, voce inudibile
+    # anche con +50dB di boost software). PulseAudio applica un boost
+    # nativo che riporta il livello a valori utili.
+    #
+    # PERCHE' sudo -u vinset?
+    # go2rtc gira come root, ma PulseAudio/PipeWire e' una sessione utente
+    # (vinset, uid 1000). ffmpeg deve girare come vinset per accedere al
+    # socket /run/user/1000/pulse/native.
+    #
+    # AEC + volumi gestiti da systemd unit
+    # `videocitofono-mic-volume.service`:
+    # - default source = ec_source (PulseAudio module-echo-cancel
+    #   con backend WebRTC: cancella eco speaker dal mic + AGC + NS
+    #   + voice detection + high-pass filter).
+    # - default sink   = ec_sink (riferimento per AEC, instradato al
+    #   sink ALSA fisico via sink_master).
+    # - source vol 200% / sink vol 130% per equilibrare livelli.
+    #
+    # WRAPPER /usr/local/bin/vc-mic-ffmpeg: setpriv (no sudo) per
+    # girare come vinset E per ESEGUIRE ffmpeg con exec, sostituendo
+    # il processo. Cosi' quando go2rtc invia SIGTERM, kill arriva
+    # direttamente a ffmpeg (non a sudo che NON propagava al child,
+    # generando ZOMBIE ffmpeg che saturavano la CPU).
+    # Il wrapper applica solo gain finale (+8dB) e limiter; AGC/NS
+    # sono gia' nel modulo AEC PulseAudio.
+    - exec:/usr/local/bin/vc-mic-ffmpeg#audio=opus
+
+  pi5cam_sub:
+    - exec:rpicam-vid -t 0 --nopreview --rotation 180
+        --width 640 --height 360 --framerate 15
+        --codec h264 --profile baseline --level 4.0
+        --inline --intra 15 --flush 1
+        --bitrate 600000 --libav-format h264 -o -
+
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  # IPv4-only: il listen dual-stack (":8555") faceva annunciare a go2rtc anche
+  # un binding IPv6, e il browser Chrome (sia su Mac che su tablet) preferisce
+  # le candidate "host" IPv6 globali quando disponibili (priorità ICE più alta).
+  # Risultato: ICE selezionava la coppia IPv6↔IPv6 ma il path UDP IPv6 in LAN
+  # non era affidabile (osservato 60-70% drop sulla sessione "host" IPv6 nei
+  # consumer di /api/streams) → video nero / fallback a MSE silente nella card.
+  # Forzando IPv4 sia in listen che nei candidates, ICE seleziona sempre la
+  # coppia IPv4 LAN (192.168.1.x ↔ 192.168.1.185) che è stabile e a 0 drop.
+  # listen su 0.0.0.0 ascolta UDP e TCP sulla stessa porta: in caso di
+  # UDP problematico il browser ripiega automaticamente su ICE-TCP.
+  listen: "0.0.0.0:8555"
+  candidates:
+    - 192.168.1.185:8555
+  ice_servers: []
+
+# Log meno verboso una volta in produzione
+log:
+  level: info
+  api: warn
+  exec: info

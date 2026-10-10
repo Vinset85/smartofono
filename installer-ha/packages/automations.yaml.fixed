@@ -1,0 +1,789 @@
+- id: '1743629615182'
+  alias: Cancelli backhome
+  description: ''
+  triggers:
+  - trigger: zone
+    entity_id: person.mario_rossi
+    zone: zone.home
+    event: enter
+  conditions: []
+  actions:
+  - sequence:
+    - action: switch.toggle
+      metadata: {}
+      data: {}
+      target:
+        entity_id: switch.sonoff_10023adcda_4
+    - delay:
+        hours: 0
+        minutes: 0
+        seconds: 20
+        milliseconds: 0
+    - action: switch.toggle
+      metadata: {}
+      data: {}
+      target:
+        entity_id: switch.sonoff_10023adcda_3
+  mode: single
+- id: '1756919241383'
+  alias: Chiamata videocitofono
+  description: >-
+    Triggerata DIRETTAMENTE dal MQTT topic, non dal binary_sensor.
+    Motivo: il trigger "state to: on" non spara se il sensor e' gia' on
+    (residuo di una sessione precedente non pulita), causando chiamate
+    dal RPi che non aprono il popup. Con trigger MQTT + condition sul
+    payload, ogni messaggio di chiamata_in_corso fa partire il flow,
+    indipendentemente dallo stato del sensor.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/chiamata
+    value_template: >-
+      {% if value is string and value.startswith('{') %}
+        {{ (value | from_json).get('stato', '') }}
+      {% else %}
+        {{ value }}
+      {% endif %}
+    payload: 'chiamata_in_corso'
+  conditions: []
+  variables:
+    now_ts: "{{ now().strftime('%Y%m%d-%H%M%S') }}"
+    # Derivato da now_ts (non da una seconda chiamata a now()): con due
+    # strftime separati, una chiamata a cavallo del secondo produceva un nome
+    # file diverso da quello scritto nel registro -> video "mancante".
+    video_file: "{{ now_ts }}.mp4"
+    video_path: "/config/www/videocitofono/{{ video_file }}"
+    # Estrai campanello DIRETTAMENTE dal payload del trigger MQTT.
+    # Leggere states('sensor.videocitofono_ultimo_campanello') causava
+    # race condition: il sensor MQTT viene aggiornato in parallelo al
+    # firing dell'automation, quindi spesso si leggeva il valore della
+    # chiamata precedente (o "sconosciuto" se primo evento).
+    # trigger.payload e' la stringa raw ricevuta su videocitofono/chiamata.
+    campanello: >-
+      {% set p = trigger.payload %}
+      {% if p is string and p.startswith('{') %}
+        {{ (p | from_json).get('campanello', 'sconosciuto') }}
+      {% else %}
+        {{ states('sensor.videocitofono_ultimo_campanello') | default('sconosciuto') }}
+      {% endif %}
+  actions:
+  - parallel:
+    # ARCHITETTURA POST-EDGE-LIVEKIT (2026-04-26): sostituito
+    # browser_mod.popup + custom:webrtc-camera + vc-kick + warmup
+    # con UNA SOLA azione browser_mod.navigate alla view dedicata
+    # /lovelace/conversazione. La view contiene una sola card
+    # `custom:vc-livekit-call` (file /local/vc-livekit-call.js) che:
+    #   1. fa preflight secure context (HA deve essere aperto in HTTPS)
+    #   2. acquisisce camera+mic via getUserMedia
+    #   3. richiede JWT al token issuer (POST /livekit-token/token)
+    #   4. apre Room LiveKit "videocitofono" via wss://.../livekit/rtc
+    #   5. publish self camera+mic + subscribe automatico al Pi visitatore
+    #   6. renderizza fullscreen con bottoni mute/cam/apri-porta/chiudi
+    #
+    # Niente piu' workaround: la view e' una pagina normale (non un dialog
+    # modal browser_mod), quindi gli IntersectionObserver delle card video
+    # scattano normalmente; il subscribe e' nativo LiveKit, non c'e' bisogno
+    # di kick manuali; il warmup e' superfluo perche' la card si avvia da
+    # sola in <800ms su LAN sana.
+    - action: browser_mod.navigate
+      data:
+        # NB: niente `browser_id` esplicito. Senza, browser_mod 2.x invia
+        # a TUTTI i frontend registrati. Con `ALL` paradossalmente blocca
+        # l'invio (osservato 2026-04).
+        path: /lovelace/conversazione
+    # Suoneria: vc-ring-visitor.js (loop play/pausa max 30s).
+    - action: browser_mod.javascript
+      data:
+        code: |
+          try {
+            (function () {
+              function go() {
+                if (window.vcRingVisitor && window.vcRingVisitor.start) {
+                  window.vcRingVisitor.start();
+                  return;
+                }
+                var s = document.createElement('script');
+                s.src = '/local/vc-ring-visitor.js?v=' + Date.now();
+                s.onload = function () {
+                  if (window.vcRingVisitor) window.vcRingVisitor.start();
+                };
+                s.onerror = function (e) { console.warn('vc-ring-visitor load:', e); };
+                document.head.appendChild(s);
+              }
+              go();
+            })();
+          } catch (e) { console.warn('vcRingVisitor init:', e); }
+    # Registrazione del visitatore via LiveKit Egress (rimpiazza camera.record
+    # dal 2026-08-17). Il vecchio camera.record puntava alla camera generic
+    # `camera.192_168_1_52`, cioe' allo stream RTSP go2rtc del Pi quando il Pi
+    # era su .52: dal cambio IP (.185) e dal decommissioning di go2rtc sul Pi
+    # non produceva piu' alcun file, e il registro mostrava video inesistenti.
+    #
+    # Qui non serve alcuna `duration`: l'egress registra finche' il Pi resta in
+    # room, quindi la registrazione copre tutta la durata reale dello squillo /
+    # della conversazione, e viene chiusa dall'automation "Stop suoneria su
+    # fine chiamata". Il file viene conservato solo se nessuno ha risposto
+    # (retention applicata dal pyscript a fine chiamata).
+    #
+    # continue_on_error: se l'egress e' giu', la chiamata deve comunque
+    # squillare e aprire il popup. La registrazione e' accessoria.
+    - action: rest_command.videocitofono_egress_start
+      continue_on_error: true
+      data:
+        filename: "{{ video_file }}"
+    - action: pyscript.update_registro_videocitofono
+      # continue_on_error: nel primo minuto dopo un riavvio di HA pyscript non
+      # ha ancora registrato il servizio. In quella finestra la riga di storico
+      # si perde, ma il resto dell'automazione deve proseguire: squillo, popup
+      # e spegnimento del microfono contano piu' del registro.
+      continue_on_error: true
+      metadata: {}
+      data:
+        stato: in_corso
+        video_path: "{{ video_path }}"
+        campanello: "{{ campanello }}"
+  # mode: restart - se l'utente chiama, chiude e richiama subito, il
+  # nuovo trigger MQTT annulla la run precedente (camera.record viene
+  # troncata) e fa partire pulita la nuova run.
+  mode: restart
+- id: '1761000000015'
+  alias: Videocitofono - Annuncio visitatore riconosciuto
+  description: >-
+    Durante la chiamata, il RPi pubblica visitatore_riconosciuto su
+    videocitofono/evento: pausa suoneria, TTS con il nome, poi riprende
+    il loop se la chiamata e' ancora attiva.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/evento
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.stato_chiamata_videocitofono
+    state: 'on'
+  - condition: template
+    value_template: >-
+      {% set p = trigger.payload %}
+      {% if p is string and p.startswith('{') %}
+        {{ (p | from_json).get('tipo', '') == 'visitatore_riconosciuto' }}
+      {% else %}
+        false
+      {% endif %}
+  variables:
+    nome_visitatore: >-
+      {% set p = trigger.payload %}
+      {% if p is string and p.startswith('{') %}
+        {{ (p | from_json).get('dati', {}).get('nome', 'sconosciuto') }}
+      {% else %}
+        sconosciuto
+      {% endif %}
+  actions:
+  - action: browser_mod.javascript
+    data:
+      code: |
+        (function () {
+          var nome = {{ nome_visitatore | tojson }};
+          try {
+            if (window.vcRingVisitor && window.vcRingVisitor.announce) {
+              window.vcRingVisitor.announce(nome);
+              return;
+            }
+          } catch (e) { console.warn('vcRingVisitor.announce:', e); }
+          try {
+            var u = new SpeechSynthesisUtterance('Visitatore identificato: ' + nome);
+            u.lang = 'it-IT';
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(u);
+          } catch (e2) { console.warn('TTS fallback:', e2); }
+        })();
+  mode: single
+- id: '1761000000016'
+  alias: Videocitofono - Registra risposta nel registro chiamate
+  description: >-
+    Quando si risponde dalla card, `vc-livekit-call` pubblica su
+    videocitofono/chiamata il payload risposto_audio|risposto_video (serve al
+    Pi per sapere se mostrare il video del rispondente), ma NESSUNO aggiornava
+    il registro: solo "Apri porta" e il talkback legacy marcavano 'risposto'.
+    Risultato: una chiamata risposta in audio o video restava 'in_corso' e
+    veniva poi marcata 'rifiutata'/'persa' dalla chiusura.
+
+    Con la registrazione via egress questo diventa un problema concreto: la
+    retention conserva il video solo per le chiamate NON risposte, quindi senza
+    questa automation i video delle chiamate risposte non venivano mai
+    cancellati. Le azioni di risposta hanno precedenza nel pyscript, percio'
+    non importa se la chiusura arriva un istante prima.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/chiamata
+  conditions:
+  - condition: template
+    value_template: "{{ stato_raw.startswith('risposto') }}"
+  variables:
+    # Il Pi pubblica JSON ({"stato": ...}), la card stringhe semplici.
+    stato_raw: >-
+      {% set p = trigger.payload %}
+      {% if p is string and p.startswith('{') %}
+        {{ (p | from_json).get('stato', '') }}
+      {% else %}
+        {{ p | default('') | trim }}
+      {% endif %}
+  actions:
+  - action: pyscript.update_registro_videocitofono
+    # continue_on_error: nel primo minuto dopo un riavvio di HA pyscript non
+    # ha ancora registrato il servizio. In quella finestra la riga di storico
+    # si perde, ma il resto dell'automazione deve proseguire: squillo, popup
+    # e spegnimento del microfono contano piu' del registro.
+    continue_on_error: true
+    data:
+      azione: "{{ 'risposta_video' if stato_raw == 'risposto_video' else 'risposta_audio' }}"
+  mode: queued
+  max: 3
+- id: '1761000000001'
+  alias: Videocitofono - Stop suoneria su fine chiamata
+  description: >-
+    Ferma suoneria, audio uplink e video uplink quando lo stato torna off
+    (timeout, close popup, oppure chiamata=annullata pubblicata dal RPi).
+    Senza il cleanup del video/audio uplink restano la peer connection
+    WebRTC aperta lato browser e il MediaStream del mic acceso (icona
+    "in registrazione" nella tab del browser).
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.stato_chiamata_videocitofono
+    to: 'off'
+  conditions: []
+  actions:
+  - action: script.videocitofono_stop_ringtone
+  # Chiude la registrazione LiveKit Egress: finche' l'egress e' attivo l'MP4
+  # non ha il moov atom e non e' riproducibile. Va fatto subito, cosi' il file
+  # si finalizza mentre eseguiamo il resto del cleanup; la retention (ultima
+  # azione qui sotto) trova il file pronto.
+  - action: rest_command.videocitofono_egress_stop
+    continue_on_error: true
+  # ARCHITETTURA POST-EDGE-LIVEKIT (Step C decommissioning, 2026-04-26):
+  # rimossi i vecchi cleanup legacy. La card vc-livekit-call si occupa
+  # gia' di teardown completo nel disconnectedCallback() quando la view
+  # /lovelace/conversazione viene smontata. Non servono piu':
+  #   - script.videocitofono_cleanup_warmup        (warmup pre-pop deprecato)
+  #   - script.videocitofono_video_uplink_stop     (rimpiazzato da vcLK SDK)
+  #   - script.videocitofono_audio_uplink_stop     (rimpiazzato da vcLK SDK)
+  # Gli script restano fisicamente nel scripts.yaml come no-op tollerati,
+  # cosi' eventuali altri trigger residui non danno errori. Verranno
+  # rimossi del tutto quando la migrazione e' validata in produzione.
+  # Registra "persa" SOLO se la chiamata non e' stata risposta (il
+  # pyscript controlla: se ultimo record gia' 'risposto' o 'rifiutata'
+  # non sovrascrive). Cosi' il timeout HA o l'annullamento dal RPi
+  # senza risposta finiscono come "persa".
+  - action: pyscript.update_registro_videocitofono
+    # continue_on_error: nel primo minuto dopo un riavvio di HA pyscript non
+    # ha ancora registrato il servizio. In quella finestra la riga di storico
+    # si perde, ma il resto dell'automazione deve proseguire: squillo, popup
+    # e spegnimento del microfono contano piu' del registro.
+    continue_on_error: true
+    data:
+      azione: persa
+  # Esce dalla view "Conversazione" su tutti i frontend HA. La card
+  # custom:vc-livekit-call ha un disconnectedCallback() che chiude
+  # automaticamente la Room LiveKit e ferma le track del MediaStream
+  # locale: niente cleanup manuale di RTCPeerConnection / srcObject /
+  # vc-selfview, e' tutto incapsulato nel custom element.
+  #
+  # browser_mod.navigate path:/lovelace torna alla home della dashboard
+  # default. Se l'utente non era sulla view conversazione (es. tablet
+  # in standby) la navigate non ha effetto visibile.
+  - action: browser_mod.navigate
+    data:
+      path: /lovelace
+  # Cleanup difensivo lato browser: se per qualche motivo la navigate
+  # non smonta la card (vista panel + history particolare), forziamo
+  # comunque vcLK.stop() come safety net.
+  - action: browser_mod.javascript
+    data:
+      code: |
+        (async () => {
+          try {
+            if (window.vcLK && window.vcLK.isActive && window.vcLK.isActive()) {
+              try { await window.vcLK.stop(); } catch(e){ console.warn('vcLK stop:', e); }
+            }
+          } catch(e) { console.warn('vc fine chiamata cleanup err:', e); }
+        })();
+  # Retention: conserva la registrazione solo se la chiamata NON e' stata
+  # risposta. Sta in fondo perche' attende qualche secondo la finalizzazione
+  # dell'MP4: messa prima, ritarderebbe la chiusura del popup sui tablet.
+  - action: pyscript.applica_retention_video_videocitofono
+    continue_on_error: true
+  mode: single
+- id: '1761000000004'
+  alias: Videocitofono - Timeout chiamata
+  description: >-
+    Auto-chiude la chiamata se resta in stato ON per piu' di 3 minuti
+    senza che nessuno l'abbia chiusa manualmente (ne' rispondendo, ne'
+    rifiutando, ne' annullando dal RPi). Necessario perche' il
+    binary_sensor non ha piu' off_delay (lo avevamo, ma faceva cadere le
+    conversazioni lunghe). Senza questa rete di sicurezza, una chiamata
+    "dimenticata" resterebbe attiva per sempre.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.stato_chiamata_videocitofono
+    to: 'on'
+    for:
+      minutes: 3
+  conditions: []
+  actions:
+  - action: script.videocitofono_chiudi
+  mode: single
+- id: '1761000000003'
+  alias: Videocitofono - Sync campanelli a unità esterna
+  description: >-
+    Quando l'utente modifica id/nome di uno dei 4 campanelli nella sezione
+    Famiglie, pubblica la lista aggiornata su videocitofono/cmd così che l'app
+    sull'RPi salvi l'override e applichi i nuovi nominativi.
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_text.videocitofono_campanello1_id
+    - input_text.videocitofono_campanello1_nome
+    - input_text.videocitofono_campanello2_id
+    - input_text.videocitofono_campanello2_nome
+    - input_text.videocitofono_campanello3_id
+    - input_text.videocitofono_campanello3_nome
+    - input_text.videocitofono_campanello4_id
+    - input_text.videocitofono_campanello4_nome
+    - input_select.videocitofono_campanello1_icona
+    - input_select.videocitofono_campanello2_icona
+    - input_select.videocitofono_campanello3_icona
+    - input_select.videocitofono_campanello4_icona
+    for:
+      seconds: 2
+  conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state.state not in ['unavailable','unknown'] and
+         trigger.to_state.state not in ['unavailable','unknown'] }}
+  variables:
+    campanelli: >-
+      {% set out = namespace(items=[]) %}
+      {% for n in [1,2,3,4] %}
+        {% set cid = states('input_text.videocitofono_campanello' ~ n ~ '_id') | trim %}
+        {% set cnm = states('input_text.videocitofono_campanello' ~ n ~ '_nome') | trim %}
+        {% set cic = states('input_select.videocitofono_campanello' ~ n ~ '_icona') %}
+        {% if cic in ['unavailable','unknown','default',''] %}{% set cic = '' %}{% endif %}
+        {% if cid and cid not in ['unavailable','unknown'] %}
+          {% set item = {'id': cid, 'nome': cnm or cid, 'icona': cic} %}
+          {% set out.items = out.items + [item] %}
+        {% endif %}
+      {% endfor %}
+      {{ out.items }}
+  actions:
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/cmd
+      qos: 1
+      retain: false
+      payload: >-
+        {"action":"set_config","persist_default":true,"config":{"campanelli": {{ campanelli | tojson }} }}
+  # restart e non single: modificando id/nome/icona di piu' campanelli (o al
+  # riavvio di HA, quando gli input_text si popolano insieme) i trigger scattano
+  # a raffica e "single" scartava le esecuzioni con un warning "Already running".
+  # Il payload contiene sempre la lista completa e aggiornata, quindi vale
+  # l'ultima esecuzione: ripartire da zero e' preferibile ad accodare.
+  mode: restart
+- id: '1761000000002'
+  alias: Videocitofono - Pulizia automatica registro > 7 giorni
+  description: Ogni giorno alle 03:30 elimina record e video più vecchi di 7 giorni
+  triggers:
+  - trigger: time
+    at: '03:30:00'
+  conditions: []
+  actions:
+  - action: pyscript.purge_registro_videocitofono
+    data:
+      giorni: 7
+  mode: single
+- id: '1761000000008'
+  alias: Videocitofono - Refresh sfondi periodico
+  description: >-
+    Scansiona /config/www/vc-sfondi/ e popola input_select. Il refresh all'avvio
+    non e' qui ma in pyscript/sfondi.py (time_trigger startup): con l'evento
+    `homeassistant start` l'automazione partiva a volte prima che pyscript
+    avesse registrato il service.
+  triggers:
+  - trigger: time_pattern
+    minutes: '/30'
+  conditions: []
+  actions:
+  - action: pyscript.videocitofono_refresh_sfondi
+  mode: single
+- id: '1761000000009'
+  alias: Videocitofono - Hard reload frontend (MQTT trigger)
+  description: >-
+    Su MQTT publish `videocitofono/ha_reload` invia browser_mod.javascript
+    a tutti i client per pulire le cache e fare location.reload(true).
+    Utile dopo aggiornamenti delle custom card per saltare il refresh
+    manuale sui tablet.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/ha_reload
+  conditions: []
+  actions:
+  - action: browser_mod.javascript
+    data:
+      code: |
+        try {
+          if ('caches' in window) {
+            caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+          }
+        } catch (e) { console.warn('cache clear err:', e); }
+        setTimeout(() => { try { location.reload(true); } catch(e) { location.reload(); } }, 350);
+  mode: single
+- id: '1761000000007'
+  alias: Videocitofono - Refresh icone periodico
+  description: >-
+    Scansiona /config/www/vc-icone/ e popola gli input_select icone campanelli.
+    Il refresh all'avvio sta in pyscript/icone.py (time_trigger startup), non
+    qui: vedi la nota nell'automazione gemella degli sfondi.
+  triggers:
+  - trigger: time_pattern
+    minutes: '/30'
+  conditions: []
+  actions:
+  - action: pyscript.videocitofono_refresh_icone
+  mode: single
+- id: '1761000000005'
+  alias: Videocitofono - Sync UI/Audio settings su modifica
+  description: Propaga al RPi (live) modifiche di indirizzo, lingua, sfondo, brightness, screensaver, motion, audio
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_text.videocitofono_indirizzo
+    - input_select.videocitofono_lingua
+    - input_select.videocitofono_sfondo
+    - input_select.videocitofono_suoneria
+    - input_number.videocitofono_brightness_idle
+    - input_number.videocitofono_brightness_active
+    - input_number.videocitofono_idle_dim_timeout
+    - input_number.videocitofono_screensaver_timeout
+    - input_number.videocitofono_motion_sensitivity
+    - input_number.videocitofono_volume_speaker
+    - input_number.videocitofono_volume_microfono
+    - input_number.videocitofono_volume_feedback
+    - input_number.videocitofono_volume_tts
+    - input_boolean.videocitofono_dnd
+    - input_boolean.videocitofono_audio_locale_enabled
+    - input_boolean.videocitofono_motion_enabled
+    - input_boolean.videocitofono_pin_enabled
+    - input_boolean.videocitofono_face_enabled
+    - input_boolean.videocitofono_finger_enabled
+    - input_boolean.videocitofono_nfc_enabled
+    # Riconoscimento automatico al risveglio e anti-foto: hanno un pulsante nella
+    # plancia, quindi devono arrivare al citofono subito e non al prossimo
+    # "applica configurazione".
+    - input_boolean.videocitofono_auto_recognize
+    - input_boolean.videocitofono_liveness
+    - input_select.videocitofono_metodo_pin_icona
+    - input_select.videocitofono_metodo_face_icona
+    - input_select.videocitofono_metodo_fingerprint_icona
+    - input_select.videocitofono_metodo_nfc_icona
+    for:
+      seconds: 2
+  conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state.state not in ['unavailable','unknown'] and
+         trigger.to_state.state not in ['unavailable','unknown'] }}
+  actions:
+  - action: script.videocitofono_applica_config
+  mode: queued
+  # 15 e non 5: all'avvio piu' helper tornano dallo stato ripristinato quasi
+  # insieme e la coda sforava, con "Maximum number of runs exceeded" e qualche
+  # modifica non propagata al citofono.
+  max: 15
+- id: '1761000000010'
+  alias: Videocitofono - Pulsante Applica configurazione
+  description: >-
+    Il pulsante dashboard invoca lo script che pubblica set_config su
+    videocitofono/cmd (broker MQTT deve puntare al RPi 192.168.1.185:1883).
+  triggers:
+  - trigger: state
+    entity_id: input_button.videocitofono_applica_config
+  conditions: []
+  actions:
+  - action: script.videocitofono_applica_config
+  mode: single
+- id: '1761000000011'
+  alias: Videocitofono - Pulsante Riavvia app
+  triggers:
+  - trigger: state
+    entity_id: input_button.videocitofono_riavvia_app
+  conditions: []
+  actions:
+  - action: script.videocitofono_riavvia_app
+  mode: single
+- id: '1761000000012'
+  alias: Videocitofono - Pulsante Pulisci registro
+  triggers:
+  - trigger: state
+    entity_id: input_button.videocitofono_pulisci_registro
+  conditions: []
+  actions:
+  - action: script.videocitofono_pulisci_registro
+  mode: single
+- id: '1761000000013'
+  alias: Videocitofono - Pulsante Test suoneria
+  triggers:
+  - trigger: state
+    entity_id: input_button.videocitofono_test_suoneria
+  conditions: []
+  actions:
+  - action: script.videocitofono_test_suoneria
+  mode: single
+- id: '1761000000006'
+  alias: Videocitofono - go2rtc keep-alive (pre-warm pull RTSP)
+  description: >-
+    Mantiene sempre attivo il pull RTSP HA→RPi nel go2rtc-addon (porta 1984)
+    chiamando frame.jpeg ogni 5s. Senza questo, lo stream è on-demand e ogni
+    apertura popup pagherebbe 10-15s di cold-start (handshake RTSP + primo
+    keyframe attraverso il WiFi lento del RPi). Con keep-alive il GOP corrente
+    è sempre in cache su HA → primo frame WebRTC al browser in <1s.
+    Il rest_command go2rtc_keepalive è definito in configuration.yaml.
+  triggers:
+  - trigger: time_pattern
+    seconds: '/5'
+  - trigger: homeassistant
+    event: start
+  conditions: []
+  actions:
+  - action: rest_command.go2rtc_keepalive
+    continue_on_error: true
+  mode: single
+  max_exceeded: silent
+- id: '1761000000014'
+  alias: Videocitofono - Carica defaults a HA start
+  description: >-
+    All'avvio ripristina helper HA ai valori canonici (videocitofono_defaults.json)
+    e propaga la config al RPi via applica_config.
+  triggers:
+  - trigger: homeassistant
+    event: start
+  conditions: []
+  actions:
+  # 45 secondi e non 12: pyscript compila i suoi file dopo l'avvio di HA (una
+  # ventina di secondi sul mini-PC) e prima di allora i suoi service non
+  # esistono. I refresh di icone e sfondi non sono piu' qui: li fa pyscript da
+  # solo appena e' pronto.
+  - delay:
+      seconds: 45
+  - action: pyscript.videocitofono_carica_defaults
+    continue_on_error: true
+  - delay:
+      seconds: 2
+  - action: script.videocitofono_applica_config
+  mode: single
+- id: '1761000000020'
+  alias: Videocitofono - Alert subsystem degradato
+  description: >-
+    Notifica se lo health RPi segnala status_summary degraded o down
+    per almeno 5 minuti (NFC, go2rtc, motion, ecc.).
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: status_summary
+    to: degraded
+    for:
+      minutes: 5
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: status_summary
+    to: down
+    for:
+      minutes: 5
+  conditions: []
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono — subsystem degradato
+      message: >-
+        Stato {{ state_attr('sensor.videocitofono_health', 'status_summary') }}:
+        {{ state_attr('sensor.videocitofono_health', 'status_down') | default('—') }}
+        (NFC={{ state_attr('sensor.videocitofono_health', 'nfc_status') }},
+        go2rtc={{ state_attr('sensor.videocitofono_health', 'go2rtc_status') }},
+        motion={{ state_attr('sensor.videocitofono_health', 'motion_status') }})
+      notification_id: videocitofono_health_alert
+  mode: single
+- id: '1761000000023'
+  alias: Videocitofono - Riavvio NFC down
+  description: >-
+    Se NFC risulta down per 2+ minuti (e NFC abilitato), riavvia l'app RPi.
+    Cooldown massimo una volta all'ora.
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: nfc_status
+    to: down
+    for:
+      minutes: 2
+  conditions:
+  - condition: state
+    entity_id: input_boolean.videocitofono_nfc_enabled
+    state: 'on'
+  - condition: template
+    value_template: >-
+      {% set last = state_attr('automation.videocitofono_riavvio_nfc_down', 'last_triggered') %}
+      {{ last is none or (as_timestamp(now()) - as_timestamp(last)) > 3600 }}
+  actions:
+  - action: script.videocitofono_riavvia_app
+  mode: single
+- id: '1761000000022'
+  alias: Videocitofono - Alert apertura anomala
+  description: Notifica se il RPi segnala apertura in orario insolito.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/anomaly
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json.is_anomaly | default(false) }}"
+  - condition: numeric_state
+    entity_id: zone.home
+    below: 1
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono — apertura insolita
+      message: >-
+        Utente {{ trigger.payload_json.user | default('?') }} alle
+        {{ trigger.payload_json.hour | default('?') }}:00
+        (probabilita {{ trigger.payload_json.prob_window | default('?') }})
+      notification_id: videocitofono_anomaly
+  mode: queued
+  max: 5
+- id: '1761000000021'
+  alias: Videocitofono - Notifica mobile chiamata
+  description: >-
+    Push Companion su chiamata_in_corso (MQTT videocitofono/chiamata).
+    Tap apre /lovelace/conversazione (card custom:vc-livekit-call-v3).
+    iOS: data.url; Android: data.clickAction (formato Companion).
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/chiamata
+    value_template: >-
+      {% if value is string and value.startswith('{') %}
+        {{ (value | from_json).get('stato', '') }}
+      {% else %}
+        {{ value }}
+      {% endif %}
+    payload: 'chiamata_in_corso'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.videocitofono_dnd
+    state: 'off'
+  variables:
+    campanello_id: >-
+      {% set p = trigger.payload %}
+      {% if p is string and p.startswith('{') %}
+        {{ (p | from_json).get('campanello', '') | trim }}
+      {% else %}
+        {{ states('sensor.videocitofono_ultimo_campanello') | default('') | trim }}
+      {% endif %}
+    nome_ricercato: >-
+      {% set cid = campanello_id %}
+      {% set ns = namespace(nome='') %}
+      {% for i in [1, 2, 3, 4] %}
+        {% set id = states('input_text.videocitofono_campanello' ~ i ~ '_id') | trim %}
+        {% if id and id == cid %}
+          {% set full = states('input_text.videocitofono_campanello' ~ i ~ '_nome') | trim %}
+          {% set ns.nome = (full.split(' ')[0] if full else cid) %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.nome or cid or 'qualcuno' }}
+    nav_path: /lovelace/conversazione
+    nav_url: https://casa-esempio.duckdns.org:8191/lovelace/conversazione
+    nav_deep: homeassistant://navigate/lovelace/conversazione
+  actions:
+  - parallel:
+    - action: notify.mobile_app_vinset_iphone
+      data:
+        title: Videocitofono
+        message: Suonano alla porta. Cercano {{ nome_ricercato }}
+        data:
+          url: '{{ nav_url }}'
+          clickAction: '{{ nav_url }}'
+          tag: videocitofono_chiamata
+          group: videocitofono
+          channel: Videocitofono
+          importance: high
+          priority: high
+          ttl: 0
+          notification_icon: mdi:doorbell-video
+          actions:
+          - action: VC_APRI_PORTA
+            title: Apri porta
+          - action: URI
+            title: Apri conversazione
+            uri: '{{ nav_path }}'
+          push:
+            interruption-level: time-sensitive
+    - action: notify.mobile_app_iphone_stefania
+      data:
+        title: Videocitofono
+        message: Suonano alla porta. Cercano {{ nome_ricercato }}
+        data:
+          url: '{{ nav_url }}'
+          clickAction: '{{ nav_url }}'
+          tag: videocitofono_chiamata
+          group: videocitofono
+          channel: Videocitofono
+          importance: high
+          priority: high
+          ttl: 0
+          notification_icon: mdi:doorbell-video
+          actions:
+          - action: VC_APRI_PORTA
+            title: Apri porta
+          - action: URI
+            title: Apri conversazione
+            uri: '{{ nav_path }}'
+          push:
+            interruption-level: time-sensitive
+  mode: restart
+- id: '1761000000024'
+  alias: Videocitofono - Companion azione Apri porta
+  description: >-
+    Esegue script.videocitofono_apri_porta quando si tocca "Apri porta"
+    sulla push Companion (mobile_app_notification_action).
+  triggers:
+  - trigger: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: VC_APRI_PORTA
+  conditions: []
+  actions:
+  - action: script.videocitofono_apri_porta
+  mode: single
+- id: "1761000000030"
+  alias: Videocitofono - Apri cancello da unita esterna
+  description: >-
+    Il RPi pubblica su videocitofono/apertura dopo un riconoscimento valido
+    (volto/NFC/PIN). Apre il cancello corrispondente allo scope senza dipendere
+    dal token REST dell unita esterna (che puo essere assente). Questo rende
+    l'apertura automatica robusta anche con home_assistant.token vuoto.
+  triggers:
+  - trigger: mqtt
+    topic: videocitofono/apertura
+  conditions:
+  - condition: template
+    value_template: >-
+      {% set p = trigger.payload %}
+      {{ p is string and p.startswith("{") and (p | from_json).get("scope") in ["porta", "cancello"] }}
+  variables:
+    scope: >-
+      {% set p = trigger.payload %}
+      {{ (p | from_json).get("scope", "porta") }}
+  actions:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: "{{ scope == \"cancello\" }}"
+      sequence:
+      - action: script.cancello_strada
+    default:
+    - action: script.cancello_ingresso
+  mode: queued
+  max: 5

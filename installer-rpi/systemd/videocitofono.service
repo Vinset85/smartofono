@@ -1,0 +1,52 @@
+[Unit]
+Description=Videocitofono - Postazione Esterna (Kivy)
+After=network-online.target mosquitto.service graphical.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+WatchdogSec=60
+NotifyAccess=main
+User=vinset
+Group=vinset
+WorkingDirectory=/opt/videocitofono/app
+Environment=PYTHONUNBUFFERED=1
+# Forza locale UTF-8 (sotto systemd la LANG di default e' C/POSIX -> open() usa
+# encoding ASCII e i config YAML con caratteri unicode falliscono con
+# yaml.reader.ReaderError "unacceptable character").
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
+Environment=PYTHONIOENCODING=utf-8
+# Per silenziare i log Kivy in produzione (a debug terminato), aggiungere:
+# Environment=KIVY_NO_CONSOLELOG=1
+# Backend grafici Kivy: sdl2 produce un context GL/GLES via SDL2 che funziona
+# con XWayland+V3D su RPi5; il backend "gl" desktop non swappa il framebuffer
+# (finestra creata ma contenuto non presentato → schermo nero).
+Environment=KIVY_GL_BACKEND=sdl2
+# Forziamo SDL2 a usare il backend X11 esplicito (XWayland) per evitare che
+# tenti Wayland nativo (non supportato dal wheel ufficiale di Kivy 2.3).
+Environment=SDL_VIDEODRIVER=x11
+# Wayland compositor (labwc su RPi OS Bookworm) + XWayland on-demand.
+# labwc avvia Xwayland quando un client X11 si connette tramite DISPLAY=:0.
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/vinset/.Xauthority
+# LiveKit client config (modules/livekit_client.py).
+# - VC_LK_TOKEN_URL: endpoint token issuer. LAN diretta al miniPC HA per
+#   evitare hop TLS inutile (cert mismatch su IP nudo).
+# - VC_LK_WS_URL: signaling LiveKit, idem LAN.
+# - VC_LK_PUBLISH: 1 = il Pi pubblica camera+mic in LiveKit (Step C
+#   completato). Richiede go2rtc-pi disabilitato (sensore picamera2
+#   esclusivo). Override possibile via systemd drop-in.
+Environment=VC_LK_TOKEN_URL=http://192.168.1.160:8081/token
+Environment=VC_LK_WS_URL=ws://192.168.1.160:7880
+Environment=VC_LK_PUBLISH=1
+ExecStartPre=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/scripts/restore_config_defaults.py
+ExecStartPre=+/opt/videocitofono/scripts/nfc-usb-reset.sh recover
+ExecStart=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/app/main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

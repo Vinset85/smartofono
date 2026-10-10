@@ -1,0 +1,46 @@
+# ---------------------------------------------------------------------------
+# LiveKit Egress: registrazione MP4 della chiamata videocitofono.
+#
+# Ruolo nel sistema: quando il RPi suona, HA chiede al token issuer di avviare
+# un "participant egress" sull'identity `rpi`. L'egress entra nella room
+# `videocitofono`, ATTENDE che il Pi pubblichi camera+mic e inizia a registrare
+# appena arriva la prima traccia (quindi anche se nessuno risponde alla
+# chiamata: il Pi pubblica gia' da CallingScreen, vedi
+# installer-rpi/app/main.py::_enter_call_camera_mode).
+#
+# Perche' participant egress e non room composite:
+#   - registra solo il visitatore (quello che serve come prova di chi ha
+#     suonato), non il rispondente
+#   - NON usa Chrome headless (che serve solo a room-composite/web egress):
+#     pipeline GStreamer diretta, ~1 core durante la registrazione invece di
+#     ~2 core + 1-2 GB di RAM per il browser
+#   - gestisce da solo mute/unpublish e si ferma quando il Pi lascia la room
+#
+# Output: file MP4 in /out (bind mount su /config/www/videocitofono lato host,
+# vedi start.sh), cioe' la stessa cartella che il registro chiamate e il popup
+# HA usano da sempre come /local/videocitofono/<file>.mp4. Nessun cloud storage.
+# ---------------------------------------------------------------------------
+
+log_level: info
+
+api_key: videocitofono
+api_secret: SOSTITUISCI_CON_IL_TUO_LIVEKIT_API_SECRET
+
+# Loopback: l'egress gira in network host come il server (vedi start.sh).
+# ws:// invece di wss:// -> serve `insecure: true`, altrimenti l'handshake
+# verso il signaling viene rifiutato.
+ws_url: ws://127.0.0.1:7880
+insecure: true
+
+# Deve essere lo STESSO Redis dichiarato in livekit.yaml, altrimenti il server
+# accoda i job su una coda che nessuno consuma e l'API risponde
+# "no response from egress service".
+redis:
+  address: 127.0.0.1:6379
+
+# NOTA sui limiti CPU: l'egress rifiuta un job se stima di non avere CPU
+# sufficiente ("CPU limit reached"). Sull'N100 (4 core) un solo participant
+# egress 720p15 entra comodamente nei default. Se in futuro si aggiungessero
+# registrazioni concorrenti, alzare qui i budget invece di scalare il container:
+#   cpu_cost:
+#     participant_cpu_cost: 2

@@ -1,0 +1,56 @@
+{
+  "type": "vertical-stack",
+  "title": "PIN ospite",
+  "cards": [
+    {
+      "type": "entities",
+      "title": "Nuovo PIN ospite",
+      "entities": [
+        "input_text.videocitofono_guest_label",
+        "input_number.videocitofono_guest_valid_hours",
+        "input_number.videocitofono_guest_max_uses",
+        "input_select.videocitofono_guest_scope"
+      ]
+    },
+    {
+      "type": "horizontal-stack",
+      "cards": [
+        {
+          "type": "button",
+          "name": "Crea PIN",
+          "icon": "mdi:key-plus",
+          "tap_action": {"action": "call-service", "service": "script.videocitofono_crea_guest_pin"}
+        },
+        {
+          "type": "button",
+          "name": "Aggiorna lista",
+          "icon": "mdi:refresh",
+          "tap_action": {"action": "call-service", "service": "pyscript.videocitofono_list_guest_pins"}
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "entity": "sensor.videocitofono_guest_pins",
+      "name": "PIN attivi"
+    },
+    {
+      "type": "markdown",
+      "content": "{% set items = state_attr('sensor.videocitofono_guest_pins', 'items') | default([]) %}\n{% if items | length == 0 %}\nNessun PIN ospite attivo.\n{% else %}\n| Etichetta | PIN | Scadenza | Usi |\n|---|---|---|---|\n{% for p in items %}\n| {{ p.label | default('—') }} | `{{ p.pin | default('?') }}` | {{ p.expires_human | default('—') }} | {{ p.uses | default(0) }}/{{ p.max_uses | default('?') }} |\n{% endfor %}\n{% endif %}"
+    },
+    {
+      "type": "markdown",
+      "content": "Per **revocare** un PIN, usa Developer Tools → Servizi:\n`script.videocitofono_revoca_guest_pin` con `id` dalla tabella\n(campo `id` di ogni voce in `items`)."
+    },
+    {
+      "type": "button",
+      "name": "Revoca (inserisci id nello script)",
+      "icon": "mdi:key-remove",
+      "tap_action": {
+        "action": "call-service",
+        "service": "script.videocitofono_revoca_guest_pin",
+        "service_data": {"id": ""}
+      }
+    }
+  ]
+}

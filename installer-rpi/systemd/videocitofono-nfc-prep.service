@@ -1,0 +1,18 @@
+# DISABILITATO di default: il reset USB all'avvio puo' far fallire il touch
+# (1a86:e5e3 su bus 003) sullo stesso hub del case.
+# Il lettore NFC viene preparato dall'app (nfc_reader.prepare_nfc_hardware).
+# Per riattivare: systemctl enable videocitofono-nfc-prep.service
+[Unit]
+Description=Videocitofono - prepara lettore NFC PN532 (reset USB CH340)
+After=graphical.target
+Conflicts=videocitofono.service
+
+[Service]
+Type=oneshot
+Environment=BOOT_DELAY_SEC=30
+ExecStart=/opt/videocitofono/scripts/nfc-usb-reset.sh boot
+RemainAfterExit=yes
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,183 @@
+# --------------------------------------------------------------------------
+# Edge reverse proxy unificato per Videocitofono.
+#
+# Tutti i client (tablet di casa + telefono fuori casa via HA Companion)
+# parlano con UN SOLO origin HTTPS:
+#
+#     https://casa-esempio.duckdns.org/
+#
+# Caddy fa terminator TLS e ruota le richieste:
+#
+#     /                     -> Home Assistant         (https://localhost:8123)
+#     /livekit/rtc          -> LiveKit signaling      (ws ://localhost:7880)
+#     /livekit/twirp/*      -> LiveKit REST           (http://localhost:7880)
+#     /livekit-token/*      -> Token issuer FastAPI   (http://localhost:8081)
+#
+# Vantaggi rispetto al setup precedente con porte multiple (:8123 HA, :7880
+# LiveKit, :8081 issuer, :7443 caddy-LK):
+#  - same-origin: niente CORS, niente mixed-content quando il tablet apre
+#    HA in HTTPS e il client JS deve aprire wss + fetch al token issuer.
+#  - 1 solo port-forward sul router (443 -> 192.168.1.160:443).
+#  - 1 solo certificato (LE auto-renew via DuckDNS addon HA, gia' presente
+#    in /ssl/ del supervisor host).
+#  - Funziona identico in LAN (hairpin NAT o split-DNS) e WAN.
+#
+# Cert: riusiamo /ssl/fullchain.pem + /ssl/privkey.pem gestiti dall'addon
+# Duck DNS di HA (renew automatico). Path host: /mnt/data/supervisor/ssl/.
+# Se l'utente non ha l'addon DuckDNS attivo, Caddy puo' ottenere cert LE
+# direttamente: vedi sezione TLS-MANAGED-BY-CADDY in fondo (commentata).
+#
+# NB: HA continua ad ascoltare su :8123 in HTTPS interno con lo stesso
+# cert /ssl/. Caddy parla con HA via https://localhost:8123 con
+# tls_insecure_skip_verify: il match SAN (casa-esempio.duckdns.org)
+# fallirebbe quando si chiama localhost. Internal-only, OK.
+# --------------------------------------------------------------------------
+
+{
+    # auto_https off: gestiamo manualmente i cert (sotto), niente challenge
+    # automatico LE (Caddy non ha porta 80 esposta dentro HA OS).
+    auto_https off
+    admin off
+    # HTTP/2 abilitato di default in Caddy 2.x. HTTP/3 (QUIC) viene attivato
+    # automaticamente con TLS quando il server fa bind su :443; nessuna
+    # direttiva esplicita necessaria (la sintassi `experimental_http3` e'
+    # stata rimossa in Caddy 2.6).
+}
+
+# ------------------------- vhost pubblico ---------------------------------
+
+(common_headers) {
+    header {
+        # HSTS solo se accedi via dominio reale (non IP nudo).
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Niente X-Frame-Options: HA Companion app embedda dashboard in
+        # WebView; deny rompe l'app mobile.
+        -Server
+    }
+}
+
+:443 {
+    tls /ssl/fullchain.pem /ssl/privkey.pem
+
+    import common_headers
+
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+
+    # ---- LAN-check endpoint ---------------------------------------------
+    # Ritorna al client il proprio IP visto da Caddy (header X-Forwarded-For
+    # NON e' affidabile: Caddy stesso e' l'ultimo hop). Il client legge la
+    # risposta e se l'IP risulta privato (192.168/16, 10/8, 172.16/12)
+    # disabilita STUN/TURN nel SDK LiveKit -> ICE risolve solo su host
+    # candidates LAN -> niente candidate srflx pubblici inutili -> setup
+    # ICE piu' rapido di ~300ms.
+    #
+    # In WAN il NAT del router fa SNAT: Caddy vede l'IP pubblico del router
+    # del client (non LAN) -> il client capisce che e' in WAN e mantiene
+    # STUN/TURN attivi.
+    #
+    # In LAN con hairpin: Caddy vede l'IP del router (pubblico) anche per
+    # client LAN. Per rilevare LAN affidabilmente serve che il client
+    # raggiunga Caddy via IP LAN (split-DNS via /etc/hosts o DNS rewrite
+    # router). Vedi docs/no-lag-lan.md.
+    handle /lan-check {
+        header Cache-Control "no-store"
+        header Access-Control-Allow-Origin "*"
+        respond "{remote_host}" 200
+    }
+
+    # ---- LiveKit signaling (websocket) -----------------------------------
+    # Il client browser apre wss://casa-esempio.duckdns.org/livekit/rtc
+    # Caddy uplift a ws e proxy a localhost:7880/rtc.
+    # Twirp (REST signaling control) sta sotto /twirp/ nello stesso server.
+    handle_path /livekit/* {
+        reverse_proxy localhost:7880 {
+            transport http {
+                # WebSocket richiede keep-alive lungo: il read_buffer e
+                # write_buffer di default vanno bene; il flush_interval=-1
+                # disabilita batching (essenziale per signaling realtime).
+                versions 1.1
+            }
+            header_up Host {http.reverse_proxy.upstream.hostport}
+            header_up X-Forwarded-For {client_ip}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # ---- Egress: mai dall'edge -------------------------------------------
+    # Gli endpoint /egress/start|stop del token issuer avviano registrazioni
+    # e scrivono file su disco. HA li chiama in LAN diretta
+    # (http://192.168.1.160:8081), quindi non devono passare da qui: chiuso
+    # verso la WAN. Il matcher piu' specifico vince su /livekit-token/*.
+    handle /livekit-token/egress/* {
+        respond "not found" 404
+    }
+
+    # ---- Token issuer (FastAPI) ------------------------------------------
+    # I client chiamano POST https://.../livekit-token/token con identity+room
+    # e ottengono un JWT firmato.
+    handle_path /livekit-token/* {
+        @options method OPTIONS
+        handle @options {
+            header Access-Control-Allow-Origin "*"
+            header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            header Access-Control-Allow-Headers "Content-Type, Authorization"
+            respond 204
+        }
+        reverse_proxy localhost:8081 {
+            header_up Host {http.reverse_proxy.upstream.hostport}
+            header_up X-Forwarded-For {client_ip}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # ---- Home Assistant (catch-all) --------------------------------------
+    # HA ascolta su localhost:8123 in HTTPS: configuration.yaml ha
+    # ssl_certificate/ssl_key su /ssl/ (cert dell'addon Duck DNS), quindi
+    # l'upstream va dichiarato https://. Con `reverse_proxy localhost:8123`
+    # in plain HTTP la connessione muore subito (EOF) e Caddy risponde 502
+    # su tutte le richieste HA.
+    #
+    # tls_insecure_skip_verify: il cert ha SAN casa-esempio.duckdns.org, che
+    # non combacia con `localhost`. Verifica disattivata: il traffico resta
+    # sul loopback dell'host.
+    #
+    # HA usa websocket pesantemente (frontend, browser_mod, ESPHome, ecc.):
+    # reverse_proxy gestisce upgrade WS automaticamente con http transport.
+    handle {
+        reverse_proxy https://localhost:8123 {
+            transport http {
+                tls_insecure_skip_verify
+            }
+            header_up Host {host}
+            header_up X-Forwarded-For {client_ip}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+}
+
+# ------------------------- HTTP -> HTTPS redirect -------------------------
+# Esposto solo se l'utente forwarda anche la 80; comunque innocuo se non
+# raggiungibile.
+:80 {
+    redir https://{host}{uri} permanent
+}
+
+# --------------------------------------------------------------------------
+# TLS-MANAGED-BY-CADDY (alternativa, decommentare al posto del vhost sopra)
+# --------------------------------------------------------------------------
+# Se NON usi addon DuckDNS+LE di HA (cert /ssl/ assente o non desideri
+# riusarli), puoi delegare a Caddy stesso il rinnovo. Richiede:
+#   - porta 80 forwardata dal router (per ACME http-01)
+#   - dominio DNS pubblicamente risolvibile (gia' hai casa-esempio.duckdns.org)
+#
+# casa-esempio.duckdns.org {
+#     tls cinetyk@example.com   # email per LE notifiche scadenza
+#     import common_headers
+#     ... (stessi handle di sopra)
+# }

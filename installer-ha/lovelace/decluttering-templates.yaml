@@ -1,0 +1,216 @@
+# Template decluttering per la barra di navigazione fissa (clock + 6 icone).
+# Adattato da storebatfar/home_assistant_dashboard_menu (README).
+# Iniettato in data.config.decluttering_templates da apply_glass_dashboard.py.
+# Dipendenze: decluttering-card, button-card, card-mod, kiosk-mode.
+bottom-menu-fixed:
+  default:
+    - time_entity: sensor.time
+    - item1_icon: mdi:home
+    - item1_path: /lovelace/home
+    - item2_icon: mdi:doorbell-video
+    - item2_path: /lovelace/videocitfono
+    - item3_icon: mdi:shield-home
+    - item3_path: /lovelace/vcp-sicurezza
+    - item4_icon: mdi:account-group
+    - item4_path: /lovelace/vcp-utenti
+    - item5_icon: mdi:palette
+    - item5_path: /lovelace/vcp-aspetto
+    - item6_icon: mdi:cog
+    - item6_path: /lovelace/vcp-sistema
+  card:
+    type: custom:mod-card
+    card_mod:
+      class: bottom-menu
+      style: |
+        :host(.bottom-menu) {
+          position: fixed;
+          z-index: 6;
+          bottom: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: auto;
+          padding: 8px 12px;
+          margin: 0 !important;
+          display: flex;
+          justify-content: center;
+          background: rgba(18,21,28,0.72);
+          box-shadow: 0 10px 34px rgba(0,0,0,0.5);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 28px;
+          backdrop-filter: blur(16px) saturate(140%);
+          -webkit-backdrop-filter: blur(16px) saturate(140%);
+        }
+    card:
+      type: horizontal-stack
+      cards:
+        - type: custom:button-card
+          tap_action:
+            action: none
+          styles:
+            card:
+              - width: 92px
+              - height: 56px
+              - position: relative
+              - background: none
+              - box-shadow: none
+              - border: none
+            custom_fields:
+              time:
+                - position: absolute
+                - top: 50%
+                - left: 50%
+                - transform: translate(-50%, -50%)
+                - font-size: 20px
+                - font-weight: 600
+                - color: white
+          custom_fields:
+            time: |
+              [[[ const e='[[time_entity]]'; return states[e]?.state ?? ''; ]]]
+        - &nav_item
+          type: custom:button-card
+          icon: '[[item1_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item1_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - background: none
+              - box-shadow: none
+              - border: none
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item1_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item1_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        - <<: *nav_item
+          icon: '[[item2_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item2_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item2_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item2_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        - <<: *nav_item
+          icon: '[[item3_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item3_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item3_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item3_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        - <<: *nav_item
+          icon: '[[item4_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item4_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item4_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item4_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        - <<: *nav_item
+          icon: '[[item5_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item5_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item5_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item5_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        - <<: *nav_item
+          icon: '[[item6_icon]]'
+          tap_action:
+            action: navigate
+            navigation_path: '[[item6_path]]'
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - justify-content: center
+              - align-items: center
+              - background: |
+                  [[[ return ('[[active_path]]'==='[[item6_path]]') ? '#ffffff' : 'none'; ]]]
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: |
+                  [[[ return ('[[active_path]]'==='[[item6_path]]') ? '#111111' : 'rgba(255,255,255,0.7)'; ]]]
+        # Pulsante menu laterale HA: forza la sidebar in "always_hidden"
+        # (overlay che alla chiusura sparisce del tutto, niente barretta) e la apre.
+        # Lock temporale (__sbBusy) per ignorare il doppio-evento dei tap su touch,
+        # altrimenti il secondo evento richiuderebbe subito la sidebar.
+        - type: custom:button-card
+          icon: mdi:backburger
+          tap_action:
+            action: perform-action
+            perform_action: browser_mod.javascript
+            data:
+              code: >-
+                if(!window.__sbBusy){window.__sbBusy=true;setTimeout(function(){window.__sbBusy=false;},700);var
+                ha=document.querySelector('home-assistant');function
+                tog(){ha.shadowRoot.querySelector('home-assistant-main').dispatchEvent(new
+                CustomEvent('hass-toggle-menu',{bubbles:true,composed:true}));}if(ha.hass.dockedSidebar!=='always_hidden'){ha.dispatchEvent(new
+                CustomEvent('hass-dock-sidebar',{detail:{dock:'always_hidden'},bubbles:true,composed:true}));setTimeout(tog,150);}else{tog();}}
+          styles:
+            card:
+              - width: 56px
+              - height: 56px
+              - border-radius: 16px
+              - background: none
+              - box-shadow: none
+              - border: none
+              - justify-content: center
+              - align-items: center
+            icon:
+              - width: 26px
+              - height: 26px
+              - color: 'rgba(255,255,255,0.7)'

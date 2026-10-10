@@ -1,0 +1,226 @@
+mqtt:
+  broker: localhost
+  port: 1883
+  username: videocitofono
+  password: ''
+  # Token condiviso HA↔RPi su videocitofono/cmd (vuoto = legacy senza auth).
+  cmd_secret: ''
+  cmd_rate_limit_sec: 30
+  topic_chiamata: videocitofono/chiamata
+  topic_apertura: videocitofono/apertura
+  topic_evento: videocitofono/evento
+  topic_wake: videocitofono/wake
+  topic_cmd: videocitofono/cmd
+  # Availability/Last-Will: il RPi pubblica "online" (retain) alla connessione
+  # e imposta un LWT "offline" (retain) che il broker invia in automatico se la
+  # connessione cade (crash/rete/spina). HA usa questo topic per marcare le
+  # entita' come non disponibili e per l'alert citofono offline.
+  topic_status: videocitofono/status
+home_assistant:
+  base_url: https://192.168.1.160:8123
+  token: ''
+  script_apri_porta: script.cancello_ingresso
+  script_apri_cancello: script.cancello_strada
+ui:
+  fullscreen: true
+  cursor: false
+  width: 1080
+  height: 1920
+  rotation: 0
+  screensaver_timeout_sec: 60
+  idle_dim_sec: 20
+  brightness_idle_pct: 20
+  brightness_active_pct: 100
+  prefer_software_dim: true
+  language: it
+  indirizzo: Via Roma 1
+  sfondo: trulli.jpg
+  dnd: false
+  feedback_volume: 0.40
+livekit:
+  # Risoluzione publish camera RPi durante chiamata (Picamera2 -> LiveKit).
+  publish_width: 1280
+  publish_height: 720
+  publish_fps: 15
+  # Bitrate massimo encode video (bps). Su LAN cablata si puo' alzare per
+  # un'immagine piu' nitida (era 800k tarato per WiFi). 2.5M = 720p nitido.
+  publish_bitrate: 2500000
+motion:
+  enabled: true
+  # picamera: basso consumo (320x240@1fps), go2rtc spento a riposo.
+  # snapshot: polling JPEG go2rtc (720p H264 continuo, alto calore).
+  source: picamera
+  picam_width: 320
+  picam_height: 240
+  pixel_thresh: 25
+  area_thresh_pct: 5.0
+  cooldown_sec: 2.0
+  tick_hz: 1
+  debug_log_every: 60
+  wake_screensaver: true
+  snapshot_url: http://localhost:1984/api/frame.jpeg?src=pi5cam_h264
+  thumb_size: 200
+  timeout_sec: 1.5
+eco:
+  enabled: true
+  # Motion attivo in screensaver e quando home e' smorzata (eco risparmio).
+  motion_only_on_screensaver: true
+  health_interval_sec: 60
+  nfc_status_sec: 30
+campanelli:
+- icona: icons8-homer-simpson-100.png
+  id: mario_rossi
+  nome: Mario Rossi
+- icona: icons8-marge-simpson-100.png
+  id: giulia_bianchi
+  nome: Giulia Bianchi
+- icona: icons8-cat-head-100.png
+  id: click
+  nome: Click
+access_icons:
+  face: icons8-face-id-100.png
+  fingerprint: icons8-fingerprint-100.png
+  nfc: icons8-rfid-500.png
+  pin: icons8-keypad-100.png
+pin:
+  lunghezza_min: 4
+  lunghezza_max: 8
+  max_tentativi: 5
+  lockout_secondi: 300
+  utenti_bootstrap:
+  - nome: Admin
+    pin: '1234'
+    ruolo: admin
+    apre: porta
+  enabled: true
+face_recognition:
+  enabled: true
+  engine: auto
+  modello: hog
+  tolerance: 0.45
+  # ArcFace usa distanza coseno (1 - similarity). Con pack buffalo_sc
+  # (consigliato su Pi5) un match valido dalla camera esterna sta tipicamente
+  # tra 0.25 e 0.45, gli estranei >= 0.70 (misurato: match reale 0.29,
+  # impostore 0.94). Soglia 0.50 + margin tra 1o/2o candidato + voting
+  # multi-frame (vote_required/vote_min_lead) + liveness sono le guardie anti
+  # falsi positivi. Abbassare se compaiono falsi positivi, alzare se veri
+  # match vengono rifiutati (controlla i log "ArcFace borderline: dist=...").
+  match_threshold: 0.50
+  match_margin: 0.12
+  storage_dir: data/faces
+  timeout_sec: 18
+  vote_window: 5
+  vote_required: 3
+  vote_min_lead: 2
+  min_consecutive_matches: 2
+  liveness_enabled: true
+  liveness_ear: 0.18
+  liveness_consec: 1
+  liveness_min_blinks: 1
+  arcface:
+    match_threshold: 0.50
+    match_margin: 0.12
+    model_pack: buffalo_sc
+    det_size: 320
+  auto_enroll:
+    enabled: false
+    max_per_user: 30
+    cooldown_sec: 21600
+    verify_identity: true
+  auto_recognize:
+    enabled: true
+    max_seconds: 8
+    cooldown_sec: 30
+    require_liveness: true
+    # Bypass liveness su match ad alta confidenza (come la schermata manuale):
+    # se distanza <= liveness_skip_dist e margine >= liveness_skip_margin, il
+    # blink non viene richiesto. Mettere require_liveness: false per disattivare
+    # del tutto, oppure liveness_skip_dist: 0 per richiedere SEMPRE il blink.
+    liveness_skip_dist: 0.38
+    liveness_skip_margin: 0.18
+    vote_window: 5
+    vote_required: 3
+    vote_min_lead: 2
+    scan_hz: 5
+call_recognition:
+  enabled: true
+  timeout_sec: 25
+  scan_interval_sec: 0.4
+  vote_window: 5
+  vote_required: 2
+  match_threshold: 0
+fingerprint:
+  enabled: false
+  device: /dev/ttyAMA0
+  baudrate: 57600
+nfc:
+  enabled: true
+  device: tty:USB0:pn532
+  device_candidates:
+  - tty:USB0:pn532
+  cooldown_sec: 2.0
+  library_path: /opt/videocitofono/data/nfc_tags.json
+camera:
+  enabled: false
+  device: 0
+  preview_width: 640
+  preview_height: 480
+  rotation: 180
+audio:
+  enabled: true
+  volume: 80.0
+  suoneria: classica
+  volume_speaker_pct: 70
+  volume_mic_pct: 140
+  talkback_enabled: true
+  talkback_device: pulse
+  talkback_rate: 16000
+  talkback_channels: 1
+  talkback_format: S16_LE
+  topic_talkback_audio: videocitofono/talkback/audio
+  topic_talkback_stop: videocitofono/talkback/stop
+tts:
+  volume: 1.0
+button:
+  enabled: false
+  gpio_pin: 17
+  pull_up: true
+  bounce_time_ms: 100
+  campanello_id: mario_rossi
+logging:
+  enabled: true
+  level: INFO
+  dir: /opt/videocitofono/logs
+  filename: videocitofono.log
+  max_bytes: 5000000
+  backup_count: 7
+  json: true
+  console: true
+  console_level: INFO
+backup:
+  enabled: true
+  dest_dir: /opt/videocitofono/backups
+  interval_hours: 24
+  keep: 7
+health:
+  topic: videocitofono/health
+  interval_sec: 30
+audit:
+  db_path: /opt/videocitofono/data/audit.sqlite
+  anomaly:
+    window_days: 60
+    z_threshold: 2.5
+    min_samples: 15
+voice_recognition:
+  enabled: false
+  storage_dir: /opt/videocitofono/data/voices
+  match_threshold: 0.75
+cloud_storage:
+  enabled: false
+  bucket: ''
+  prefix: rpi5/
+  region: us-east-1
+  endpoint_url: ''
+  access_key: ''
+  secret_key: ''
+  retention_days: 30

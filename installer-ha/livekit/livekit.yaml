@@ -1,0 +1,129 @@
+# LiveKit Server config per Videocitofono (single-room "videocitofono").
+#
+# Una sola room sempre attiva con max 4 partecipanti tipici:
+#   - rpi               (visitatore esterno, publish cam+mic + sub rispondente)
+#   - ha-tablet-cucina  (rispondente, publish cam+mic + sub visitatore)
+#   - ha-tablet-camera  (rispondente, publish cam+mic + sub visitatore)
+#   - ha-mobile-<id>    (rispondente da fuori casa via app HA Companion)
+#
+# Architettura: SFU. Niente transcoding, ogni publisher invia 1 layer (no
+# simulcast: il consumer Pi mostra 480x480, i tablet 1080p quindi e' ok 1
+# layer medio - vedi vc-livekit.js publishDefaults).
+
+port: 7880
+# Bind ESPLICITO sull'IP della NIC WiFi (wlp2s0). Motivo: il miniPC HA ha 2
+# default route sulla stessa subnet (enp1s0 metric 100 + wlp2s0 metric 600).
+# Con bind 0.0.0.0 il kernel, in uscita, sceglie enp1s0 (metric piu' bassa)
+# e setta src IP = 192.168.1.45. Ma il client ICE-pair si aspetta src
+# 192.168.1.160:8100 -> drop -> DTLS timeout -> schermo verde.
+# Bindando esplicitamente, sendto() usa src=192.168.1.160 come voluto,
+# e va in coppia con la `ip rule from 192.168.1.160 lookup 100` che
+# instrada anche fisicamente i pacchetti sulla NIC WiFi (vedi
+# installer-ha/scripts/setup-net-wlan-routing.sh).
+bind_addresses:
+  # 192.168.1.160 = NIC WiFi del miniPC HA (vedi commento sopra), per ICE/UDP/TCP
+  # 127.0.0.1 = necessario per Caddy reverse-proxy che fa dial verso 127.0.0.1:7880
+  # (signaling HTTP/WS) e 127.0.0.1:7881 (TCP fallback). Senza loopback i client
+  # remoti via duckdns ricevono 502 dial tcp 127.0.0.1:7880 connection refused.
+  - 192.168.1.160
+  - 127.0.0.1
+
+rtc:
+  # use_external_ip: false -> NON annunciamo l'IP pubblico come host
+  # candidate. Motivo: i client LAN (rpi, tablet) sceglierebbero il pair
+  # public_ip:8100 ↔ client_lan invece del pair LAN-LAN diretto, perche'
+  # ICE checks possono completare prima sul candidate piu' veloce a
+  # rispondere. Il routing pubblico fa hairpin sul router (UDP simmetrico
+  # SNAT) -> packet loss su flussi RTP ad alto bitrate -> schermo verde.
+  #
+  # Per i client WAN (telefono fuori casa via Companion), forniamo TURN
+  # built-in di livekit (vedi sezione `turn:` sotto), che li relaya su
+  # TLS:443 sempre. Il client passera' attraverso TURN quando non riesce
+  # con UDP/TCP host.
+  use_external_ip: false
+
+  # STUN server vuoti -> il server LiveKit non fa piu' STUN binding verso
+  # stun.l.google.com all'avvio per scoprire il proprio IP pubblico, e non
+  # genera candidate srflx 81.56.x.x:* lato server. Per il caso WAN
+  # (mobile fuori casa) il server fornisce comunque connettivita' tramite
+  # il public IP advertised dal client (NAT traversal classico) e tramite
+  # TURN built-in se necessario. Per i client LAN, niente candidate
+  # spuri -> ICE setup ~150ms piu' veloce.
+  stun_servers: []
+
+  # SINGLE-PORT UDP MUX: il router casa non supporta port-forward di
+  # intervalli, solo singole porte. LiveKit puo' multiplexare TUTTO il
+  # traffico RTP/RTCP di tutti i partecipanti su una sola porta UDP via
+  # `udp_port`. Ogni connessione ICE viene demultiplexata internamente
+  # tramite SSRC + STUN username. Performance equivalente al range mode
+  # per il nostro caso d'uso (max 4 partecipanti).
+  #
+  # Porta scelta: 8100. Sotto il limite del router (8191), libera sull'host
+  # HA OS (HA = 8123, LK signaling = 7880, LK TCP fallback = 7881, token
+  # issuer = 8081, vari addon = 8055/8088/8443).
+  udp_port: 8100
+
+  # tcp_port: ICE/TLS fallback per reti restrittive (es. 4G aziendale che
+  # blocca UDP, hotel WiFi). Singola porta TCP, anche questa va forwardata.
+  tcp_port: 7881
+
+  # Filtra ICE candidate per IP/CIDR. Senza filtri livekit-server
+  # (network_mode host su HassOS) annuncia ai client tutti gli IP delle
+  # interfacce host (172.30.32.1, 172.30.232.1) e tutti gli IPv6 globali
+  # e link-local. Risultato:
+  #   - i client provano IP docker non routable -> ICE pass ma RTP non
+  #     passa (schermo verde, dtls timeout)
+  #   - i client preferiscono IPv6 globali (priorita' ICE piu' alta) ma
+  #     il NAT/router ISP non instrada bene IPv6 hairpin -> stessa cosa
+  #
+  # Limitiamo i candidati host solo alla LAN IPv4 (192.168.1.0/24).
+  # Il public IPv4 viene aggiunto come srflx da use_external_ip via STUN
+  # (gestisce l'accesso da WAN del telefono fuori casa).
+  # Forziamo un solo host candidate: 192.168.1.160 (interfaccia WiFi del
+  # miniPC HA). Motivo: il miniPC ha 2 NIC sulla stessa subnet
+  # (enp1s0=192.168.1.45 cablato, wlp2s0=192.168.1.160 WiFi). Quando
+  # livekit annuncia entrambi, ICE su client WiFi (tablet 192.168.1.106)
+  # seleziona il primo (192.168.1.45 cablato), ma il pacchetto DTLS
+  # response dal server esce dalla NIC sbagliata (rp_filter strict mode
+  # o asymmetric routing) -> DTLS handshake timeout.
+  #
+  # Limitando ai soli IP della NIC WiFi, i client wireless trovano un
+  # path diretto stessa-NIC; rpi cablato passa per il router (1 hop).
+  ips:
+    includes:
+      - 192.168.1.160/32
+
+keys:
+  videocitofono: SOSTITUISCI_CON_IL_TUO_LIVEKIT_API_SECRET
+
+# Redis: serve SOLO per far comunicare livekit-server con livekit-egress
+# (registrazione chiamate). L'egress preleva i job da una coda Redis e non
+# ha altro canale verso il server: senza questo blocco StartParticipantEgress
+# risponde "no response from egress service".
+#
+# Il container redis fa bind su 127.0.0.1 (vedi start.sh): non e' raggiungibile
+# dalla LAN, e livekit-server lo vede sul loopback perche' gira in network host.
+#
+# ATTENZIONE all'ordine di avvio: con `redis:` configurato, livekit-server
+# esce all'avvio se Redis non risponde. start.sh avvia redis per primo.
+redis:
+  address: 127.0.0.1:6379
+
+room:
+  auto_create: true
+  empty_timeout: 60
+  departure_timeout: 5
+  # 4 = visitatore + 2 tablet casa + 1 telefono mobile. Sufficiente per il
+  # caso d'uso: l'unica famiglia che risponde, di solito 1 device alla volta.
+  max_participants: 4
+  enable_remote_unmute: false
+
+audio:
+  active_level: 30
+  smooth_intervals: 4
+
+logging:
+  level: info
+  pion_level: warn
+
+development: false

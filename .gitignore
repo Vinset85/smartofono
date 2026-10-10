@@ -1,0 +1,51 @@
+# Credenziali e segreti - mai committare
+secrets.yaml
+*.secret
+*.key
+*.pem
+.env
+.env.*
+
+# Documentazione di lavoro dell'impianto reale: contiene credenziali, token,
+# la topologia della rete di casa e i backup di Home Assistant (centinaia di
+# MB). Niente di tutto questo serve a chi replica il progetto.
+docs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+.venv-cad/
+venv/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor
+.vscode/
+.idea/
+*.sublime-*
+
+# Log e temp
+*.log
+*.tmp
+/tmp/
+backup/*.tar
+backup/*.tar.gz
+*.orig.bak
+**/.storage/*.bak*
+snapshots/
+
+# Output rigenerabili dei CAD: restano in repo perche' servono a chi manda in
+# produzione senza installare la toolchain. Se preferisci un repo leggero,
+# scommenta queste righe e rigenera con ./hardware/genera-tutto.sh
+# hardware/cad/*.dxf
+# hardware/stl/*.stl
+# hardware/anteprime/*.png
