@@ -56,6 +56,7 @@ python3 parametri.py      # verifica le interferenze ed esporta cad/parametri.sc
 python3 genera_dxf.py
 python3 anteprime.py
 ./genera_3d.sh            # richiede OpenSCAD
+python3 verifica_cad.py   # misura i file appena generati
 ```
 
 `parametri.py` esce con errore se due componenti si sovrappongono, se
@@ -63,6 +64,19 @@ un'apertura del telaio arriva troppo vicina al bordo o se lo stack non entra
 nella cassa. È il controllo che ha fatto emergere due errori di questo
 progetto: l'altoparlante tondo da 40 mm che collideva con la camera, e
 l'apertura NFC che invadeva la finestra del display.
+
+`verifica_cad.py` fa un lavoro diverso e per questo è un file separato:
+`parametri.py` verifica se stesso, quindi un parametro sbagliato ma coerente con
+gli altri passa indisturbato, e fra il parametro e il file c'è il generatore,
+che può sbagliare per conto suo. `verifica_cad.py` apre i DXF e gli STL già
+scritti e li misura come farebbe il fornitore che li riceve: controlla che i
+solidi siano chiusi, che le unità siano dichiarate in millimetri, che i contorni
+di taglio siano chiusi, che non ci siano entità tagliate due volte né scritte
+sovrapposte, che il profilo del telaio nel DXF coincida con quello nel modello
+3D, e quanto materiale resta fra i fori più vicini. Due difetti di questo
+progetto si sono visti solo così: un offset nel modello OpenSCAD che spostava
+tutte le piastre di mezzo spessore, e la griglia dell'altoparlante serigrafata
+sopra le sedi dei magneti, che si sarebbero viste attraverso il vetro.
 
 ## Materiali consigliati
 
@@ -488,9 +502,17 @@ vetro incollato, quindi quel volume è chiuso, e l'aria circola tutta nel vano
 dietro, dove le due feritoie della cassa si affacciano direttamente.
 
 Dalla feritoia superiore esce anche il suono dell'altoparlante: la griglia sul
-vetro è solo serigrafia, il vetro lì è pieno. Il vano fa da camera di
-compressione e la feritoia da porta d'uscita, che per la voce è più che
-sufficiente.
+vetro non è forata, il vetro lì è pieno. Il vano fa da camera di compressione e
+la feritoia da porta d'uscita, che per la voce è più che sufficiente.
+
+Le tre strisce della griglia sono però **finestre nella serigrafia**, cioè vetro
+nudo, non inchiostro: attraverso di loro si vede quello che c'è dietro. Dietro
+c'è la luce dell'altoparlante nel telaio, da 213 a 226, con il cono arretrato di
+14 mm; una fessura larga 1,5 mm su 14 mm di profondità lascia passare lo sguardo
+solo in perpendicolare, quindi da fuori si legge come una griglia nera su nero.
+È anche il motivo per cui la quota della prima striscia non è libera: a 223 la
+terza arrivava a 231,5, in pieno sulla fascia dei due magneti alti e dei due
+fori dei perni, che si sarebbero visti in trasparenza come quattro buchi.
 
 Per questo l'altoparlante **non si affaccia al vetro**: sta arretrato di 14 mm
 dal retro del telaio, su tre colonnine, abbastanza indietro da scavalcare la

@@ -54,15 +54,18 @@ module vetro() {
         translate([MICROFONO_X, MICROFONO_Y, VETRO_S / 2])
             foro(MICROFONO_D, VETRO_S * 3);
     }
-    // Finestre trasparenti nella serigrafia, rese come lastre chiare.
+    // Finestre trasparenti nella serigrafia, rese come lastre chiare. Stanno
+    // dentro lo spessore, non lo scavalcano: se sporgessero di mezzo decimo per
+    // evitare le facce complanari, vetro.stl misurerebbe 2,1 invece di 2,0 e
+    // chiunque lo quotasse leggerebbe una quota falsa.
     color("#90c8ff", 0.35) {
         translate([0, FINESTRA_DISPLAY_Y + FINESTRA_DISPLAY_H / 2, VETRO_S / 2])
-            cube([FINESTRA_DISPLAY_L, FINESTRA_DISPLAY_H, VETRO_S + 0.1], center = true);
+            cube([FINESTRA_DISPLAY_L, FINESTRA_DISPLAY_H, VETRO_S - 0.1], center = true);
         translate([CAMERA_X, OTTICA_Y, VETRO_S / 2])
-            foro(OTTICA_D, VETRO_S + 0.1);
+            foro(OTTICA_D, VETRO_S - 0.1);
     }
     color("#4060a0", 0.3)
-        translate([NFC_X, NFC_Y, VETRO_S / 2]) foro(NFC_D, VETRO_S + 0.1);
+        translate([NFC_X, NFC_Y, VETRO_S / 2]) foro(NFC_D, VETRO_S - 0.1);
 }
 
 // ---------------------------------------------------------------- telaio

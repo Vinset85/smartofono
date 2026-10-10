@@ -353,7 +353,7 @@ def telaio_portante() -> None:
              p.TELAIO_Y0 + p.TELAIO_H - p.PERNO_MARGINE / 2, p.PERNO_FORO_D)
     # Sedi dei magneti: fori passanti, il magnete si incolla a filo del retro.
     for mx, my in p.posizioni_magneti():
-        foro(msp, mx, my, p.MAGNETE_D + 0.1)
+        foro(msp, mx, my, p.MAGNETE_SEDE_D)
     nota(msp, p.TELAIO_L / 2 + 4, p.TELAIO_Y0 + 2.0,
          f"6x sede magnete O{p.MAGNETE_D:.0f} passante", 2.6)
 
@@ -722,9 +722,18 @@ def disposizione() -> None:
          f"feritoia {p.FESSURA_LARGHEZZA:.0f}x{p.FESSURA_ALTEZZA:.0f}"
          f" a {p.FESSURA_ARRETRAMENTO:.0f} dal fronte", 2.5, "TAGLIO")
 
+    # I numeri dei componenti seguono l'angolo del rispettivo riquadro, e due
+    # componenti che finiscono nello stesso punto si prendono lo stesso posto:
+    # l'8 e il 10 si toccavano. Scendo finche' trovo spazio libero.
+    etichette: list[tuple[float, float]] = []
     for n, (nome, x1, y1, z1, x2, y2, z2) in enumerate(comp, 1):
         sez(z1, y1, z2, y2, "INGOMBRI")
-        nota(msp, dx + z2 + 2, y2 - 5, f"{n}", 4.0, "QUOTE")
+        ex, ey = dx + z2 + 2, y2 - 5
+        while any(abs(ex - ux) < 6.0 and abs(ey - uy) < 5.0
+                  for ux, uy in etichette):
+            ey -= 5.0
+        etichette.append((ex, ey))
+        nota(msp, ex, ey, f"{n}", 4.0, "QUOTE")
 
     # Il canale d'aria, che e' il vincolo del raffreddamento.
     zmax = max(c[6] for c in comp)

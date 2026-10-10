@@ -198,7 +198,13 @@ GRIGLIA_L = 76.0
 GRIGLIA_SPESSORE = 1.5
 GRIGLIA_PASSO = 3.5
 GRIGLIA_N = 3
-GRIGLIA_Y = 223.0
+# Quota della prima striscia. Essendo finestre, attraverso di loro si vede
+# quello che c'e' dietro, e a 223 la terza finiva a 231,5: in pieno sulla
+# fascia dei due magneti alti e dei due fori perno, che si sarebbero visti in
+# trasparenza come quattro buchi. Da 215 le tre strisce stanno dentro la luce
+# dell'altoparlante nel telaio, che va da 213 a 226, quindi si affacciano sul
+# vano e non sul metallo forato.
+GRIGLIA_Y = 215.0
 
 # Zona di lettura NFC: icona serigrafata semitrasparente, retroilluminata.
 # L'icona va dove legge l'antenna, e l'antenna non e' al centro della scheda:
@@ -580,6 +586,11 @@ PERNO_MARGINE = 8.0                # distanza dei perni dal bordo superiore
 MAGNETE_D = 4.0
 MAGNETE_S = 3.0
 MAGNETE_MARGINE = 3.0              # dal bordo del telaio al centro del magnete
+# Quello che il laser taglia non e' il magnete ma la sua sede, un decimo piu'
+# larga per farlo entrare. E' la sede a decidere quanta parete resta verso il
+# bordo, quindi e' lei che va nei controlli: con il diametro del magnete la
+# parete risultava 1,00 mm invece dei 0,95 reali.
+MAGNETE_SEDE_D = MAGNETE_D + 0.1
 
 
 def posizioni_magneti() -> list[tuple[float, float]]:
@@ -857,6 +868,16 @@ def verifica() -> list[str]:
                 f"{n1} e' a meno di 4 mm dal bordo del vetro "
                 f"(x {x1:.1f}..{x2:.1f}, y {y1:.1f}..{y2:.1f})")
 
+    # L'interasse dei fori del Raspberry e' un dato del costruttore, 58 x 49, e
+    # il disegno lo ricava dal margine invece di leggerlo: finche' i due modi
+    # danno lo stesso numero va bene, ma se qualcuno tocca il margine il
+    # disegno si sposta e questo parametro resta indietro senza dirlo.
+    if abs((PI_H - 2 * PI_MARGINE_FORI) - PI_FORI_Y) > 0.01:
+        problemi.append(
+            f"l'interasse dei fori del Pi e' {PI_FORI_Y} ma dal margine"
+            f" {PI_MARGINE_FORI} su una scheda da {PI_H} ne risultano"
+            f" {PI_H - 2 * PI_MARGINE_FORI}")
+
     # Sotto il Pi i distanziali devono contenere la base dell'SSD.
     if NVME_BASE_S > PI_DISTANZIALI:
         problemi.append(
@@ -935,7 +956,7 @@ def verifica() -> list[str]:
     # Ogni magnete deve cadere nella striscia dove telaio e battuta si
     # sovrappongono, altrimenti non ha niente da attirare.
     for mx, my in posizioni_magneti():
-        r = MAGNETE_D / 2
+        r = MAGNETE_SEDE_D / 2
         su_fianco = abs(mx) + r > TELAIO_L / 2 - BATTUTA
         su_bordo = (my - r < TELAIO_Y0 + BATTUTA
                     or my + r > TELAIO_Y0 + TELAIO_H - BATTUTA)
@@ -1012,11 +1033,40 @@ def verifica() -> list[str]:
                 f"{nome} troppo vicina al bordo del telaio "
                 f"(x {x1:.1f}..{x2:.1f}, y {y1:.1f}..{y2:.1f}, "
                 f"telaio y {telaio_y0:.1f}..{telaio_y0 + TELAIO_H:.1f})")
+    # Le finestre del vetro sono vetro nudo: attraverso ognuna si vede quello
+    # che c'e' dietro. Dove dietro passa il display non e' un problema, perche'
+    # lo copre lui; ma la griglia dell'altoparlante e la finestra dell'ottica
+    # danno direttamente sul telaio, e la serigrafia nera esiste proprio per
+    # nascondere sedi, fori e teste di vite. Questo controllo guarda la cosa da
+    # un lato che gli altri non guardano: non l'interferenza fra i volumi, ma
+    # cosa resta in vista.
+    nascosti = ([(f"magnete in ({mx:.0f}, {my:.0f})", mx, my, MAGNETE_SEDE_D)
+                 for mx, my in posizioni_magneti()]
+                + [(f"foro perno in ({sx * PERNO_PASSO / 2:.0f}, {perno_y:.0f})",
+                    sx * PERNO_PASSO / 2, perno_y, PERNO_FORO_D)
+                   for sx in (-1, 1)])
+    finestre = [(f"striscia {i + 1} della griglia", 0.0,
+                 GRIGLIA_Y + i * GRIGLIA_PASSO + GRIGLIA_SPESSORE / 2,
+                 GRIGLIA_L, GRIGLIA_SPESSORE) for i in range(GRIGLIA_N)]
+    finestre.append(("finestra dell'ottica", CAMERA_X, OTTICA_Y,
+                     OTTICA_D, OTTICA_D))
+    # L'icona NFC non e' una finestra piena ma inchiostro al 15-20%: non ci si
+    # vede attraverso come nel vetro nudo, pero' un foro dietro si intravede.
+    finestre.append(("icona NFC", NFC_X, NFC_Y, NFC_D, NFC_D))
+    for nome_f, fx, fy, fl, fh in finestre:
+        for nome_o, ox, oy, od in nascosti:
+            sovr_x = min(fx + fl / 2, ox + od / 2) - max(fx - fl / 2, ox - od / 2)
+            sovr_y = min(fy + fh / 2, oy + od / 2) - max(fy - fh / 2, oy - od / 2)
+            if sovr_x > 0 and sovr_y > 0:
+                problemi.append(
+                    f"la {nome_f} lascia vedere il {nome_o}:"
+                    f" si sovrappongono per {sovr_x * sovr_y:.1f} mm2")
+
     # Ogni foro filettato del telaio deve cadere su materiale pieno: lontano
     # dalle aperture, dai magneti, dai perni e dal bordo. E' il controllo che
     # mancava quando i quattro fori del Raspberry finivano dentro la finestra
     # del display, cioe' nel vuoto.
-    ostacoli = [(mx, my, MAGNETE_D / 2) for mx, my in posizioni_magneti()] \
+    ostacoli = [(mx, my, MAGNETE_SEDE_D / 2) for mx, my in posizioni_magneti()] \
         + [(sx * PERNO_PASSO / 2, perno_y, PERNO_FORO_D / 2)
            for sx in (-1, 1)]
     pi_off_x = (PI_H - 2 * PI_MARGINE_FORI) / 2
@@ -1155,7 +1205,7 @@ def verifica() -> list[str]:
     # dei sei cadono dentro la larghezza della feritoia.
     if FESSURA_ARRETRAMENTO < TELAIO_S + BATTUTA_PROF:
         in_mezzo = [(mx, my) for mx, my in posizioni_magneti()
-                    if abs(mx) - MAGNETE_D / 2 < FESSURA_LARGHEZZA / 2
+                    if abs(mx) - MAGNETE_SEDE_D / 2 < FESSURA_LARGHEZZA / 2
                     and (my < TELAIO_Y0 + BATTUTA
                          or my > TELAIO_Y0 + TELAIO_H - BATTUTA)]
         problemi.append(
@@ -1293,7 +1343,7 @@ def verifica() -> list[str]:
     for mx, my in posizioni_magneti():
         # distanza della sede dal bordo del telaio, sui due assi
         parete = min(TELAIO_L / 2 - abs(mx), my - TELAIO_Y0,
-                     TELAIO_Y0 + TELAIO_H - my) - MAGNETE_D / 2
+                     TELAIO_Y0 + TELAIO_H - my) - MAGNETE_SEDE_D / 2
         if parete < 0.8:
             problemi.append(
                 f"la sede del magnete in ({mx:+.0f},{my:.0f}) lascia"
@@ -1304,10 +1354,10 @@ def verifica() -> list[str]:
         # raggio, non la supera. Oltre quella riga il magnete affaccia sul
         # vuoto e non ha ferro da attrarre.
         dal_vano = min(vano_x - abs(mx), my - vano_y0, (VETRO_H - vano_y0) - my)
-        if dal_vano + MAGNETE_D / 2 > BATTUTA + 0.1:
+        if dal_vano + MAGNETE_SEDE_D / 2 > BATTUTA + 0.1:
             problemi.append(
                 f"il magnete in ({mx:+.0f},{my:.0f}) sporge"
-                f" {dal_vano + MAGNETE_D / 2 - BATTUTA:.1f} mm oltre la"
+                f" {dal_vano + MAGNETE_SEDE_D / 2 - BATTUTA:.1f} mm oltre la"
                 f" battuta larga {BATTUTA:.0f}: quella parte non ha ferro"
                 f" davanti")
 
