@@ -1,0 +1,13 @@
+Smartofono
+Copyright (c) 2026 Vinset85
+
+Questo progetto e' distribuito con licenza MIT (vedi LICENSE), con una
+eccezione da conoscere prima di riusarlo.
+
+Le icone in installer-rpi/app/assets/avatars/ (file icons8-*.png) non sono
+opera di questo progetto: vengono da Icons8 (https://icons8.com) e restano
+soggette alla licenza Icons8. La licenza gratuita di Icons8 richiede un
+collegamento di attribuzione a https://icons8.com nel prodotto o nella sua
+documentazione. Se preferisci non mantenere l'attribuzione, sostituisci quei
+file: l'applicazione li carica per nome dalla cartella degli avatar e non
+dipende da quali siano.

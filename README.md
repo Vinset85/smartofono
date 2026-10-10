@@ -153,6 +153,7 @@ adattate:
 Le icone in `installer-rpi/app/assets/avatars/` vengono da
 [Icons8](https://icons8.com) e restano soggette alla loro licenza: se usi questo
 progetto, l'attribuzione a Icons8 va mantenuta oppure le icone vanno sostituite.
+I dettagli sono in [NOTICE](NOTICE).
 
 Il resto — disegni, parametri, codice e documentazione — è pubblicato con
 licenza MIT: vedi [LICENSE](LICENSE).
