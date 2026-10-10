@@ -100,7 +100,10 @@ con l'adesivo ottico, che su una lastra da 0,4 mm basta e avanza, e la coda
 ripiegata resta libera invece di essere schiacciata dall'alluminio.
 
 Il risultato è che la misura **non ha spostato quasi niente**: profondità usata
-da 58,2 a 58,0 mm, cassa e nicchia identiche. Il componente che quei 3,0 mm li
+da 58,2 a 58,0 mm, cassa e nicchia identiche. Il mezzo millimetro che porta il
+totale a 58,5 è arrivato dopo, correggendo i distanziali del Pi da 9,5 a 10:
+9,5 era l'altezza della base dell'SSD, non quella del distanziale che la
+contiene. Il componente che quei 3,0 mm li
 usa per intero è il microfono, con la sua basetta da 2,5, e `verifica()` ora
 controlla sia che ci stia sia che il nastro del telaio non sia più sottile di
 display più adesivo. È la prova che il valore di questa scheda non sta nei
@@ -172,7 +175,7 @@ di base NVMe sotto il Pi e i 40 di HAT sopra, mentre col calibro si prende
 comodamente solo il totale. Il riepilogo di `parametri.py` stampa adesso quella
 quota con l'etichetta `gruppo del Pi`, così c'è un numero con cui confrontarsi.
 
-I 50 mm dichiarati lasciano **20,5 mm di canale** fra il pezzo più profondo e
+I 50,5 mm dichiarati lasciano **20,0 mm di canale** fra il pezzo più profondo e
 il fondo interno della cassa, che resta a 75. Il gruppo mangia il canale uno a
 uno, e il canale cessa di funzionare quando la sua sezione scende sotto quella
 delle feritoie, cioè sotto i 7 mm: succede con un gruppo da **64**. Ci sono
@@ -198,8 +201,8 @@ restano 17,5 mm dove passa già il cavo di rete.
 | Ingombro in pianta della base NVMe | — | **51 x 65** |
 
 I tre volumi che escono dal bordo inferiore del Pi sono adesso nel modello e la
-verifica li controlla. Ci stanno, ma di poco: **l'ansa del flat si ferma a 2 mm
-dal lettore NFC** e **il patch di rete gli passa sopra a 1,7 mm**, perché il
+verifica li controlla. Ci stanno, ma di poco: **l'ansa del flat si ferma a
+3,5 mm dal lettore NFC** e **il patch di rete gli passa sopra a 2,0 mm**, perché il
 connettore sta sul piano del PCB e l'NFC finisce più avanti. Sono margini da
 rispettare in montaggio, non da verificare una volta e dimenticare: una fascetta
 che schiaccia il patch verso il vetro lo fa appoggiare sul lettore.
@@ -404,8 +407,8 @@ dalla scheda, e se la scheda ha un interasse diverso vanno rifatti.
 | Spessore di intonaco + rasante esistente | **10,0 — confermato** |
 
 Dei 170 mm se ne usano 81, con la cassa a 75. Lo spazio serve a due cose: al
-gruppo del Pi, che col PoE HAT misura 50 mm dal telaio, e al **canale d'aria
-dietro i componenti**, che resta a 20,5. Oltre non comprerebbe niente:
+gruppo del Pi, che col PoE HAT misura 50,5 mm dal telaio, e al **canale d'aria
+dietro i componenti**, che resta a 20,0. Oltre non comprerebbe niente:
 l'alimentatore non va dentro, perché l'alimentazione arriva in PoE.
 
 Il tufo porta con sé due cose che non riguardano le quote ma la posa. La prima è

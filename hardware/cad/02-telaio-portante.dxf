@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461325.0144560183
+2461325.0460416665
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461325.0144560183
+2461325.0460416665
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-120
+122
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{C50F8DEC-FC6A-4F8C-9F82-7021C36EE2FD}
+{92033A2B-CBF4-46D0-BA39-D51F5CC0AB0D}
   9
 $VERSIONGUID
   2
-{6B5244D7-C91B-4981-B266-2987C5BACDDA}
+{81CE2366-32C4-4965-9179-77F7B59F18C7}
   9
 $EXTNAMES
 290
@@ -1323,9 +1323,9 @@ ISM
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -1339,9 +1339,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -3301,7 +3301,7 @@ ACAD
   0
 APPID
   5
-11D
+11F
 330
 3
 100
@@ -3315,7 +3315,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-11E
+120
 330
 3
 100
@@ -5647,7 +5647,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -5661,13 +5661,13 @@ QUOTE
 100
 AcDbLine
  10
--27.35
+-27.025
  20
 81.0
  30
 0.0
  11
--21.65
+-21.975
  21
 81.0
  31
@@ -5687,13 +5687,13 @@ AcDbLine
  10
 -24.5
  20
-78.15
+78.475
  30
 0.0
  11
 -24.5
  21
-83.85
+83.525
  31
 0.0
   0
@@ -5715,7 +5715,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -5729,13 +5729,13 @@ QUOTE
 100
 AcDbLine
  10
--27.35
+-27.025
  20
 139.0
  30
 0.0
  11
--21.65
+-21.975
  21
 139.0
  31
@@ -5755,13 +5755,13 @@ AcDbLine
  10
 -24.5
  20
-136.15
+136.475
  30
 0.0
  11
 -24.5
  21
-141.85
+141.525
  31
 0.0
   0
@@ -5783,7 +5783,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -5797,13 +5797,13 @@ QUOTE
 100
 AcDbLine
  10
-21.65
+21.975
  20
 81.0
  30
 0.0
  11
-27.35
+27.025
  21
 81.0
  31
@@ -5823,13 +5823,13 @@ AcDbLine
  10
 24.5
  20
-78.15
+78.475
  30
 0.0
  11
 24.5
  21
-83.85
+83.525
  31
 0.0
   0
@@ -5851,7 +5851,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -5865,13 +5865,13 @@ QUOTE
 100
 AcDbLine
  10
-21.65
+21.975
  20
 139.0
  30
 0.0
  11
-27.35
+27.025
  21
 139.0
  31
@@ -5891,13 +5891,13 @@ AcDbLine
  10
 24.5
  20
-136.15
+136.475
  30
 0.0
  11
 24.5
  21
-141.85
+141.525
  31
 0.0
   0
@@ -5951,7 +5951,7 @@ AcDbCircle
  30
 0.0
  40
-1.1
+0.8
   0
 LINE
   5
@@ -5965,13 +5965,13 @@ QUOTE
 100
 AcDbLine
  10
--13.1
+-12.8
  20
 189.5
  30
 0.0
  11
--7.9
+-8.2
  21
 189.5
  31
@@ -5991,13 +5991,13 @@ AcDbLine
  10
 -10.5
  20
-186.9
+187.2
  30
 0.0
  11
 -10.5
  21
-192.1
+191.8
  31
 0.0
   0
@@ -6019,7 +6019,7 @@ AcDbCircle
  30
 0.0
  40
-1.1
+0.8
   0
 LINE
   5
@@ -6033,13 +6033,13 @@ QUOTE
 100
 AcDbLine
  10
--13.1
+-12.8
  20
 202.0
  30
 0.0
  11
--7.9
+-8.2
  21
 202.0
  31
@@ -6059,13 +6059,13 @@ AcDbLine
  10
 -10.5
  20
-199.4
+199.7
  30
 0.0
  11
 -10.5
  21
-204.6
+204.3
  31
 0.0
   0
@@ -6087,7 +6087,7 @@ AcDbCircle
  30
 0.0
  40
-1.1
+0.8
   0
 LINE
   5
@@ -6101,13 +6101,13 @@ QUOTE
 100
 AcDbLine
  10
-7.9
+8.2
  20
 189.5
  30
 0.0
  11
-13.1
+12.8
  21
 189.5
  31
@@ -6127,13 +6127,13 @@ AcDbLine
  10
 10.5
  20
-186.9
+187.2
  30
 0.0
  11
 10.5
  21
-192.1
+191.8
  31
 0.0
   0
@@ -6155,7 +6155,7 @@ AcDbCircle
  30
 0.0
  40
-1.1
+0.8
   0
 LINE
   5
@@ -6169,13 +6169,13 @@ QUOTE
 100
 AcDbLine
  10
-7.9
+8.2
  20
 202.0
  30
 0.0
  11
-13.1
+12.8
  21
 202.0
  31
@@ -6195,13 +6195,13 @@ AcDbLine
  10
 10.5
  20
-199.4
+199.7
  30
 0.0
  11
 10.5
  21
-204.6
+204.3
  31
 0.0
   0
@@ -6913,7 +6913,7 @@ AcDbCircle
  30
 0.0
  40
-1.6
+1.25
   0
 LINE
   5
@@ -6927,13 +6927,13 @@ QUOTE
 100
 AcDbLine
  10
-23.9
+24.25
  20
 14.0
  30
 0.0
  11
-30.1
+29.75
  21
 14.0
  31
@@ -6953,13 +6953,13 @@ AcDbLine
  10
 27.0
  20
-10.9
+11.25
  30
 0.0
  11
 27.0
  21
-17.1
+16.75
  31
 0.0
   0
@@ -6981,7 +6981,7 @@ AcDbCircle
  30
 0.0
  40
-1.6
+1.25
   0
 LINE
   5
@@ -6995,13 +6995,13 @@ QUOTE
 100
 AcDbLine
  10
-23.9
+24.25
  20
 46.0
  30
 0.0
  11
-30.1
+29.75
  21
 46.0
  31
@@ -7021,13 +7021,13 @@ AcDbLine
  10
 27.0
  20
-42.9
+43.25
  30
 0.0
  11
 27.0
  21
-49.1
+48.75
  31
 0.0
   0
@@ -7809,7 +7809,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -7823,13 +7823,13 @@ QUOTE
 100
 AcDbLine
  10
--35.800000000000004
+-35.475
  20
 134.0
  30
 0.0
  11
--30.1
+-30.425000000000004
  21
 134.0
  31
@@ -7849,13 +7849,13 @@ AcDbLine
  10
 -32.95
  20
-131.15
+131.475
  30
 0.0
  11
 -32.95
  21
-136.85
+136.525
  31
 0.0
   0
@@ -7877,7 +7877,7 @@ AcDbCircle
  30
 0.0
  40
-1.35
+1.025
   0
 LINE
   5
@@ -7891,13 +7891,13 @@ QUOTE
 100
 AcDbLine
  10
--35.800000000000004
+-35.475
  20
 166.0
  30
 0.0
  11
--30.1
+-30.425000000000004
  21
 166.0
  31
@@ -7917,13 +7917,13 @@ AcDbLine
  10
 -32.95
  20
-163.15
+163.475
  30
 0.0
  11
 -32.95
  21
-168.85
+168.525
  31
 0.0
   0
@@ -8127,7 +8127,7 @@ AcDbText
  40
 2.5
   1
-LAYER FILETTATURA: M2 camera, M2.5 Pi, M3 altoparlante e NFC
+LAYER FILETTATURA: i diametri sono PREFORI, non passaggi.
  11
 -44.5
  21
@@ -8157,7 +8157,7 @@ AcDbText
  40
 2.5
   1
-  (le sedi magnete e i fori perno stanno sul layer TAGLIO)
+  O1.60 = M2 camera (4), O2.05 = M2.5 Pi (4) e squadretta (2),
  11
 -44.5
  21
@@ -8187,7 +8187,7 @@ AcDbText
  40
 2.5
   1
-  I due M2.5 della squadretta del display sono CIECHI dal retro,
+  O2.50 = M3 altoparlante (3) e lettore NFC (2).
  11
 -44.5
  21
@@ -8217,7 +8217,7 @@ AcDbText
  40
 2.5
   1
-  profondi 2.0 su 3: passanti, la vite tocca il pannello.
+  (le sedi magnete e i fori perno stanno sul layer TAGLIO)
  11
 -44.5
  21
@@ -8247,7 +8247,7 @@ AcDbText
  40
 2.5
   1
-LAYER INGOMBRI: sagome dei componenti, riferimento di montaggio
+  I due M2.5 della squadretta del display sono CIECHI dal retro,
  11
 -44.5
  21
@@ -8277,7 +8277,7 @@ AcDbText
  40
 2.5
   1
-
+  profondi 2.0 su 3: passanti, la vite tocca il pannello.
  11
 -44.5
  21
@@ -8307,7 +8307,7 @@ AcDbText
  40
 2.5
   1
-Il Raspberry va montato su distanziali da 10 mm con il dissipatore verso il fondo cassa,
+LAYER INGOMBRI: sagome dei componenti, riferimento di montaggio
  11
 -44.5
  21
@@ -8337,7 +8337,7 @@ AcDbText
  40
 2.5
   1
-per lasciare libero il canale d'aria fra scheda e telaio.
+
  11
 -44.5
  21
@@ -8367,7 +8367,7 @@ AcDbText
  40
 2.5
   1
-
+Il Raspberry va montato su distanziali da 10 mm con il dissipatore verso il fondo cassa,
  11
 -44.5
  21
@@ -8397,7 +8397,7 @@ AcDbText
  40
 2.5
   1
-La zona 70 x 125 del display resta piena: il pannello ha solo 1 mm di
+per lasciare libero il canale d'aria fra scheda e telaio.
  11
 -44.5
  21
@@ -8427,7 +8427,7 @@ AcDbText
  40
 2.5
   1
-cornice e ci appoggia sopra col retro, e li' dentro cadono i quattro fori del Pi.
+
  11
 -44.5
  21
@@ -8457,7 +8457,7 @@ AcDbText
  40
 2.5
   1
-
+La zona 70 x 125 del display resta piena: il pannello ha solo 1 mm di
  11
 -44.5
  21
@@ -8487,7 +8487,7 @@ AcDbText
  40
 2.5
   1
-L'apertura 30 x 32 in basso non va chiusa ne' schermata: il lettore NFC si
+cornice e ci appoggia sopra col retro, e li' dentro cadono i quattro fori del Pi.
  11
 -44.5
  21
@@ -8517,7 +8517,7 @@ AcDbText
  40
 2.5
   1
-monta sul retro del telaio e legge attraverso di essa. Non e' centrata, perche' non lo e' la spira:
+
  11
 -44.5
  21
@@ -8547,7 +8547,7 @@ AcDbText
  40
 2.5
   1
-la scheda e' 60 x 38 ma l'antenna occupa solo la sua meta', e cade 11.5 mm a sinistra.
+L'apertura 30 x 32 in basso non va chiusa ne' schermata: il lettore NFC si
  11
 -44.5
  21
@@ -8577,7 +8577,7 @@ AcDbText
  40
 2.5
   1
-Dei quattro fori della scheda se ne filettano due, quelli a destra: gli altri cadono sull'apertura.
+monta sul retro del telaio e legge attraverso di essa. Non e' centrata, perche' non lo e' la spira:
  11
 -44.5
  21
@@ -8607,7 +8607,7 @@ AcDbText
  40
 2.5
   1
-
+la scheda e' 60 x 38 ma l'antenna occupa solo la sua meta', e cade 11.5 mm a sinistra.
  11
 -44.5
  21
@@ -8637,7 +8637,7 @@ AcDbText
  40
 2.5
   1
-L'asola 12 x 4 in alto a sinistra e' solo il passaggio dei fili: la basetta del microfono si
+Dei quattro fori della scheda se ne filettano due, quelli a destra: gli altri cadono sull'apertura.
  11
 -44.5
  21
@@ -8667,7 +8667,7 @@ AcDbText
  40
 2.5
   1
-incolla al vetro, davanti al telaio, dietro al suo foro, e sta nei 3.0 mm del biadesivo.
+
  11
 -44.5
  21
@@ -8697,7 +8697,7 @@ AcDbText
  40
 2.5
   1
-
+L'asola 12 x 4 in alto a sinistra e' solo il passaggio dei fili: la basetta del microfono si
  11
 -44.5
  21
@@ -8727,7 +8727,7 @@ AcDbText
  40
 2.5
   1
-La camera si monta arretrata su colonnine da 6 mm: l'obiettivo sporge
+incolla al vetro, davanti al telaio, dietro al suo foro, e sta nei 3.0 mm del biadesivo.
  11
 -44.5
  21
@@ -8757,7 +8757,7 @@ AcDbText
  40
 2.5
   1
-11.3 mm dal retro del suo PCB e deve attraversare il foro per
+
  11
 -44.5
  21
@@ -8787,7 +8787,7 @@ AcDbText
  40
 2.5
   1
-arrivare a 0.7 mm dal vetro. I suoi quattro fori sono decentrati
+La camera si monta arretrata su colonnine da 6 mm: l'obiettivo sporge
  11
 -44.5
  21
@@ -8817,7 +8817,7 @@ AcDbText
  40
 2.5
   1
-di 6.25 mm sotto l'asse ottico: non e' un errore, e' il
+11.3 mm dal retro del suo PCB e deve attraversare il foro per
  11
 -44.5
  21
@@ -8847,7 +8847,7 @@ AcDbText
  40
 2.5
   1
-decentramento dell'ottica dichiarato dal costruttore.
+arrivare a 0.7 mm dal vetro. I suoi quattro fori sono decentrati
  11
 -44.5
  21
@@ -8877,7 +8877,7 @@ AcDbText
  40
 2.5
   1
-
+di 6.25 mm sotto l'asse ottico: non e' un errore, e' il
  11
 -44.5
  21
@@ -8907,7 +8907,7 @@ AcDbText
  40
 2.5
   1
-L'altoparlante si monta arretrato di 14 mm dal retro del telaio,
+decentramento dell'ottica dichiarato dal costruttore.
  11
 -44.5
  21
@@ -8937,7 +8937,7 @@ AcDbText
  40
 2.5
   1
-su colonnine, per scavalcare la camera. Tre viti M3: la quarta cadrebbe
+
  11
 -44.5
  21
@@ -8967,7 +8967,7 @@ AcDbText
  40
 2.5
   1
-dietro la basetta del microfono. Viti corte, non devono affiorare sul fronte.
+L'altoparlante si monta arretrato di 14 mm dal retro del telaio,
  11
 -44.5
  21
@@ -8997,7 +8997,7 @@ AcDbText
  40
 2.5
   1
-
+su colonnine, per scavalcare la camera. Tre viti M3: la quarta cadrebbe
  11
 -44.5
  21
@@ -9027,7 +9027,7 @@ AcDbText
  40
 2.5
   1
-Il telaio si centra sui due perni in alto e si tiene sui sei
+dietro la basetta del microfono. Viti corte, non devono affiorare sul fronte.
  11
 -44.5
  21
@@ -9057,7 +9057,7 @@ AcDbText
  40
 2.5
   1
-magneti. Nessuna vite: sul fronte finirebbe sotto il vetro
+
  11
 -44.5
  21
@@ -9087,7 +9087,7 @@ AcDbText
  40
 2.5
   1
-incollato, dal basso avrebbe la testa annegata nella malta.
+Il telaio si centra sui due perni in alto e si tiene sui sei
  11
 -44.5
  21
@@ -9117,7 +9117,7 @@ AcDbText
  40
 2.5
   1
-
+magneti. Nessuna vite: sul fronte finirebbe sotto il vetro
  11
 -44.5
  21
@@ -9147,7 +9147,7 @@ AcDbText
  40
 2.5
   1
-Magneti neodimio N42 O4 x 3, incollati a filo della faccia posteriore
+incollato, dal basso avrebbe la testa annegata nella malta.
  11
 -44.5
  21
@@ -9177,11 +9177,71 @@ AcDbText
  40
 2.5
   1
-con epossidica. Attenzione alla polarita': tutti nello stesso verso.
+
  11
 -44.5
  21
 -194.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+11D
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-44.5
+ 20
+-198.5
+ 30
+0.0
+ 40
+2.5
+  1
+Magneti neodimio N42 O4 x 3, incollati a filo della faccia posteriore
+ 11
+-44.5
+ 21
+-198.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+11E
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-44.5
+ 20
+-203.0
+ 30
+0.0
+ 40
+2.5
+  1
+con epossidica. Attenzione alla polarita': tutti nello stesso verso.
+ 11
+-44.5
+ 21
+-203.0
  31
 0.0
 100
@@ -10277,7 +10337,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-11F
+121
   0
 DICTIONARYVAR
   5
@@ -10289,7 +10349,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T22:20:49.552948+00:00
+1.4.4 @ 2026-10-10T23:06:18.667396+00:00
   0
 VISUALSTYLE
   5
@@ -10993,7 +11053,7 @@ X-Ray
   0
 DICTIONARYVAR
   5
-11F
+121
 330
 2D
 100
@@ -11001,7 +11061,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T22:20:49.558826+00:00
+1.4.4 @ 2026-10-10T23:06:18.672267+00:00
   0
 ENDSEC
   0

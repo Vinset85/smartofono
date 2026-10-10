@@ -20,9 +20,9 @@ Il vetro copre interamente la cassa e lascia su tutto il perimetro una
 montaggio, e insieme è la via d'aria: le feritoie di ventilazione si affacciano
 lì dentro, quindi restano invisibili guardando il pannello di fronte.
 
-Della profondità disponibile ne sono impegnati 58 mm su 75: vetro, adesivo,
+Della profondità disponibile ne sono impegnati 58,5 mm su 75: vetro, adesivo,
 modulo display, telaio, distanziali e stack Pi 5 con NVMe, HAT audio e ventola.
-I 20,5 mm residui sono il plenum di aria sul fondo, 18,7 cm² di sezione.
+I 20,0 mm residui sono il plenum di aria sul fondo, 18,2 cm² di sezione.
 
 ## File
 
@@ -291,11 +291,11 @@ sollecitare il giunto.
 | Quantità | Articolo | Dove |
 |---|---|---|
 | 6 | magnete neodimio N42 Ø4 x 3 | sedi nel telaio, tutti con la stessa polarità |
-| 2 | perno inox Ø4 x 6 | centraggio sulla battuta alta |
+| 2 | perno inox Ø4 x 3 | centraggio sulla battuta alta, a filo del fronte del telaio |
 | 1 | reed switch NC + magnete | antimanomissione, su GPIO |
 | 1 | ventosa Ø30 | per estrarre il pannello |
-| 4 | M2.5 x 16 + distanziali 10 mm | Raspberry al telaio |
-| 4 | M2 x 12 + colonnine 6 mm | camera arretrata sul telaio |
+| 4 | M2.5 x 14 + distanziali 9,5 mm | Raspberry al telaio. **Non più lunghe**: oltre i 3 mm di telaio c'è il display |
+| 4 | M2 x 10 + colonnine 6 mm | camera arretrata sul telaio |
 | 3 | M3 x 18 + colonnine **nylon** 14 mm | altoparlante arretrato sul telaio |
 | 6 | rondella in gomma M3 | sotto flangia e testa vite dell'altoparlante |
 | 2 | M3 x 6 | PN532 appoggiato al retro del telaio, senza distanziali |
@@ -399,7 +399,7 @@ riportando in basso i fili che oggi si infilano sui pin in cima — l'altezza
 vera là sopra non la fanno i pin ma i gusci dei connettori Dupont infilati in
 verticale.
 
-E non servono. Il canale d'aria è a 20,5 mm, la cassa a 75 e la nicchia a 81,
+E non servono. Il canale d'aria è a 20,0 mm, la cassa a 75 e la nicchia a 81,
 contro i 170 che il tufo concederebbe: non c'è nessun vincolo da rilassare.
 
 Il costo invece sarebbe concreto. I pin da portare non sono pochi: l'I2S
@@ -441,7 +441,7 @@ stava dal lato dei micro-HDMI, e lì fra il bordo del Pi e la scheda restano
 
 Restano due margini stretti, entrambi in basso e entrambi sopra il lettore NFC:
 l'ansa del flat PCIe si ferma a **2 mm** dal suo bordo, e il patch di rete gli
-passa sopra a **1,7 mm**, perché il connettore sta sul piano del PCB mentre il
+passa sopra a **2,0 mm**, perché il connettore sta sul piano del PCB mentre il
 lettore arriva più avanti. Il modello li controlla, ma sono margini di
 montaggio: una fascetta che schiaccia il patch verso il vetro basta a farlo
 appoggiare sul lettore.
@@ -896,7 +896,7 @@ scavare, perché il gruppo e il canale d'aria si scambiano i millimetri uno a
 uno. La quota da prendere è una sola e il riepilogo di `parametri.py` la stampa:
 dal piano del telaio alla cima dei pin, oggi 50 mm, che si spartiscono in 10 mm
 di base NVMe sotto il Pi e 40 di HAT sopra. Con 50 la cassa sta a 75, con 58,2
-di componenti davanti e 20,5 mm di canale libero fra il pezzo più profondo e il
+di componenti davanti e 20,0 mm di canale libero fra il pezzo più profondo e il
 fondo interno della cassa. Il canale diventa più stretto delle feritoie, e
 quindi il collo di bottiglia del raffreddamento, solo sotto i 7 mm, cioè con un
 gruppo da 64: ci sono quattordici millimetri fra la misura e il limite, che

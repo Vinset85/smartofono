@@ -105,7 +105,11 @@ STAFFA_ALA_BASE = 12.0             # quanto entra sotto, sul retro del telaio
 STAFFA_ALA_H = 47.0                # altezza in z dell'ala verticale
 STAFFA_L = 47.0                    # sviluppo in y: 43 della scheda piu' bordo
 STAFFA_FORO_SCHEDA_D = 2.7         # passaggio per le M2.5 della scheda
-STAFFA_FORO_TELAIO_D = 2.7         # passaggio per le M2.5 filettate nel telaio
+# Due fori diversi che prima erano lo stesso numero: nell'ala la vite passa,
+# nel telaio si avvita. E quelli nel telaio sono ciechi, quindi filettati per
+# forza: un cieco da 2,7 profondo 2 non trattiene una M2.5, la lascia girare.
+STAFFA_FORO_ALA_D = 2.7            # passaggio M2.5 nell'ala della squadretta
+STAFFA_FORO_TELAIO_D = 2.05        # preforo M2.5 nel telaio, cieco
 STAFFA_FORI_TELAIO_PASSO = 32.0    # interasse dei due fori sul telaio
 # I due fori nel telaio cadono dietro il display, perche' l'ala corta entra
 # nel vano e il display e' largo 70 su un telaio da 89: non esiste un punto
@@ -285,7 +289,11 @@ PI_L = 85.0
 PI_H = 56.0
 PI_FORI_X = 58.0
 PI_FORI_Y = 49.0
-PI_FORO_D = 2.7                    # M2.5
+# Preforo da filettare M2.5, non passaggio: la vite prende nei 3 mm del
+# telaio e non c'e' nessun dado dietro. Con il 2,7 che c'era qui prima - che
+# e' la misura del foro di passaggio - non restava materiale da filettare e
+# le quattro viti del Raspberry non avrebbero avuto presa su niente.
+PI_FORO_D = 2.05                   # preforo M2.5 (passo 0,45)
 PI_MARGINE_FORI = 3.5              # distanza dei fori dal bordo scheda
 # Altezza dello stack Pi 5 + adattatore NVMe + PoE HAT (F) + HAT audio
 # Pi MIC V3 + ventola. MISURATO: dal piano del telaio alla cima dei pin liberi
@@ -300,8 +308,14 @@ PI_STACK_H = 40.5
 # base sotto il Pi, collegata con un flat PCIe che fa un'ansa oltre il bordo
 # della scheda. Questo spazio e' quindi occupato, e l'aria che il progetto
 # faceva passare qui sotto in realta' deve girare attorno alla base.
-# MISURATO: base piu' SSD montato, 9,5 mm.
-PI_DISTANZIALI = 9.5
+# La quota la fissa il distanziale, che e' un pezzo commerciale da 10, non
+# l'ingombro che ci deve stare dentro: base piu' SSD montato misurano 9,5 e
+# avanza mezzo millimetro. Tenere qui il 9,5 era comodo e sbagliato - diceva
+# che il PCB del Pi appoggia a 9,5 dal telaio, mentre appoggia a 10 - e
+# falsava di mezzo millimetro tutta la catena del gruppo, comprese le
+# lunghezze delle viti.
+PI_DISTANZIALI = 10.0
+NVME_BASE_S = 9.5                  # MISURATO: base piu' SSD montato
 # Altezza di tutto il gruppo dal piano del telaio alla cima dei pin: e' la sola
 # quota che si misura direttamente, e quella da confrontare col calibro.
 PI_GRUPPO_H = PI_DISTANZIALI + PI_STACK_H
@@ -351,7 +365,7 @@ CAMERA_FORI_Y = 12.5
 # modello STEP ufficiale, che su queste concordano.
 CAMERA_ASSE_DAL_BORDO = 14.5
 CAMERA_FORI_DAL_BORDO = 2.0
-CAMERA_FORO_D = 2.2                # M2
+CAMERA_FORO_D = 1.6                # preforo M2 (passo 0,4)
 CAMERA_FORO_RISPETTO_D = 4.75      # zona di rispetto attorno al foro
 CAMERA_LENTE_D = 5.75              # barilotto; 6.95 sulla variante wide
 CAMERA_LENTE_FRONTALE_D = 4.0       # VERIFICARE col calibro: la lente in vista
@@ -482,7 +496,7 @@ NFC_PCB_H = 38.0
 NFC_PCB_S = 5.0                    # spessore totale, connettore escluso
 NFC_FORI_INTERASSE_X = 54.0        # i quattro fori stanno a 3 mm dai bordi
 NFC_FORI_INTERASSE_Y = 32.0
-NFC_FORO_D = 3.2
+NFC_FORO_D = 2.5                   # preforo M3 (passo 0,5)
 # L'antenna non e' centrata sulla scheda: la spira occupa la metA sinistra,
 # l'altra metA porta il PN532, il convertitore USB e il connettore. Misurata
 # sulla foto, la spira sta fra 2,3 e 34,6 mm dal bordo sinistro, quindi il suo
@@ -544,7 +558,13 @@ NFC_DISTANZA_VETRO = 8.0
 PERNO_D = 4.0                      # perni di centraggio sulla battuta
 PERNO_FORO_D = 4.3                 # foro corrispondente nel telaio
 PERNO_PASSO = 48.0
-PERNO_SPORGENZA = 6.0
+# Lunghezza del perno misurata dalla battuta in avanti, cioe' dal retro del
+# telaio. A 6 mm attraversava i 3 mm di telaio e continuava per altri 3
+# nell'intercapedine del biadesivo, arrivando a toccare il retro del vetro: la
+# spinta con cui si accosta il gruppo sarebbe passata per due punte d'acciaio
+# da 4 mm appoggiate al Gorilla, invece che per la schiuma del VHB. A filo del
+# fronte del telaio il perno guida su tutto lo spessore e non tocca niente.
+PERNO_SPORGENZA = 3.0
 PERNO_MARGINE = 8.0                # distanza dei perni dal bordo superiore
 
 # Magneti al neodimio N42 in sedi passanti nel telaio, incollati a filo della
@@ -664,6 +684,30 @@ OCA_RAPPORTO_MIN = 5.0
 # avanza - e la sua coda ripiegata resta libera invece di essere schiacciata
 # dall'alluminio.
 BIADESIVO_S = 3.0                  # 3M VHB 4959, cornice perimetrale
+
+# --------------------------------------------------------------------------
+# Viti che si avvitano nel telaio
+# --------------------------------------------------------------------------
+# Queste viti entrano tutte dal retro e il telaio e' spesso 3 mm, quindi la
+# lunghezza non e' una scelta libera: quello che avanza oltre il filetto
+# riemerge dal fronte, dove non c'e' il vuoto ma il display incollato al vetro.
+# La minuteria dava M2.5 x 16 per il Raspberry: con 9,5 di distanziale e 1,6 di
+# scheda l'impegno sarebbe 4,9 su 3 mm di telaio, cioe' 1,9 mm di vite in
+# uscita contro 0,85 mm d'aria. Quattro punte che spingono sul retro di un OLED
+# da 0,4 mm. La x14 impegna 2,9 su 3, che sono sei filetti, e non esce.
+PI_PCB_S = 1.6                     # spessore della scheda del Raspberry
+PI_VITE_L = 14.0                   # M2.5
+CAMERA_PCB_S = 1.0
+# A 12 la vite della camera impegnava 5 mm su 3 di telaio e riemergeva per 2
+# nell'intercapedine, fermandosi a un millimetro dal vetro. A 10 impegna
+# tutto lo spessore e si ferma dentro.
+CAMERA_VITE_L = 10.0               # M2
+SPEAKER_VITE_L = 18.0              # M3, nelle colonnine di nylon
+NFC_VITE_L = 6.0                   # M3, lettore appoggiato al telaio
+# La vite attraversa il circuito stampato del lettore, non il suo ingombro:
+# NFC_PCB_S e' 5 mm perche' comprende i componenti, ma sotto la testa della
+# vite ci sono solo i 1,6 della basetta.
+NFC_PCB_SOLO_S = 1.6
 
 # Piano della faccia anteriore del telaio, misurato dalla faccia esterna del
 # vetro: e' la quota da cui partono tutti i componenti. La distanza dal vetro
@@ -813,11 +857,75 @@ def verifica() -> list[str]:
                 f"{n1} e' a meno di 4 mm dal bordo del vetro "
                 f"(x {x1:.1f}..{x2:.1f}, y {y1:.1f}..{y2:.1f})")
 
+    # Sotto il Pi i distanziali devono contenere la base dell'SSD.
+    if NVME_BASE_S > PI_DISTANZIALI:
+        problemi.append(
+            f"la base dell'SSD e' alta {NVME_BASE_S} e i distanziali sono"
+            f" {PI_DISTANZIALI}: il Pi ci appoggia sopra invece che sui"
+            " distanziali")
+
+    # Quanto esce dal fronte del telaio ogni vite avvitata da dietro, e cosa
+    # trova quando esce. Sotto il display c'e' meno di un millimetro d'aria;
+    # altrove c'e' l'intercapedine del biadesivo, e in fondo il vetro.
+    for nome, lung, sotto, passo, davanti in (
+            ("Raspberry", PI_VITE_L, PI_DISTANZIALI + PI_PCB_S, 0.45,
+             DISPLAY_ARIA_TELAIO),
+            ("camera", CAMERA_VITE_L, CAMERA_COLONNINE + CAMERA_PCB_S, 0.4,
+             Z_TELAIO - VETRO_S),
+            ("altoparlante", SPEAKER_VITE_L, SPEAKER_ARRETRAMENTO, 0.5,
+             Z_TELAIO - VETRO_S),
+            ("lettore NFC", NFC_VITE_L, NFC_PCB_SOLO_S, 0.5,
+             Z_TELAIO - VETRO_S)):
+        impegno = lung - sotto
+        sporgenza = impegno - TELAIO_S
+        if sporgenza > davanti - 0.3:
+            problemi.append(
+                f"la vite del {nome} e' lunga {lung:.0f} e sporge"
+                f" {sporgenza:.1f} mm dal fronte del telaio, dove ce ne stanno"
+                f" {davanti:.2f}: accorciala a"
+                f" {sotto + TELAIO_S:.0f}")
+        elif min(impegno, TELAIO_S) / passo < 3.0:
+            problemi.append(
+                f"la vite del {nome} impegna {impegno:.1f} mm di filetto,"
+                f" meno di tre passi: non tiene")
+
+    # Ogni foro che il disegno manda in filettatura deve avere la misura del
+    # preforo, non quella di passaggio. E' una distinzione che costa un decimo
+    # sul disegno e l'intero fissaggio in officina: un M2.5 vuole 2,05, e in un
+    # foro da 2,7 non c'e' niente da filettare.
+    PREFORI = {"M2": 1.6, "M2.5": 2.05, "M3": 2.5}
+    for nome, diametro, vite in (
+            ("Raspberry", PI_FORO_D, "M2.5"),
+            ("camera", CAMERA_FORO_D, "M2"),
+            ("altoparlante", SPEAKER_FORO_D, "M3"),
+            ("lettore NFC", NFC_FORO_D, "M3"),
+            ("squadretta nel telaio", STAFFA_FORO_TELAIO_D, "M2.5")):
+        atteso = PREFORI[vite]
+        if abs(diametro - atteso) > 0.06:
+            problemi.append(
+                f"il foro {nome} e' O{diametro:.2f} ma va filettato {vite},"
+                f" che vuole un preforo O{atteso:.2f}"
+                + (": cosi' la vite non ha presa"
+                   if diametro > atteso else ": cosi' non entra il maschio"))
+
     # I perni di aggancio non devono cadere su un'apertura.
     perno_y = (VETRO_H + TELAIO_H) / 2 - PERNO_MARGINE / 2
     if (abs(PERNO_PASSO / 2) + PERNO_FORO_D / 2 > TELAIO_L / 2 - 3
             or perno_y > (VETRO_H + TELAIO_H) / 2 - 3):
         problemi.append("i perni di aggancio sono troppo vicini al bordo")
+    # Oltre il fronte del telaio il perno entra nell'intercapedine del
+    # biadesivo, e in fondo a quella c'e' il vetro. Non e' un'interferenza da
+    # millimetri: il gruppo si accosta a mano premendo, e una punta d'acciaio
+    # appoggiata al Gorilla e' un carico concentrato su un vetro da 2 mm.
+    punta_perno = Z_TELAIO + TELAIO_S - PERNO_SPORGENZA
+    if punta_perno < VETRO_S + 0.5:
+        problemi.append(
+            f"il perno di centraggio arriva a z {punta_perno:.1f} e il retro"
+            f" del vetro sta a {VETRO_S:.1f}:"
+            + (" ci batte contro" if punta_perno <= VETRO_S
+               else f" restano {punta_perno - VETRO_S:.1f} mm")
+            + f". La sporgenza non puo' superare"
+            f" {Z_TELAIO + TELAIO_S - VETRO_S - 0.5:.1f}")
     # Il perno sporge dietro il telaio: se l'altoparlante fosse montato a
     # contatto, gli finirebbe addosso.
     if PERNO_SPORGENZA - TELAIO_S > SPEAKER_ARRETRAMENTO \
@@ -1096,6 +1204,24 @@ def verifica() -> list[str]:
         problemi.append(
             f"col gradino di serigrafia il display arriva a"
             f" {DISPLAY_ARIA_TELAIO - SERIGRAFIA_S:.2f} mm dal telaio")
+
+    # Il telaio va dentro il vano della cassa e appoggia sulla battuta, quindi
+    # la parete non e' libera di crescere: la misura esterna della cassa la
+    # fissa la fessura d'ombra, e ogni decimo di parete in piu' lo paga il
+    # vano. E' il controllo che boccia le "pareti 3 mm" che la nota del
+    # disegno della cassa si portava dietro: con quelle il vano scende a
+    # 88 x 228 e il telaio da 89 x 229 non entra.
+    gioco_telaio = min((CASSA_INT_L - TELAIO_L) / 2,
+                       (CASSA_INT_H - TELAIO_H) / 2)
+    if gioco_telaio < 0.5:
+        problemi.append(
+            f"col vano da {CASSA_INT_L:.0f} x {CASSA_INT_H:.0f} restano"
+            f" {gioco_telaio:+.2f} mm per lato attorno al telaio"
+            f" {TELAIO_L:.0f} x {TELAIO_H:.0f}:"
+            + (" non entra" if gioco_telaio < 0 else " troppo poco per"
+               " le tolleranze di una cassa stampata")
+            + f". La parete non puo' superare"
+            f" {(CASSA_L - TELAIO_L - 1.0) / 2:.1f} mm")
 
     # Fra il modulo display e il bordo del telaio deve restare la cornice di
     # VHB che incolla il telaio al vetro.

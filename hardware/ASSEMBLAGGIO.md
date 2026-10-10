@@ -89,7 +89,7 @@ Un RJ45 normale e un micro-HDMI normale non ci curvano dentro. Usa:
    lente con i suoi quattro fori decentrati verso il basso, luce
    dell'altoparlante sopra la lente, apertura NFC in basso,
    asola 12 x 4 dei fili del microfono in alto a sinistra.
-2. Verifica anche le sei sedi dei magneti da 5 mm e i due fori perno da 4,3.
+2. Verifica anche le sei sedi dei magneti da 4 mm e i due fori perno da 4,3.
 3. Sbava tutti i bordi tagliati al laser. L'anodizzazione arriva dopo, ma una
    bava sul bordo della finestra si vede attraverso il vetro.
 4. Filetta M2 i fori della camera e dell'altoparlante, M2.5 quelli del Pi,
@@ -160,8 +160,8 @@ monta sul retro, tranne il display.
    montato, e sotto il bordo inferiore della scheda passa l'ansa del flat PCIe,
    che sporge 25 mm. Se cambi base e la nuova è più alta, allunga i distanziali
    invece di schiacciare il flat, che su un raggio stretto perde il link PCIe.
-   **I due margini stretti sono qui**: l'ansa si ferma a 2 mm dal lettore NFC e
-   il patch gli passa sopra a 1,7 mm. Non fascettare il patch verso il vetro,
+   **I due margini stretti sono qui**: l'ansa si ferma a 3,5 mm dal lettore
+   NFC e il patch gli passa sopra a 2,0 mm. Non fascettare il patch verso il vetro,
    o lo fai appoggiare sul lettore.
    **Rifai l'alimentazione dell'SSD**: i fili che oggi arrivano ai pin 5 V e
    massa con connettori Dupont vanno ricrimpati su un connettore ritenuto, o
@@ -252,7 +252,7 @@ insieme il contatto a frizione sul disco di avvio. Oppure crimpare su
 **connettori femmina angolati a 90°**, che coricano il guscio invece di
 alzarlo. Oppure, se si lascia tutto come è, **misurare l'altezza coi connettori
 inseriti** e verificare che l'ansa dei fili non vada a sbattere sui fianchi
-della cassa. In profondità c'è spazio: il canale dietro lo stack è di 20,5 mm e
+della cassa. In profondità c'è spazio: il canale dietro lo stack è di 20,0 mm e
 il limite è a 64 di gruppo contro i 50 di oggi.
 
 ## Fase 4 — Collaudo a banco

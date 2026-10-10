@@ -26,7 +26,14 @@ $fn = 48;
 
 // ---------------------------------------------------------------- utilita'
 
+// Centrata nei tre assi, come cube(center = true) e come foro(): tutti i
+// richiami la posizionano scrivendo il piano di mezzeria, z0 + s / 2, e con
+// un'estrusione che partiva da zero ogni piastra finiva mezzo spessore piu'
+// avanti del suo posto - il vetro a 1..3 invece di 0..2, il telaio a 6,5..9,5
+// invece di 5..8. Non si vedeva nei controlli, che stanno in parametri.py e
+// non guardano questo file, ma falsava la sezione e i render.
 module piastra_raccordata(l, h, s, r) {
+    translate([0, 0, -s / 2])
     linear_extrude(height = s)
         offset(r = r) offset(delta = -r)
             square([l, h], center = true);

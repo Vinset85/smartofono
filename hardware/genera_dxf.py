@@ -389,7 +389,9 @@ def telaio_portante() -> None:
         f"profilo {p.TELAIO_L} x {p.TELAIO_H}",
         "",
         "LAYER TAGLIO: profilo, asola del flat, luci e fori passanti",
-        "LAYER FILETTATURA: M2 camera, M2.5 Pi, M3 altoparlante e NFC",
+        "LAYER FILETTATURA: i diametri sono PREFORI, non passaggi.",
+        "  O1.60 = M2 camera (4), O2.05 = M2.5 Pi (4) e squadretta (2),",
+        "  O2.50 = M3 altoparlante (3) e lettore NFC (2).",
         "  (le sedi magnete e i fori perno stanno sul layer TAGLIO)",
         f"  I due M2.5 della squadretta del display sono CIECHI dal retro,",
         f"  profondi {p.STAFFA_FORO_PROF:.1f} su {p.TELAIO_S:.0f}: passanti,"
@@ -525,12 +527,18 @@ def cassa_incasso() -> None:
         f"nicchia da scavare {p.FORO_MURO_L:.0f} x {p.FORO_MURO_H:.0f}"
         f" x {p.FORO_MURO_PROF:.0f}",
         "",
+        f"PARETE {p.CASSA_PARETE} mm, MASSIMO"
+        f" {(p.CASSA_L - p.TELAIO_L - 1.0) / 2:.1f}: il telaio da"
+        f" {p.TELAIO_L:.0f} x {p.TELAIO_H:.0f} va dentro il vano, e la misura",
+        "esterna la fissa la fessura d'ombra. Parete piu' grossa = non entra.",
+        "",
         "Due realizzazioni possibili:",
-        f"  lamiera: alluminio 2 mm o acciaio zincato {p.CASSA_PARETE} mm,",
-        "    piegata sui tratti del layer PIEGA, saldature agli spigoli;",
-        "    lo sviluppo in piano va ricalcolato dal lamierista con la",
-        "    detrazione di piega della sua macchina.",
-        "  stampa 3D: ASA o PETG, pareti 3 mm, mai PLA (deforma a 55 gradi).",
+        f"  lamiera: acciaio zincato {p.CASSA_PARETE} mm, piegata sui tratti",
+        "    del layer PIEGA, saldature agli spigoli. Questo foglio e' un",
+        "    disegno a quattro viste, non uno sviluppo in piano: lo sviluppo",
+        "    lo ricava il lamierista con la detrazione della sua macchina.",
+        f"  stampa 3D: ASA o PETG, pareti {p.CASSA_PARETE} mm,"
+        " mai PLA (deforma a 55 gradi).",
         "",
         "Le feritoie NON vanno sul fronte: il vetro lo copre tutto e l'aria",
         "non uscirebbe. Stanno nei fianchi alto e basso, affacciate alla",
@@ -1078,7 +1086,7 @@ def pezzi_minori() -> None:
         for zf in (z_foro1, z_foro2):
             foro(msp, cx + dy, zf, p.STAFFA_FORO_SCHEDA_D)
     for dy in (-p.STAFFA_FORI_TELAIO_PASSO / 2, p.STAFFA_FORI_TELAIO_PASSO / 2):
-        foro(msp, cx + dy, y0 + p.STAFFA_ALA_BASE / 2, p.STAFFA_FORO_TELAIO_D)
+        foro(msp, cx + dy, y0 + p.STAFFA_ALA_BASE / 2, p.STAFFA_FORO_ALA_D)
 
     # Quote: larghezza sopra, altezze a destra, interassi a sinistra.
     quota_oriz(msp, cx - sv_l / 2, cx + sv_l / 2, y0 + sv_h, 7.0)
