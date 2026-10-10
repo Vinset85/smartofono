@@ -4,8 +4,9 @@ Applicazione GUI Kivy per il pannello esterno del videocitofono. Gestisce:
 
 - Pulsanti chiamata per nominativo (Famiglia X, Appartamento Y, ...)
 - Apertura via **PIN** numerico (hash bcrypt + lockout)
-- Apertura via **riconoscimento facciale** (UI + camera preview, modulo recognizer attualmente stub)
-- Schermate placeholder per **impronta digitale** e **NFC** (in attesa hardware)
+- Apertura via **riconoscimento facciale** (ArcFace, con dlib come alternativa)
+- Apertura via **badge NFC** (PN532 su USB)
+- Schermata **impronta digitale** pronta, lettore non ancora collegato
 - **Gestione luminosità adattiva**: schermo a luminosità ridotta a riposo, piena luminosità su tocco o **rilevamento movimento** dalla camera
 - **Screensaver** con orologio dopo inattività (risvegliato anche dal movimento)
 - Pubblicazione eventi MQTT verso Home Assistant
@@ -26,7 +27,8 @@ installer-rpi/
 │   │   ├── mqtt_client.py            # paho-mqtt publisher
 │   │   ├── ha_client.py              # REST -> Home Assistant
 │   │   ├── pin_manager.py            # bcrypt + lockout
-│   │   ├── face_recognition_stub.py  # placeholder face recognizer
+│   │   ├── face_recognition_stub.py  # recognizer dlib (il nome e' storico)
+│   │   ├── face_arcface.py           # recognizer ArcFace, quello in uso
 │   │   └── camera.py                 # picamera2 (preferito) / opencv
 │   ├── screens/
 │   │   ├── home.py
@@ -110,9 +112,9 @@ journalctl -u videocitofono -f
 | `home`        | Header + lista campanelli + 4 metodi accesso (PIN/Volto/Impronta/NFC)          |
 | `calling`     | Chiamata in corso (preview camera locale, timer, annulla, MQTT publish)        |
 | `pin`         | Tastierino numerico, verifica bcrypt, lockout dopo N tentativi                 |
-| `face`        | Preview camera + scan continua (recognizer attualmente stub)                   |
-| `finger`      | Placeholder UI (HW non installato)                                             |
-| `nfc`         | Placeholder UI (HW non installato)                                             |
+| `face`        | Preview camera + scansione continua (ArcFace o dlib)                          |
+| `finger`      | UI pronta, lettore non collegato                                               |
+| `nfc`         | Lettura badge dal PN532, con cooldown                                          |
 | `result`      | Esito accesso (✓/✗) con auto-return                                            |
 | `screensaver` | Orologio + data dopo `screensaver_timeout_sec` (default 60s)                   |
 
@@ -125,23 +127,26 @@ journalctl -u videocitofono -f
 | `videocitofono/apertura`     | `{"metodo":"pin","utente":"Admin","scope":"porta"}`                      |
 | `videocitofono/evento`       | `{"tipo":"boot","dati":{"versione":"0.1.0"}}`                            |
 
-> Sul lato HA queste chiamate verranno mappate ad `automation.chiamata_videocitofono` (già esistente, deve essere aggiornata per leggere `campanello` da payload JSON in fase 4).
+> Sul lato HA li raccoglie `automation.chiamata_videocitofono`, nel package `installer-ha/packages/automations.yaml.fixed`.
 
 ## Roadmap
 
-- [x] Scaffold UI completa (tutte le schermate)
+- [x] UI completa (tutte le schermate)
 - [x] PIN con bcrypt + lockout
 - [x] MQTT publish chiamata/apertura
 - [x] HA REST chiamata script porta/cancello
 - [x] Camera preview (picamera2 + fallback opencv)
 - [x] Screensaver
-- [x] Brightness adattiva (idle/active) con backlight sysfs
+- [x] Brightness adattiva (idle/active). Il pannello e' OLED e non ha
+      backlight: la attenua un overlay nero in alpha, che su un emissivo e'
+      fisicamente la cosa giusta
 - [x] Motion detector da camera per wake-up automatico
-- [ ] Recognizer facciale reale (face_recognition o opencv-LBPH)
-- [ ] Driver fingerprint (R503 / GROW R307 - in attesa scelta modello)
-- [ ] Driver NFC (PN532 I2C - in attesa scelta modello)
+- [x] Recognizer facciale reale (ArcFace, con dlib come alternativa)
+- [ ] Driver fingerprint (R503 / GROW R307): `fingerprint_reader.py` e' lo
+      stub, l'hardware non e' collegato
+- [x] Driver NFC (PN532, su USB e non su I2C)
 - [ ] Schermata Admin (gestione utenti, enrollment)
-- [ ] Audio bidirezionale (richiede go2rtc + microfono RPi)
+- [x] Audio bidirezionale (LiveKit)
 
 ## Comportamento luminosità / risveglio
 

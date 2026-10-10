@@ -54,7 +54,9 @@ domani costa più di predisporlo oggi.
 
 Vedi la tabella in `README.md`. Procurati in anticipo il biadesivo **3M VHB
 4959** da 3,0 mm (cornice del telaio), l'adesivo ottico del display (**foglio di
-OCA da 0,2 mm**), il primer **3M 94**, la rete inox a maglia 0,6 mm, la
+OCA da 0,35 mm**, meglio se tagliato a misura dal fornitore del vetro: il bordo
+di un foglio rifilato a mano è il punto da cui partono le bolle), il primer
+**3M 94**, la rete inox a maglia 0,6 mm, la
 membrana acustica in PTFE e il foglio di PET nero opaco.
 
 ### Attrezzi
@@ -345,12 +347,18 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
    isopropilico e lascia evaporare.
 2. Applica il primer 3M 94 sulla cornice del telaio, dove andrà il VHB.
 3. **Display**: incollalo al vetro centrato sulla finestra serigrafata, con
-   l'area attiva allineata, usando un **foglio di OCA da 0,2 mm su tutta la
+   l'area attiva allineata, usando un **foglio di OCA da 0,35 mm su tutta la
    superficie**. Non una cornice perimetrale: il pannello è touch capacitivo e
    l'intercapedine d'aria che resterebbe peserebbe come 1,4 mm di vetro in più,
    oltre a dare riflessi interni e immagine slavata. Lamina partendo da un
    bordo, con un rullo di gomma, premendo avanti la bolla d'aria invece di
    intrappolarla.
+   Il foglio è più grande della finestra, quindi **sale sul bordo
+   dell'inchiostro** per mezzo millimetro sui fianchi e un millimetro e mezzo
+   sopra e sotto: è quel gradino, non l'ottica, a volere 0,35 mm di adesivo.
+   Insisti col rullo proprio lungo il perimetro della finestra, dove il gradino
+   sta, e guarda in controluce: se è rimasto un filo d'aria si vede come una
+   riga chiara che segue il bordo. Si recupera solo adesso.
    Allinea a secco, con l'adesivo ancora protetto, e segna i riferimenti: un
    errore di mezzo millimetro si vede, perché la serigrafia lascia in vista
    solo mezzo millimetro di cornice per lato.

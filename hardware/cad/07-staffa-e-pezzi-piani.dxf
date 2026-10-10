@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461324.99599537
+2461325.0144560183
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461324.99599537
+2461325.0144560183
   9
 $TDUUPDATE
  40
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{8ACC9D9A-5409-4A72-9572-A332D3658BF1}
+{82871BCC-FE09-4522-94D9-998AA3C8411A}
   9
 $VERSIONGUID
   2
-{69BF6B35-2663-4355-8887-386CEC15086A}
+{5A40EBA5-0654-4075-BDA5-314C7FA6D2EA}
   9
 $EXTNAMES
 290
@@ -10031,7 +10031,7 @@ AcDbText
  40
 2.8
   1
-da tagliare col cutter sulla sagoma stampata
+sagome in scala 1:1 da riportare sul materiale
  11
 0.0
  21
@@ -10231,7 +10231,7 @@ AcDbText
  40
 2.5
   1
-adesivo ottico 0,2 mm:
+adesivo ottico 0,35 mm:
  11
 0.0
  21
@@ -10261,7 +10261,7 @@ AcDbText
  40
 2.5
   1
-incolla il display al vetro
+scavalca il bordo serigrafato,
  11
 0.0
  21
@@ -10291,7 +10291,7 @@ AcDbText
  40
 2.5
   1
-in pieno, senza bolle
+chiedilo tagliato al fornitore
  11
 0.0
  21
@@ -11923,7 +11923,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T21:54:14.082924+00:00
+1.4.4 @ 2026-10-10T22:20:49.624386+00:00
   0
 VISUALSTYLE
   5
@@ -12635,7 +12635,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T21:54:14.091674+00:00
+1.4.4 @ 2026-10-10T22:20:49.632338+00:00
   0
 ENDSEC
   0

@@ -1,90 +1,99 @@
-# Installer Home Assistant - Unità interna videocitofono
+# Unità interna — Home Assistant
 
-> Stato: scaffold iniziale. Gli script saranno popolati man mano che la configurazione viene consolidata.
+Questa è la parte che sta in casa: i package che definiscono entità e
+automazioni, i pyscript che fanno il lavoro, le card della dashboard e lo stack
+LiveKit per le videochiamate.
 
 ## Prerequisiti
 
-- Home Assistant OS in esecuzione su minipc/x86 (testato su HAOS x86_64)
-- Addon **Advanced SSH & Web Terminal** installato e avviato (porta 22, utente `hassio`)
-- Addon **Mosquitto broker** installato (oppure broker esterno raggiungibile)
-- HACS installato per i custom components (browser_mod, webrtc, pyscript)
-- Token "Long-lived access" generato dal profilo utente HA
+- **Home Assistant OS** (collaudato su HAOS x86_64 su mini PC)
+- addon **Mosquitto broker**, o un broker MQTT esterno raggiungibile
+- integrazione **Pyscript** (da HACS): i file in `pyscript/` non sono
+  decorativi, è lì che sta la logica
+- addon **Advanced SSH & Web Terminal**, per arrivare a `/config`
+- per le videochiamate, lo stack **LiveKit**: vedi [livekit/README.md](livekit/README.md)
 
-## Uso (target finale)
+## Installazione
 
-Da una macchina di sviluppo (Mac/Linux) con `ssh` e `rsync`:
+L'installer gira **sull'host di Home Assistant**, non dal Mac: ha bisogno di
+vedere `/config`. Dal terminale dell'addon SSH, con la cartella del progetto
+raggiungibile:
 
 ```bash
 cd installer-ha
-./install.sh --host 192.168.1.160 --user hassio --token <LLAT>
+cp secrets.yaml.example /config/secrets.yaml   # e riempilo
+./install.sh
 ```
 
-Lo script:
-1. Esegue backup di `/config` come snapshot
-2. Verifica che gli addon richiesti siano installati e in esecuzione
-3. Verifica che i custom components richiesti siano presenti
-4. Copia (rsync) `packages/`, `pyscript/`, `www/`, `lovelace/` in `/config/`
-5. Crea/aggiorna helper (input_text, input_select, input_boolean) via API REST
-6. Aggiorna `configuration.yaml` per includere `packages: !include_dir_named packages`
-7. Verifica config con `ha core check`
-8. Riavvia HA
+Se la configurazione non sta in `/config`, passa il percorso:
+`HA_CONFIG=/percorso ./install.sh`.
+
+Lo script copia i package, i pyscript, gli asset di `www/`, le card, i temi e i
+default, poi **controlla che in `secrets.yaml` ci siano tutte le chiavi che i
+package richiedono**. Quel controllo è il motivo per cui esiste: i package
+usano `!secret`, e una chiave che manca non dà un errore di configurazione, dà
+un Home Assistant che non riparte — e lo scopri col sistema già giù.
+
+Non riavvia HA da solo. Dopo l'installazione: **Impostazioni > Sistema >
+Riavvia**, e le card custom vanno aggiunte a mano in **Impostazioni >
+Dashboard > Risorse** come `/local/<nome>.js`, tipo "modulo JavaScript".
 
 ## Struttura
 
 ```
 installer-ha/
-├── install.sh                     # entrypoint (da creare)
-├── packages/
-│   └── videocitofono.yaml         # package autocontenuto
-├── pyscript/
-│   ├── update_registro_videocitofono.py
-│   └── videocitofono.py
-├── www/
-│   ├── videocitofono/             # cartella video registrazioni
-│   ├── placeholder.png
-│   ├── minion.mp3
-│   └── fanfara.mp3
-├── lovelace/
-│   └── videocitofono-dashboard.yaml
-└── scripts/
-    ├── backup.sh
-    ├── deploy.sh                  # rsync verso HA
-    └── check.sh                   # verifica integrità installazione
+├── install.sh                  copia tutto in /config e verifica i segreti
+├── secrets.yaml.example        le chiavi da generare, senza valori
+├── packages/                   *.fixed: entità, automazioni e script di HA
+├── pyscript/                   la logica: registro chiamate, NFC, volti,
+│                               PIN ospiti, audit, voce notturna, icone
+├── www/                        le card custom e gli asset serviti da /local
+├── lovelace/                   le viste: dashboard, PIN ospiti, salute
+├── themes/                     glass e vc-minimal
+├── config/                     go2rtc e i default del pannello
+├── livekit/                    lo stack delle videochiamate (Docker)
+└── scripts/                    deploy e manutenzione
 ```
 
-## Cosa NON fa l'installer (e perché)
+I file in `packages/` hanno estensione `.fixed` e l'installer la toglie quando
+li copia: in `/config/packages/` arrivano come `configuration.yaml`,
+`automations.yaml` e `scripts.yaml`.
 
-- **Non installa addon**: gli addon HAOS vanno installati dall'UI o via API supervisor con token specifico (richiede setup separato)
-- **Non installa HACS**: HACS richiede un'installazione iniziale interattiva (autenticazione GitHub)
-- **Non gestisce certificati SSL**: lasciato al setup iniziale di HA + Duck DNS + Let's Encrypt
+## I segreti
 
-## Helper richiesti (da creare via UI o API)
+Nel repository non c'è nessuna credenziale: `secrets.yaml.example` elenca le
+chiavi con un segnaposto al posto del valore. Le tre che vanno **generate** e
+non recuperate da qualche parte sono `vc_egress_secret`,
+`videocitofono_cmd_secret` e `livekit_api_secret`:
 
-| Helper | Tipo | Descrizione |
+```bash
+openssl rand -hex 32
+```
+
+## MQTT
+
+Il pannello e Home Assistant si parlano su MQTT sotto il prefisso
+`videocitofono/`. I gruppi, come stanno nel codice:
+
+| Prefisso | Direzione | A cosa serve |
 |---|---|---|
-| `input_text.chiamate_lette` | input_text (max 255 char) | Lista JSON timestamp letti |
-| `input_select.utenti_videocitofono` | input_select | Lista utenti riconosciuti |
-| `input_boolean.videocitofono_enroll_mode` | input_boolean | Modalità enrollment attiva |
+| `cmd/...` | HA → pannello | comandi: apri, parla, risveglia, ricarica config |
+| `chiamata`, `apertura`, `evento` | pannello → HA | cosa è accaduto al cancello |
+| `responder/audio`, `responder/video`, `talkback/audio` | nei due versi | la conversazione |
+| `nfc/...`, `volti/...`, `guest_pins/...` | nei due versi | anagrafiche: badge, volti, PIN ospiti |
+| `health`, `status`, `logs`, `audit`, `anomaly` | pannello → HA | diagnostica e registro |
 
-## Topic MQTT usati
+L'elenco esatto dei topic sta in `installer-rpi/app/modules/mqtt_client.py` e
+nei pyscript che li ascoltano: è lì che va guardato, perché una tabella scritta
+a mano si scolla dal codice al primo topic nuovo.
 
-| Topic | Direzione | Payload | Descrizione |
-|---|---|---|---|
-| `videocitofono/chiamata` | RPi → HA | `chiamata_in_corso` | Trigger chiamata |
-| `videocitofono/impronta/match` | RPi → HA | `{"user_id": "...", "score": 95}` | Impronta riconosciuta |
-| `videocitofono/nfc/read` | RPi → HA | `{"uid": "...", "user_id": "..."}` | Badge NFC letto |
-| `videocitofono/cmd/apri_cancello` | HA → RPi | `ingresso\|strada` | Comando apertura cancello |
-| `videocitofono/cmd/enroll_impronta` | HA → RPi | `{"user_id": "..."}` | Avvia enrollment impronta |
-| `videocitofono/cmd/enroll_nfc` | HA → RPi | `{"user_id": "..."}` | Avvia enrollment badge NFC |
-| `videocitofono/status/online` | RPi → HA (LWT) | `online`/`offline` | Heartbeat / availability |
+## Cosa l'installer non fa, e perché
 
-> Topic provvisori, da consolidare nella fase di design dell'app RPi.
-
-## TODO
-
-- [ ] Definire schema completo entità HA (sensor, binary_sensor, switch, button, camera)
-- [ ] Definire dashboard Lovelace (popup chiamata, gestione utenti, storico)
-- [ ] Implementare `install.sh`
-- [ ] Implementare `backup.sh` e `deploy.sh`
-- [ ] Definire helper e scripts.yaml definitivi
-- [ ] Migrare configurazione attuale dal file `configuration.yaml` al package autocontenuto
+- **non installa gli addon**: su HAOS passano dall'UI o dall'API del supervisor
+  con un token dedicato, che è un altro giro di autenticazione;
+- **non installa HACS**: la sua prima installazione è interattiva e vuole
+  un'autenticazione GitHub;
+- **non tocca i certificati**: restano al setup di HA con DuckDNS e Let's
+  Encrypt;
+- **non crea gli helper**: `input_text`, `input_select` e `input_boolean` li
+  definiscono i package, quindi arrivano col riavvio.

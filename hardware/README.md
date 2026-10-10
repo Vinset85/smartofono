@@ -115,8 +115,11 @@ nove ricambi è più un vantaggio che uno spreco.
 
 Nel preventivo vanno chiesti esplicitamente: grado e spessore del materiale,
 certificato Corning, sequenza di produzione, tipo di inchiostro con resistenza
-UV dichiarata, trasmissione dell'AR, angolo di contatto dell'AF, profilo del
-bordo, e se possono fornire l'adesivo ottico già tagliato a misura.
+UV dichiarata, **numero di passate e spessore totale della serigrafia**,
+trasmissione dell'AR, angolo di contatto dell'AF, profilo del bordo, e se
+possono fornire l'adesivo ottico già tagliato a misura. Lo spessore
+dell'inchiostro non è una curiosità: è il gradino che l'adesivo ottico deve
+assorbire, e decide quale OCA ordinare.
 
 Alternativa economica per un primo prototipo: PMMA colato nero 3 mm con le
 finestre fresate e lucidate. Costa un quarto, ma si riga, si opacizza al sole e
@@ -207,12 +210,11 @@ sulle sedi del telaio. Costano niente e senza di loro il pannello non sta su.
 Il vetro porta due incollaggi diversi, su due piani diversi, e confonderli è
 l'errore che manda in pezzi il progetto.
 
-Il **display** si incolla direttamente al vetro con un biadesivo nero da
-**0,2 mm** sul suo bordo: deve stare a contatto ottico, altrimenti fra vetro e
-pannello compaiono riflessi interni e doppia immagine.
+Il **display** si incolla direttamente al vetro: deve stare a contatto ottico,
+altrimenti fra vetro e pannello compaiono riflessi interni e doppia immagine.
 
 L'adesivo va steso **in pieno**, su tutta la superficie, con un foglio di OCA
-(adesivo ottico trasparente) da 0,2 mm. Una cornice perimetrale sarebbe più
+(adesivo ottico trasparente) da 0,35 mm. Una cornice perimetrale sarebbe più
 facile da applicare, ma lascerebbe un'intercapedine d'aria fra vetro e pannello,
 e su un touch capacitivo quella è la scelta peggiore possibile. Il conto è
 semplice: quello che il sensore "vede" non è lo spessore, ma lo spessore diviso
@@ -227,6 +229,35 @@ Il modulo ha **1 mm di cornice**, quindi una striscia perimetrale sarebbe anche
 larga 1 mm su un perimetro di 386 mm: non si taglia col cutter e andrebbe
 fustellata. Fra fustellare una cornice e laminare un foglio, conviene il
 foglio.
+
+#### Lo spessore dell'OCA non lo decide l'ottica, lo decide la serigrafia
+
+Il foglio è tagliato a misura del **modulo**, 70 x 125, ma la finestra
+trasparente nel vetro è 69,0 x 122,0. Sono due misure diverse per un motivo
+sano — l'OCA deve incollare tutto il modulo, cornice compresa — e la
+conseguenza è che la laminazione **scavalca il bordo dell'inchiostro su tutto
+il perimetro**: mezzo millimetro sui fianchi, un millimetro e mezzo sopra e
+sotto.
+
+Su quel gradino l'adesivo deve rifluire. Se non ce la fa resta un canale d'aria
+lungo il bordo della finestra, cioè un anello di bolle esattamente dove l'occhio
+va a cercare il bordo dell'immagine. Un nero coprente in serigrafia UV sta sulle
+due o tre passate da 8-15 µm, quindi il gradino è **nell'ordine dei 30 µm**, ma
+il fornitore può arrivare a sei passate, e allora diventano 90.
+
+Da qui i **0,35 mm** al posto dei 0,2 che il progetto portava prima. Il
+criterio è un rapporto di almeno cinque fra adesivo e gradino: il limite fisico
+di un OCA morbido sta intorno a un terzo del proprio spessore, ma quello vale
+in autoclave, e qui si lamina a mano con un rullo. Con 0,35 il rapporto regge
+anche nel caso a sei passate.
+
+**La cosa migliore di questa correzione è che non costa niente.** La quota del
+telaio la fissa il VHB da 3,0 mm, non l'adesivo del display: display più OCA
+arrivano a 2,15, quindi il pacchetto resta un millimetro sotto e nessuna
+quota si muove. Il controllo è in `parametri.py` e lo spessore dell'inchiostro
+è un parametro, `SERIGRAFIA_S`: **va confermato dal fornitore nel preventivo**,
+perché è lui a scegliere quante passate fare, e se risponde 90 µm il controllo
+chiede un OCA da 0,45.
 
 Quell'adesivo però non deve portare il peso del pannello, perché **dietro il
 display il telaio resta pieno**, senza nessuna finestra, e il modulo ci appoggia
@@ -275,7 +306,7 @@ sollecitare il giunto.
 | 1 | membrana acustica PTFE Ø 8 mm | fra vetro e basetta del microfono |
 | 1 | anello schiuma nera, est. 10 int. 6, 1 mm | fra obiettivo e vetro |
 | 6 | cavetto M-F passo 2,54 da 20 cm | prolunga del microfono fino all'HAT |
-| 1 | foglio OCA 0,2 mm, 70 x 125 mm | display al vetro, in pieno |
+| 1 | foglio OCA 0,35 mm, 70 x 125 mm | display al vetro, in pieno. Chiedilo tagliato al fornitore del vetro |
 | 1 | foglio PET nero opaco 0,2 mm, 38 x 40 mm | diaframma dietro la zona NFC |
 | 1 | silicone neutro ossimico nero | fessura d'ombra, solo sui lati |
 

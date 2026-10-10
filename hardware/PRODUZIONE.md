@@ -40,18 +40,55 @@ con la consegna più lunga.
 - **Materiale**: Corning Gorilla Glass 3 da 2 mm, alluminosilicato rinforzato
   chimicamente. Un float temprato normale non va: a 2 mm di spessore non si
   tempra, e un vetro non temprato in facciata non è accettabile.
-- **Formato**: 100 x 240 x 2, angoli raggiati 3 mm.
+- **Formato**: 100 x 240 x 2, angoli raggiati 3 mm, **bordo 2.5D lucidato**.
 - **Stampa**: serigrafia a inchiostro UV **sul retro**, nera coprente su tutta
   la superficie tranne le finestre. Le icone (NFC, campanello) in nero
   semitrasparente, sul layer `SMOKE`.
-- **Trattamento**: antiriflesso sul fronte. **Non è un optional**: la
-  leggibilità in pieno giorno dipende da quello e non dai nit del display. Un
-  vetro senza AR riflette il 4% per faccia e il contrasto utile crolla.
+- **Trattamento**: antiriflesso sul fronte, più oleofobico anti-impronta. L'AR
+  **non è un optional**: la leggibilità in pieno giorno dipende da quello e non
+  dai nit del display. Un vetro senza AR riflette il 4% per faccia e il
+  contrasto utile crolla.
 
-Alla consegna controlla tre cose: che la **finestra del display** misuri
-69,0 x 122,0 e non di più, perché una finestra più larga della cornice del
-pannello lascia vedere il bordo del modulo; che la **serigrafia sia sul retro**
-e non sul fronte, dove si graffia; che gli angoli siano raggiati e non vivi.
+### La sequenza va scritta nell'ordine
+
+È la riga più importante di tutto l'ordine, e va messa nera su bianco:
+
+> **taglio e lavorazioni CNC sul crudo, poi rinforzo chimico, poi stampa,
+> infine i trattamenti.**
+
+Il rinforzo chimico è uno scambio ionico a 400-450 °C che crea uno strato in
+compressione sulla superficie e sui bordi. Se il vetro viene tagliato o
+sagomato **dopo**, il bordo nuovo nasce senza quello strato, e un bordo che
+sporge 5,5 mm oltre il telaio è proprio il punto che prende i colpi. La stampa
+viene dopo perché l'inchiostro UV cura sotto i 200 °C e nel forno dello scambio
+ionico non sopravvivrebbe.
+
+### Due numeri da farsi dare per iscritto
+
+**Lo spessore totale della serigrafia**, in µm. Non è una curiosità: l'adesivo
+ottico del display è tagliato a misura del modulo, 70 x 125, mentre la finestra
+trasparente è 69,0 x 122,0, quindi la laminazione scavalca il bordo
+dell'inchiostro. Quel gradino l'adesivo lo deve assorbire. Il progetto assume
+30 µm (due o tre passate) e su quella base prescrive un **OCA da 0,35 mm**: se
+il fornitore risponde che ne fa sei, aggiorna `SERIGRAFIA_S` in `parametri.py`
+e rilancia la verifica, che ti dirà quale spessore serve.
+
+**Se possono fornire l'adesivo ottico già tagliato**, 70 x 125 e dello spessore
+che risulta dal punto sopra. Costa poco e risolve il problema peggiore della
+laminazione a mano, che è il bordo rifilato col cutter: è da lì che partono le
+bolle.
+
+### Al ricevimento
+
+Controlla quattro cose: che la **finestra del display** misuri 69,0 x 122,0 e
+non di più, perché una finestra più larga della cornice del pannello lascia
+vedere il bordo del modulo; che la **serigrafia sia sul retro** e non sul
+fronte, dove si graffia; che gli angoli siano raggiati e non vivi; e che il
+**bordo sia lucidato**, non grezzo di taglio.
+
+Conviene ordinare il campione da **dieci pezzi** che questi fornitori
+accettano. Non è uno spreco: su un pezzo dove va laminato a mano un adesivo
+ottico, i nove di scorta sono la differenza fra un errore e un disastro.
 
 ## 2. Telaio portante
 
@@ -100,16 +137,20 @@ quattro per la scheda sull'ala lunga, due per il telaio sull'ala corta.
 
 ---
 
-## I ritagli piani, da fare in casa
+## I ritagli piani
 
-Sono nel foglio 07, in scala 1:1: si stampa, si appoggia sul materiale e si
-taglia col cutter.
+Le sagome sono nel foglio 07, in scala 1:1: si stampa, si appoggia sul
+materiale e si taglia col cutter.
 
 | Pezzo | Misura | Materiale |
 |---|---|---|
-| Adesivo ottico del display | 70 x 125 | OCA 0,2 mm |
 | Diaframma NFC | 38 x 40 | PET nero opaco 0,2 mm |
 | Rete delle feritoie | 85 x 8, due pezzi | inox maglia 0,6 mm |
+
+**L'adesivo ottico del display fa eccezione**, pur essendo disegnato sullo
+stesso foglio: 70 x 125 di **OCA da 0,35 mm**, e va ordinato già tagliato.
+Rifilarlo col cutter lascia un bordo con microbave, e quelle diventano le bolle
+che poi si vedono in trasparenza.
 
 ---
 

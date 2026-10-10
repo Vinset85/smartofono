@@ -1127,14 +1127,15 @@ def pezzi_minori() -> None:
     cursore = y0 - 26.0
     msp.add_line((0, cursore), (260, cursore), dxfattribs={"layer": "QUOTE"})
     nota(msp, 0, cursore - 8, "2 - RITAGLI PIANI, SCALA 1:1", 5.0, "TAGLIO")
-    nota(msp, 0, cursore - 14, "da tagliare col cutter sulla sagoma stampata",
+    nota(msp, 0, cursore - 14, "sagome in scala 1:1 da riportare sul materiale",
          2.8)
 
     ritagli = [
         (f"OCA {p.DISPLAY_MODULO_L:.0f} x {p.DISPLAY_MODULO_H:.0f}",
          p.DISPLAY_MODULO_L, p.DISPLAY_MODULO_H,
-         ["adesivo ottico 0,2 mm:", "incolla il display al vetro",
-          "in pieno, senza bolle"]),
+         [f"adesivo ottico {p.BIADESIVO_DISPLAY_S:.2f} mm:".replace(".", ","),
+          "scavalca il bordo serigrafato,",
+          "chiedilo tagliato al fornitore"]),
         (f"PET {p.NFC_APERTURA_L + 8:.0f} x {p.NFC_APERTURA_H + 8:.0f}",
          p.NFC_APERTURA_L + 8, p.NFC_APERTURA_H + 8,
          ["PET nero opaco 0,2 mm:", "diaframma dietro l'apertura",

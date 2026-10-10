@@ -629,7 +629,29 @@ RETE_MAGLIA = 0.6                  # rete inox contro gli insetti
 # d'aria anche di due decimi conta, in termini di accoppiamento, come un
 # millimetro e mezzo di vetro in piu'. Oltre a questo, un'intercapedine
 # aggiunge due interfacce vetro-aria che riflettono e sbiadiscono l'immagine.
-BIADESIVO_DISPLAY_S = 0.2          # OCA in foglio, su tutta la superficie
+BIADESIVO_DISPLAY_S = 0.35         # OCA in foglio, su tutta la superficie
+# I 35 centesimi al posto dei 20 di prima sono il margine su questo gradino.
+# Non costano niente: la quota del telaio la fissa il VHB da 3,0, e display piu
+# adesivo arrivano a 2,15, quindi il pacchetto resta un millimetro sotto. In
+# cambio il rapporto regge anche se il fornitore stampa sei passate invece di
+# tre, che e' il caso in cui un OCA da 20 centesimi non ce la farebbe.
+
+# Lo spessore della serigrafia non e' una rifinitura: l'OCA e' tagliato a
+# misura del modulo (70 x 125) mentre la finestra trasparente e' 69,0 x 122,0,
+# quindi la laminazione scavalca il bordo dell'inchiostro su tutto il perimetro
+# - mezzo millimetro sui fianchi, un millimetro e mezzo sopra e sotto. Su quel
+# gradino l'adesivo deve rifluire, e se non ce la fa resta un canale d'aria
+# proprio lungo il bordo della finestra, cioe' un anello di bolle nel punto
+# dove si vede di piu'. Un nero coprente in serigrafia UV sta sulle due o tre
+# passate da 8-15 um, da cui i 30 um assunti qui: il numero va confermato dal
+# fornitore nel preventivo, perche' e' lui a scegliere quante passate fare.
+SERIGRAFIA_S = 0.030
+# Rapporto minimo fra spessore dell'adesivo e gradino da assorbire. Il limite
+# fisico di un OCA morbido ad alto flusso sta intorno a un terzo del proprio
+# spessore, ma quello vale in autoclave: qui si lamina a mano, con un rullo, e
+# cinque e' il margine che serve per non giocarsi un vetro da campione su un
+# decimo di pressione in meno.
+OCA_RAPPORTO_MIN = 5.0
 
 # Il telaio si incolla al vetro con una schiuma da 3,0 mm. Era stata scelta per
 # pareggiare display piu' adesivo, che il progetto assumeva spessi altrettanto;
@@ -1053,6 +1075,27 @@ def verifica() -> list[str]:
             f" adesivo ottico fanno"
             f" {BIADESIVO_DISPLAY_S + DISPLAY_MODULO_S:.1f}: il telaio"
             f" spingerebbe sul pannello")
+
+    # L'adesivo ottico scavalca il bordo della serigrafia, perche' e' tagliato
+    # a misura del modulo e la finestra trasparente e' piu' piccola. Deve
+    # quindi essere abbastanza spesso da rifluire su quel gradino, altrimenti
+    # resta un anello d'aria lungo il bordo della finestra.
+    if SERIGRAFIA_S > 0:
+        rapporto = BIADESIVO_DISPLAY_S / SERIGRAFIA_S
+        if rapporto < OCA_RAPPORTO_MIN:
+            problemi.append(
+                f"l'adesivo ottico e' {BIADESIVO_DISPLAY_S} mm su un gradino"
+                f" di serigrafia da {SERIGRAFIA_S * 1000:.0f} um (rapporto"
+                f" {rapporto:.1f}, minimo {OCA_RAPPORTO_MIN:.0f}): laminando a"
+                f" mano resta un anello di bolle sul bordo della finestra."
+                f" Serve un OCA da almeno"
+                f" {SERIGRAFIA_S * OCA_RAPPORTO_MIN:.2f} mm")
+    # Lo stesso gradino alza il modulo rispetto al vetro, perche' il suo bordo
+    # appoggia sull'inchiostro e il centro no. Va speso dall'aria dietro.
+    if DISPLAY_ARIA_TELAIO - SERIGRAFIA_S < 0.3:
+        problemi.append(
+            f"col gradino di serigrafia il display arriva a"
+            f" {DISPLAY_ARIA_TELAIO - SERIGRAFIA_S:.2f} mm dal telaio")
 
     # Fra il modulo display e il bordo del telaio deve restare la cornice di
     # VHB che incolla il telaio al vetro.
