@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461325.057673611
+2461325.0807407405
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461325.057673611
+2461325.0807407405
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-FB
+11B
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{C631E735-0911-43C1-B711-C2F2E5491FAF}
+{B773F1FC-CB05-4A67-8C90-4189E1D8894E}
   9
 $VERSIONGUID
   2
-{1FBE6D05-9E56-41A2-A9E3-18CC4BA2E069}
+{99FC2A25-B263-4D99-B249-3853D780C69E}
   9
 $EXTNAMES
 290
@@ -1323,9 +1323,9 @@ ISM
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -1339,9 +1339,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -3301,7 +3301,7 @@ ACAD
   0
 APPID
   5
-F8
+118
 330
 3
 100
@@ -3315,7 +3315,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-F9
+119
 330
 3
 100
@@ -6717,7 +6717,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -6731,13 +6731,13 @@ QUOTE
 100
 AcDbLine
  10
--36.5
+-35.5
  20
 472.0
  30
 0.0
  11
--27.5
+-28.5
  21
 472.0
  31
@@ -6757,13 +6757,13 @@ AcDbLine
  10
 -32.0
  20
-467.5
+468.5
  30
 0.0
  11
 -32.0
  21
-476.5
+475.5
  31
 0.0
   0
@@ -6785,7 +6785,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -6799,13 +6799,13 @@ QUOTE
 100
 AcDbLine
  10
--36.5
+-35.5
  20
 695.0
  30
 0.0
  11
--27.5
+-28.5
  21
 695.0
  31
@@ -6825,13 +6825,13 @@ AcDbLine
  10
 -32.0
  20
-690.5
+691.5
  30
 0.0
  11
 -32.0
  21
-699.5
+698.5
  31
 0.0
   0
@@ -6853,7 +6853,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -6867,13 +6867,13 @@ QUOTE
 100
 AcDbLine
  10
-27.5
+28.5
  20
 472.0
  30
 0.0
  11
-36.5
+35.5
  21
 472.0
  31
@@ -6893,13 +6893,13 @@ AcDbLine
  10
 32.0
  20
-467.5
+468.5
  30
 0.0
  11
 32.0
  21
-476.5
+475.5
  31
 0.0
   0
@@ -6921,7 +6921,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -6935,13 +6935,13 @@ QUOTE
 100
 AcDbLine
  10
-27.5
+28.5
  20
 695.0
  30
 0.0
  11
-36.5
+35.5
  21
 695.0
  31
@@ -6961,13 +6961,13 @@ AcDbLine
  10
 32.0
  20
-690.5
+691.5
  30
 0.0
  11
 32.0
  21
-699.5
+698.5
  31
 0.0
   0
@@ -6989,7 +6989,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -7003,13 +7003,13 @@ QUOTE
 100
 AcDbLine
  10
--46.0
+-45.0
  20
 583.5
  30
 0.0
  11
--37.0
+-38.0
  21
 583.5
  31
@@ -7029,13 +7029,13 @@ AcDbLine
  10
 -41.5
  20
-579.0
+580.0
  30
 0.0
  11
 -41.5
  21
-588.0
+587.0
  31
 0.0
   0
@@ -7057,7 +7057,7 @@ AcDbCircle
  30
 0.0
  40
-3.0
+2.0
   0
 LINE
   5
@@ -7071,13 +7071,13 @@ QUOTE
 100
 AcDbLine
  10
-37.0
+38.0
  20
 583.5
  30
 0.0
  11
-46.0
+45.0
  21
 583.5
  31
@@ -7097,19 +7097,427 @@ AcDbLine
  10
 41.5
  20
-579.0
+580.0
  30
 0.0
  11
 41.5
  21
-588.0
+587.0
+ 31
+0.0
+  0
+CIRCLE
+  5
+D6
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+-32.0
+ 20
+471.0
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+D7
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-36.7
+ 20
+471.0
+ 30
+0.0
+ 11
+-27.3
+ 21
+471.0
+ 31
+0.0
+  0
+LINE
+  5
+D8
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-32.0
+ 20
+466.3
+ 30
+0.0
+ 11
+-32.0
+ 21
+475.7
+ 31
+0.0
+  0
+CIRCLE
+  5
+D9
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+-32.0
+ 20
+696.0
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+DA
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-36.7
+ 20
+696.0
+ 30
+0.0
+ 11
+-27.3
+ 21
+696.0
+ 31
+0.0
+  0
+LINE
+  5
+DB
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-32.0
+ 20
+691.3
+ 30
+0.0
+ 11
+-32.0
+ 21
+700.7
+ 31
+0.0
+  0
+CIRCLE
+  5
+DC
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+32.0
+ 20
+471.0
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+DD
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+27.3
+ 20
+471.0
+ 30
+0.0
+ 11
+36.7
+ 21
+471.0
+ 31
+0.0
+  0
+LINE
+  5
+DE
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+32.0
+ 20
+466.3
+ 30
+0.0
+ 11
+32.0
+ 21
+475.7
+ 31
+0.0
+  0
+CIRCLE
+  5
+DF
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+32.0
+ 20
+696.0
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+E0
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+27.3
+ 20
+696.0
+ 30
+0.0
+ 11
+36.7
+ 21
+696.0
+ 31
+0.0
+  0
+LINE
+  5
+E1
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+32.0
+ 20
+691.3
+ 30
+0.0
+ 11
+32.0
+ 21
+700.7
+ 31
+0.0
+  0
+CIRCLE
+  5
+E2
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+-42.5
+ 20
+583.5
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+E3
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-47.2
+ 20
+583.5
+ 30
+0.0
+ 11
+-37.8
+ 21
+583.5
+ 31
+0.0
+  0
+LINE
+  5
+E4
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+-42.5
+ 20
+578.8
+ 30
+0.0
+ 11
+-42.5
+ 21
+588.2
+ 31
+0.0
+  0
+CIRCLE
+  5
+E5
+330
+17
+100
+AcDbEntity
+  8
+FILETTATURA
+100
+AcDbCircle
+ 10
+42.5
+ 20
+583.5
+ 30
+0.0
+ 40
+3.2
+  0
+LINE
+  5
+E6
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+37.8
+ 20
+583.5
+ 30
+0.0
+ 11
+47.2
+ 21
+583.5
+ 31
+0.0
+  0
+LINE
+  5
+E7
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbLine
+ 10
+42.5
+ 20
+578.8
+ 30
+0.0
+ 11
+42.5
+ 21
+588.2
  31
 0.0
   0
 TEXT
   5
-D6
+E8
 330
 17
 100
@@ -7139,7 +7547,7 @@ AcDbText
   0
 TEXT
   5
-D7
+E9
 330
 17
 100
@@ -7169,7 +7577,7 @@ AcDbText
   0
 TEXT
   5
-D8
+EA
 330
 17
 100
@@ -7199,7 +7607,7 @@ AcDbText
   0
 TEXT
   5
-D9
+EB
 330
 17
 100
@@ -7229,7 +7637,7 @@ AcDbText
   0
 TEXT
   5
-DA
+EC
 330
 17
 100
@@ -7259,7 +7667,7 @@ AcDbText
   0
 TEXT
   5
-DB
+ED
 330
 17
 100
@@ -7289,7 +7697,7 @@ AcDbText
   0
 TEXT
   5
-DC
+EE
 330
 17
 100
@@ -7319,7 +7727,7 @@ AcDbText
   0
 TEXT
   5
-DD
+EF
 330
 17
 100
@@ -7349,7 +7757,7 @@ AcDbText
   0
 TEXT
   5
-DE
+F0
 330
 17
 100
@@ -7379,7 +7787,7 @@ AcDbText
   0
 TEXT
   5
-DF
+F1
 330
 17
 100
@@ -7409,7 +7817,7 @@ AcDbText
   0
 TEXT
   5
-E0
+F2
 330
 17
 100
@@ -7439,7 +7847,7 @@ AcDbText
   0
 TEXT
   5
-E1
+F3
 330
 17
 100
@@ -7469,7 +7877,7 @@ AcDbText
   0
 TEXT
   5
-E2
+F4
 330
 17
 100
@@ -7499,7 +7907,7 @@ AcDbText
   0
 TEXT
   5
-E3
+F5
 330
 17
 100
@@ -7529,7 +7937,7 @@ AcDbText
   0
 TEXT
   5
-E4
+F6
 330
 17
 100
@@ -7559,7 +7967,7 @@ AcDbText
   0
 TEXT
   5
-E5
+F7
 330
 17
 100
@@ -7589,7 +7997,7 @@ AcDbText
   0
 TEXT
   5
-E6
+F8
 330
 17
 100
@@ -7619,7 +8027,7 @@ AcDbText
   0
 TEXT
   5
-E7
+F9
 330
 17
 100
@@ -7649,7 +8057,7 @@ AcDbText
   0
 TEXT
   5
-E8
+FA
 330
 17
 100
@@ -7679,7 +8087,7 @@ AcDbText
   0
 TEXT
   5
-E9
+FB
 330
 17
 100
@@ -7709,7 +8117,7 @@ AcDbText
   0
 TEXT
   5
-EA
+FC
 330
 17
 100
@@ -7727,7 +8135,7 @@ AcDbText
  40
 2.5
   1
-Il gruppo si tiene su sei magneti alloggiati nel telaio. Se la cassa
+Il gruppo si tiene su sei magneti alloggiati nel telaio, e i magneti
  11
 -59.0
  21
@@ -7739,7 +8147,7 @@ AcDbText
   0
 TEXT
   5
-EB
+FD
 330
 17
 100
@@ -7757,7 +8165,7 @@ AcDbText
  40
 2.5
   1
-non e' in acciaio, incollare sulla battuta sei piastrine ferrose nei
+hanno bisogno di ferro da attrarre: in lamiera e' la lamiera stessa e
  11
 -59.0
  21
@@ -7769,7 +8177,7 @@ AcDbText
   0
 TEXT
   5
-EC
+FE
 330
 17
 100
@@ -7787,7 +8195,7 @@ AcDbText
  40
 2.5
   1
-punti indicati sul layer INGOMBRI.
+non serve altro. Se la cassa e' stampata vanno sei dischetti di
  11
 -59.0
  21
@@ -7799,7 +8207,7 @@ AcDbText
   0
 TEXT
   5
-ED
+FF
 330
 17
 100
@@ -7817,7 +8225,7 @@ AcDbText
  40
 2.5
   1
-
+acciaio dolce O6 x 1, uno per
  11
 -59.0
  21
@@ -7829,7 +8237,7 @@ AcDbText
   0
 TEXT
   5
-EE
+100
 330
 17
 100
@@ -7842,6 +8250,276 @@ AcDbText
 -59.0
  20
 -119.5
+ 30
+0.0
+ 40
+2.5
+  1
+magnete, ANNEGATI nelle sedi del layer FILETTATURA:
+ 11
+-59.0
+ 21
+-119.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+101
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-124.0
+ 30
+0.0
+ 40
+2.5
+  1
+O6.4 profonde 1.2, sulla faccia dove appoggia il telaio.
+ 11
+-59.0
+ 21
+-124.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+102
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-128.5
+ 30
+0.0
+ 40
+2.5
+  1
+Appoggiati sopra invece che annegati si infilerebbero fra battuta e
+ 11
+-59.0
+ 21
+-128.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+103
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-133.0
+ 30
+0.0
+ 40
+2.5
+  1
+magnete e alzerebbero il gruppo di 1 mm, mentre il vetro va a filo dell'intonaco.
+ 11
+-59.0
+ 21
+-133.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+104
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-137.5
+ 30
+0.0
+ 40
+2.5
+  1
+Le sedi NON sono concentriche ai magneti, che sono disegnati accanto
+ 11
+-59.0
+ 21
+-137.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+105
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-142.0
+ 30
+0.0
+ 40
+2.5
+  1
+sul layer INGOMBRI: stanno sull'asse dell'anello, 3 mm dal bordo del vano,
+ 11
+-59.0
+ 21
+-142.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+106
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-146.5
+ 30
+0.0
+ 40
+2.5
+  1
+perche' centrate sul magnete sborderebbero dentro. Il dischetto copre
+ 11
+-59.0
+ 21
+-146.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+107
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-151.0
+ 30
+0.0
+ 40
+2.5
+  1
+comunque tutto il magnete, che e' quello che conta.
+ 11
+-59.0
+ 21
+-151.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+108
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-155.5
+ 30
+0.0
+ 40
+2.5
+  1
+
+ 11
+-59.0
+ 21
+-155.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+109
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-160.0
  30
 0.0
  40
@@ -7851,7 +8529,7 @@ Feritoie 80 x 8 mm = 6.4 cm2 per lato,
  11
 -59.0
  21
--119.5
+-160.0
  31
 0.0
 100
@@ -7859,7 +8537,7 @@ AcDbText
   0
 TEXT
   5
-EF
+10A
 330
 17
 100
@@ -7871,7 +8549,7 @@ AcDbText
  10
 -59.0
  20
--124.0
+-164.5
  30
 0.0
  40
@@ -7881,7 +8559,7 @@ con rete inox maglia 0.6 mm incollata all'interno.
  11
 -59.0
  21
--124.0
+-164.5
  31
 0.0
 100
@@ -7889,7 +8567,7 @@ AcDbText
   0
 TEXT
   5
-F0
+10B
 330
 17
 100
@@ -7901,7 +8579,7 @@ AcDbText
  10
 -59.0
  20
--128.5
+-169.0
  30
 0.0
  40
@@ -7911,7 +8589,7 @@ Partono a 8 mm dal fronte, cioe' dietro la battuta e non a
  11
 -59.0
  21
--128.5
+-169.0
  31
 0.0
 100
@@ -7919,7 +8597,7 @@ AcDbText
   0
 TEXT
   5
-F1
+10C
 330
 17
 100
@@ -7931,17 +8609,17 @@ AcDbText
  10
 -59.0
  20
--133.0
+-173.5
  30
 0.0
  40
 2.5
   1
-cavallo: quattro magneti stanno dentro la loro larghezza e i loro
+cavallo: quattro magneti stanno dentro la loro larghezza, e con la
  11
 -59.0
  21
--133.0
+-173.5
  31
 0.0
 100
@@ -7949,7 +8627,7 @@ AcDbText
   0
 TEXT
   5
-F2
+10D
 330
 17
 100
@@ -7961,17 +8639,17 @@ AcDbText
  10
 -59.0
  20
--137.5
+-178.0
  30
 0.0
  40
 2.5
   1
-riscontri appoggiano sull'anello di battuta.
+feritoia davanti l'anello di appoggio restava tagliato proprio dove
  11
 -59.0
  21
--137.5
+-178.0
  31
 0.0
 100
@@ -7979,7 +8657,7 @@ AcDbText
   0
 TEXT
   5
-F3
+10E
 330
 17
 100
@@ -7991,7 +8669,37 @@ AcDbText
  10
 -59.0
  20
--142.0
+-182.5
+ 30
+0.0
+ 40
+2.5
+  1
+il magnete tira.
+ 11
+-59.0
+ 21
+-182.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+10F
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-187.0
  30
 0.0
  40
@@ -8001,7 +8709,7 @@ AcDbText
  11
 -59.0
  21
--142.0
+-187.0
  31
 0.0
 100
@@ -8009,7 +8717,7 @@ AcDbText
   0
 TEXT
   5
-F4
+110
 330
 17
 100
@@ -8021,7 +8729,127 @@ AcDbText
  10
 -59.0
  20
--146.5
+-191.5
+ 30
+0.0
+ 40
+2.5
+  1
+LAYER FILETTATURA in questo foglio: non ci sono filetti, ci sono le
+ 11
+-59.0
+ 21
+-191.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+111
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-196.0
+ 30
+0.0
+ 40
+2.5
+  1
+due sedi dei perni e le sei sedi dei riscontri, tutte lavorazioni
+ 11
+-59.0
+ 21
+-196.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+112
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-200.5
+ 30
+0.0
+ 40
+2.5
+  1
+non passanti.
+ 11
+-59.0
+ 21
+-200.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+113
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-205.0
+ 30
+0.0
+ 40
+2.5
+  1
+
+ 11
+-59.0
+ 21
+-205.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+114
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-59.0
+ 20
+-209.5
  30
 0.0
  40
@@ -8031,7 +8859,7 @@ POSA: il muro e' in tufo. Bagnare la nicchia a rifiuto prima di
  11
 -59.0
  21
--146.5
+-209.5
  31
 0.0
 100
@@ -8039,7 +8867,7 @@ AcDbText
   0
 TEXT
   5
-F5
+115
 330
 17
 100
@@ -8051,7 +8879,7 @@ AcDbText
  10
 -59.0
  20
--151.0
+-214.0
  30
 0.0
  40
@@ -8061,7 +8889,7 @@ murare, altrimenti il tufo assorbe l'acqua d'impasto e la malta non
  11
 -59.0
  21
--151.0
+-214.0
  31
 0.0
 100
@@ -8069,7 +8897,7 @@ AcDbText
   0
 TEXT
   5
-F6
+116
 330
 17
 100
@@ -8081,7 +8909,7 @@ AcDbText
  10
 -59.0
  20
--155.5
+-218.5
  30
 0.0
  40
@@ -8091,7 +8919,7 @@ fa presa. Dare mezzo grado di pendenza verso l'esterno: l'acqua che
  11
 -59.0
  21
--155.5
+-218.5
  31
 0.0
 100
@@ -8099,7 +8927,7 @@ AcDbText
   0
 TEXT
   5
-F7
+117
 330
 17
 100
@@ -8111,7 +8939,7 @@ AcDbText
  10
 -59.0
  20
--160.0
+-223.0
  30
 0.0
  40
@@ -8121,7 +8949,7 @@ entra dalla feritoia bassa deve poter tornare fuori.
  11
 -59.0
  21
--160.0
+-223.0
  31
 0.0
 100
@@ -9217,7 +10045,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-FA
+11A
   0
 DICTIONARYVAR
   5
@@ -9229,7 +10057,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:23:03.733572+00:00
+1.4.4 @ 2026-10-10T23:56:16.692843+00:00
   0
 VISUALSTYLE
   5
@@ -9933,7 +10761,7 @@ X-Ray
   0
 DICTIONARYVAR
   5
-FA
+11A
 330
 2D
 100
@@ -9941,7 +10769,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:23:03.739413+00:00
+1.4.4 @ 2026-10-10T23:56:16.697647+00:00
   0
 ENDSEC
   0

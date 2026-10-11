@@ -614,6 +614,64 @@ REED_H = 4.0
 BATTUTA = 6.0
 BATTUTA_PROF = 4.0
 
+# Riscontri ferrosi, che servono solo se la cassa non e' di ferro: il telaio e'
+# alluminio e i magneti hanno bisogno di qualcosa da attrarre. Con la cassa in
+# lamiera il riscontro e' la lamiera stessa, con la cassa stampata non c'e'
+# niente e vanno sei dischetti di acciaio dolce dietro ai sei magneti.
+#
+# Due cose che il progetto sbagliava, e che si vedono solo facendo i conti.
+# La prima: un dischetto appoggiato sulla battuta si infila fra battuta e
+# magnete e solleva tutto il gruppo del suo spessore, mentre il vetro deve
+# restare a filo dell'intonaco. Quindi va annegato in una sede.
+# La seconda: la sede non sta dove si sarebbe tentati di metterla, cioe'
+# centrata sul magnete. L'anello di battuta e' largo 6 mm ma i magneti ne
+# stanno a 4 dal bordo del vano, quindi dalla loro parte interna ne restano 2 e
+# una sede centrata su di loro sborda dentro il vano. Allargare la battuta con
+# un'isola di materiale sembra la via d'uscita e non lo e': appena si prova, il
+# controllo di interferenza fa vedere che sotto, a mezzo millimetro dalla
+# battuta, passa il lettore NFC.
+#
+# La sede va invece centrata sull'asse della battuta, non sul magnete. Un
+# dischetto O6 cosi' posizionato copre interamente il magnete O4 (che e'
+# l'unica cosa che conta, perche' serve ferro davanti al magnete) e resta tutto
+# sull'anello, senza isole e senza toccare niente. Nella versione in lamiera
+# non serve nulla di tutto questo: il riscontro e' la lamiera.
+RISCONTRO_D = 6.0
+RISCONTRO_S = 1.0
+RISCONTRO_GIOCO = 0.4              # la sede va scavata un po' larga
+RISCONTRO_SEDE_D = RISCONTRO_D + RISCONTRO_GIOCO
+RISCONTRO_SEDE_PROF = RISCONTRO_S + 0.2
+# Quanto la sede puo' sbordare dall'anello. Non e' zero perche' non puo'
+# esserlo: la sede col suo gioco e' 6,4 su un anello di 6,0, e il magnete non si
+# puo' spostare al centro dell'anello perche' nel telaio gli resterebbe meno di
+# un millimetro di parete verso il bordo. Due decimi per lato non togliono
+# appoggio al telaio, che poggia su cinque millimetri di anello, e non lasciano
+# il dischetto a sbalzo, che e' comunque incollato.
+RISCONTRO_SBORDO_MAX = 0.5
+
+
+def posizioni_riscontri() -> list[tuple[float, float]]:
+    """Dove cade ogni sede: sul magnete in un asse, sulla battuta nell'altro.
+
+    Lungo il perimetro la sede segue il magnete, perche' da quella parte di
+    anello ce n'e' quanto se ne vuole. Nell'altro asse si mette a metezza
+    dell'anello, che e' l'unico modo di starci dentro tutta.
+    """
+    x0, x1 = -CASSA_INT_L / 2, CASSA_INT_L / 2
+    y0 = VETRO_H / 2 - CASSA_INT_H / 2
+    y1 = VETRO_H / 2 + CASSA_INT_H / 2
+    sedi = []
+    for mx, my in posizioni_magneti():
+        # Su quale lato dell'anello sta questo magnete: quello da cui dista meno.
+        if min(mx - x0, x1 - mx) < min(my - y0, y1 - my):
+            bordo = x0 if mx < 0 else x1
+            sedi.append((bordo + (BATTUTA / 2 if mx < 0 else -BATTUTA / 2), my))
+        else:
+            bordo = y0 if my < VETRO_H / 2 else y1
+            sedi.append((mx, bordo + (BATTUTA / 2 if my < VETRO_H / 2
+                                      else -BATTUTA / 2)))
+    return sedi
+
 # --------------------------------------------------------------------------
 # Ventilazione
 # --------------------------------------------------------------------------
@@ -641,6 +699,13 @@ FESSURA_LARGHEZZA = 80.0
 # malta durante la rasatura.
 FESSURA_ARRETRAMENTO = TELAIO_S + BATTUTA_PROF + 1.0
 RETE_MAGLIA = 0.6                  # rete inox contro gli insetti
+# La rete va incollata dentro, sopra la feritoia, e per incollarla serve bordo
+# su cui mettere l'adesivo: non basta il margine in lunghezza, perche' sono i
+# due lati lunghi a tenerla. Il ritaglio nel foglio 07 era 85 x 8, cioe' alto
+# esattamente come la feritoia, e non aveva un decimo di appoggio sopra e sotto.
+RETE_SOVRAPPOSIZIONE = 5.0
+RETE_L = FESSURA_LARGHEZZA + RETE_SOVRAPPOSIZIONE
+RETE_H = FESSURA_ALTEZZA + RETE_SOVRAPPOSIZIONE
 
 # Il telaio non ha feritoie proprie: non servirebbero a niente. Davanti al
 # telaio c'e' il vetro incollato, quindi quel volume e' chiuso; l'aria circola
@@ -795,7 +860,7 @@ def componenti() -> list[tuple[str, float, float, float, float, float, float]]:
                  MIC_PCB_L, MIC_PCB_H, VETRO_S, MIC_INGOMBRO_S),
         ingombro("stack del Pi", 0, PI_Y0 + PI_L / 2, PI_H, PI_L,
                  z_retro + PI_DISTANZIALI, PI_STACK_H),
-        ingombro("scheda video", DRIVER_X, DRIVER_Y, DRIVER_S, DRIVER_L,
+        ingombro("scheda di ingresso", DRIVER_X, DRIVER_Y, DRIVER_S, DRIVER_L,
                  z_retro + 2, DRIVER_H),
         ingombro("schedina terminale", TERMINALE_X, TERMINALE_Y, TERMINALE_S,
                  TERMINALE_H, z_retro + 2, TERMINALE_L),
@@ -809,6 +874,9 @@ def componenti() -> list[tuple[str, float, float, float, float, float, float]]:
         # La base dell'SSD occupa lo spazio fra telaio e Pi. Non e' un volume
         # trascurabile: e' il disco di avvio, e sta nell'unico punto del vano
         # che il progetto considerava libero.
+        # Lo spessore dichiarato e' quello dei distanziali e non i 9,5 della
+        # base: quei 10 mm li tiene il Pi comunque, nessun altro componente
+        # puo' usarli, e riservarli tutti e' piu' severo che riservare il pezzo.
         ingombro("base NVMe", 0, PI_Y0 + PI_L / 2, NVME_BASE_L, NVME_BASE_H,
                  z_retro, PI_DISTANZIALI),
     ]
@@ -1033,6 +1101,64 @@ def verifica() -> list[str]:
                 f"{nome} troppo vicina al bordo del telaio "
                 f"(x {x1:.1f}..{x2:.1f}, y {y1:.1f}..{y2:.1f}, "
                 f"telaio y {telaio_y0:.1f}..{telaio_y0 + TELAIO_H:.1f})")
+    # La sede del riscontro va scavata nella faccia di battuta, dove appoggia il
+    # telaio, e dietro deve restare materiale: se la sede sfonda, il dischetto
+    # cade nel vano. Vale solo per la cassa stampata, che e' la variante dove i
+    # riscontri esistono.
+    if RISCONTRO_SEDE_PROF > BATTUTA_PROF - 1.0:
+        problemi.append(
+            f"la sede del riscontro e' profonda {RISCONTRO_SEDE_PROF} su una"
+            f" battuta di {BATTUTA_PROF}: dietro resta meno di 1 mm")
+
+    # Ogni sede deve stare tutta sull'anello di battuta: se sborda verso il
+    # vano, il dischetto resta a sbalzo sul vuoto; se sborda verso la bocca,
+    # intacca la faccia su cui appoggia il telaio.
+    x0, x1 = -CASSA_INT_L / 2, CASSA_INT_L / 2
+    y0 = VETRO_H / 2 - CASSA_INT_H / 2
+    y1 = VETRO_H / 2 + CASSA_INT_H / 2
+    raggio = RISCONTRO_SEDE_D / 2
+    for (sx, sy), (mx, my) in zip(posizioni_riscontri(), posizioni_magneti()):
+        if min(sx - x0, x1 - sx) < min(sy - y0, y1 - sy):
+            dal_bordo = min(sx - x0, x1 - sx)
+        else:
+            dal_bordo = min(sy - y0, y1 - sy)
+        sbordo = max(raggio - dal_bordo, raggio - (BATTUTA - dal_bordo))
+        if sbordo > RISCONTRO_SBORDO_MAX + 0.01:
+            problemi.append(
+                f"la sede del riscontro in ({sx:.1f}, {sy:.1f}) sborda"
+                f" {sbordo:.1f} mm dall'anello di battuta da {BATTUTA}, il"
+                f" massimo ammesso e' {RISCONTRO_SBORDO_MAX}")
+
+        # E il dischetto deve coprire tutto il magnete, perche' e' ferro
+        # davanti al magnete quello che serve: coprirlo a meta' dimezza la
+        # forza, ed e' la forza che tiene su mezzo chilo di pannello.
+        # La copertura risulta esattamente tangente, e non e' una scelta: con il
+        # magnete dov'e' e l'anello larga 6 non si fa di meglio. Regge perche' a
+        # guidare il dischetto c'e' la sede, quindi di sbagliato ha al massimo i
+        # due decimi di gioco e non quelli di una posa a occhio.
+        scarto = math.dist((sx, sy), (mx, my))
+        if scarto + MAGNETE_D / 2 > RISCONTRO_D / 2 + 0.01:
+            problemi.append(
+                f"il riscontro O{RISCONTRO_D} in ({sx:.1f}, {sy:.1f}) non"
+                f" copre tutto il magnete O{MAGNETE_D} in ({mx:.1f},"
+                f" {my:.1f}): sono decentrati di {scarto:.1f} mm")
+
+    # La sede e' un volume che sta nel vano, quindi va confrontata con i
+    # componenti come qualsiasi altro pezzo. Il cilindro e' approssimato col
+    # quadrato circoscritto, che e' piu' severo del vero.
+    sede_z0 = Z_TELAIO + TELAIO_S
+    sede_z1 = sede_z0 + RISCONTRO_SEDE_PROF
+    for sx, sy in posizioni_riscontri():
+        for nome, cx0, cy0, cz0, cx1, cy1, cz1 in componenti():
+            sovr = (min(sx + raggio, cx1) - max(sx - raggio, cx0),
+                    min(sy + raggio, cy1) - max(sy - raggio, cy0),
+                    min(sede_z1, cz1) - max(sede_z0, cz0))
+            if all(s > 0 for s in sovr):
+                problemi.append(
+                    f"la sede del riscontro in ({sx:.1f}, {sy:.1f}) entra in"
+                    f" {nome} per {sovr[0]:.1f} x {sovr[1]:.1f} x"
+                    f" {sovr[2]:.1f} mm")
+
     # Le finestre del vetro sono vetro nudo: attraverso ognuna si vede quello
     # che c'e' dietro. Dove dietro passa il display non e' un problema, perche'
     # lo copre lui; ma la griglia dell'altoparlante e la finestra dell'ottica
@@ -1131,13 +1257,13 @@ def verifica() -> list[str]:
         problemi.append(
             f"il micro-HDMI sporge {HDMI_ANGOLATO_SPORGENZA:.0f} mm dal fianco"
             f" del Pi, dove ce ne sono {fianco:.1f}")
-    # Il fianco dei micro-HDMI deve restare libero: se la scheda video sta da
+    # Il fianco dei micro-HDMI deve restare libero: se la scheda sta da
     # quel lato, fra il bordo del Pi e la scheda ci sono 3 mm e il cavo, pure
-    # angolato, non entra. Per questo la scheda video sta sull'altro fianco,
+    # angolato, non entra. Per questo la scheda sta sull'altro fianco,
     # quello del lato GPIO, dove non esce niente in orizzontale.
     if HDMI_LATO_X * DRIVER_X > 0:
         problemi.append(
-            f"la scheda video e il cavo micro-HDMI sono sullo stesso fianco:"
+            f"la scheda di ingresso e il micro-HDMI sono sullo stesso fianco:"
             f" fra il bordo del Pi e la scheda restano"
             f" {abs(DRIVER_X) - DRIVER_S / 2 - PI_H / 2:.1f} mm")
     # L'RJ45 e l'ansa del flat PCIe escono dal bordo corto, verso il basso, e
@@ -1148,23 +1274,24 @@ def verifica() -> list[str]:
             f"sotto il Pi ci sono {luce_sotto:.1f} mm prima del lettore NFC e"
             f" il patch ne vuole {RJ45_SPORGENZA:.0f}: esce dal telaio")
 
-    # La scheda video sta in piedi di fianco allo stack del Pi: va verificato
+    # La scheda di ingresso sta in piedi di fianco allo stack: va verificato
     # che non lo tocchi e che non sfondi la parete della cassa.
     if abs(DRIVER_X) - DRIVER_S / 2 < PI_H / 2 + 2:
         problemi.append(
-            f"la scheda video a x={DRIVER_X} tocca lo stack del Pi "
+            f"la scheda di ingresso a x={DRIVER_X} tocca lo stack del Pi "
             f"(largo {PI_H} mm)")
     if abs(DRIVER_X) + DRIVER_S / 2 > CASSA_INT_L / 2 - 2:
         problemi.append(
-            f"la scheda video a x={DRIVER_X} non entra nel vano "
+            f"la scheda di ingresso a x={DRIVER_X} non entra nel vano "
             f"(semiluce {CASSA_INT_L / 2} mm)")
     if DRIVER_H > CASSA_PROF - Z_TELAIO - TELAIO_S - 4:
         problemi.append(
-            f"la scheda video e' larga {DRIVER_H} mm: non ci sta in"
+            f"la scheda di ingresso e' larga {DRIVER_H} mm: non ci sta in"
             " profondita' dietro il telaio")
     if DRIVER_Y - DRIVER_L / 2 < 4 or DRIVER_Y + DRIVER_L / 2 > VETRO_H - 4:
         problemi.append(
-            f"la scheda video a y={DRIVER_Y} esce dall'altezza del pannello")
+            f"la scheda di ingresso a y={DRIVER_Y} esce dall'altezza"
+            " del pannello")
 
     # Profondita'. Display e cornice di incollaggio stanno sullo stesso piano,
     # quindi vanno in parallelo e non in serie.
@@ -1482,6 +1609,8 @@ def esporta_scad(percorso) -> None:
 
     punti = ", ".join(f"[{x}, {y}]" for x, y in posizioni_magneti())
     righe += ["", f"MAGNETI = [{punti}];"]
+    punti = ", ".join(f"[{x}, {y}]" for x, y in posizioni_riscontri())
+    righe += [f"RISCONTRI = [{punti}];"]
     punti = ", ".join(f"[{x}, {y}]" for x, y in posizioni_fori_speaker())
     righe += [f"FORI_SPEAKER = [{punti}];"]
     punti = ", ".join(f"[{x}, {y}]" for x, y in posizioni_fori_camera())

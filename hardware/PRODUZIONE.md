@@ -5,14 +5,20 @@ alla consegna. Le quote non sono ripetute a mano: stanno nei DXF, e i DXF
 nascono da `parametri.py`. Se un numero qui e un numero nel disegno non
 coincidono, ha ragione il disegno.
 
-Prima di ordinare, rigenera tutto e leggi l'ultima riga:
+Prima di ordinare, rigenera tutto e leggi l'ultima riga di entrambi:
 
 ```
-python3 parametri.py
+python3 parametri.py      # i pezzi entrano uno nell'altro?
+python3 verifica_cad.py   # i file dicono quello che dicono i parametri?
 ```
 
-Deve dire **`verifica interferenze: nessun problema`**. Se elenca dei problemi
-non sono avvisi, sono pezzi che non entrano uno nell'altro.
+Il primo deve dire **`verifica interferenze: nessun problema`**. Se elenca dei
+problemi non sono avvisi, sono pezzi che non entrano uno nell'altro.
+
+Il secondo deve dire **`I file CAD sono coerenti con i parametri`**, e serve
+perché il primo verifica solo se stesso: fra i parametri e il file che mandi al
+fornitore c'è il generatore, che può sbagliare per conto suo. Misura i DXF e gli
+STL già scritti, che sono quello che il fornitore riceve davvero.
 
 ---
 
@@ -23,7 +29,7 @@ non sono avvisi, sono pezzi che non entrano uno nell'altro.
 | 1 | Vetro frontale stampato | `cad/01-vetro-frontale.dxf` | vetreria con serigrafia UV | 1 |
 | 2 | Telaio portante | `cad/02-telaio-portante.dxf` | taglio laser + officina | 1 |
 | 3 | Cassa da incasso | `cad/03-cassa-incasso.dxf` | lattoniere, **oppure** stampa 3D da `stl/cassa.stl` | 1 |
-| 4 | Squadretta della scheda video | `cad/07-staffa-e-pezzi-piani.dxf` | lattoniere, o a mano | 1 |
+| 4 | Squadretta della scheda di ingresso | `cad/07-staffa-e-pezzi-piani.dxf` | lattoniere, o a mano | 1 |
 
 Gli altri due DXF non si ordinano: `04-dima-muratura.dxf` si stampa in scala
 1:1 su carta e serve a fare il buco nel muro, `05-disposizione.dxf` e
@@ -118,20 +124,36 @@ Due strade, entrambe valide, e la scelta cambia **una cosa sola** nel resto
 del montaggio.
 
 **Lamiera di acciaio zincato 1,5 mm**, piegata e puntata, verniciata a polvere.
-Lo sviluppo è nel DXF, ma le quote di piega vanno ricalcolate dal lattoniere
-sulla detrazione della sua macchina: le mie sono nominali.
+Il foglio 03 è un **disegno a quattro viste, non uno sviluppo in piano**: lo
+sviluppo lo ricava il lattoniere applicando la detrazione della sua macchina,
+perché dipende da raggio di piega e spessore e non la può decidere il disegno.
+Le quote di piega sul foglio sono nominali.
 
-**ASA stampato in 3D**, pareti 2 mm, 4 perimetri, da `stl/cassa.stl`. Da
+**ASA o PETG stampato in 3D**, pareti **1,5 mm** come il disegno, da
+`stl/cassa.stl`. Il massimo ammesso è 2,0: oltre, la misura esterna è fissata
+dalla fessura d'ombra e il telaio da 89 x 229 non entra più nel vano. Da
 evitare il **PLA**: rammollisce verso i 55 °C e dentro la scatola si arriva a
 70 nei picchi.
 
 La cosa che cambia: **il telaio è in alluminio e i magneti hanno bisogno di
-ferro da attrarre.** Con la cassa in lamiera il riscontro è la lamiera stessa.
-Con la cassa in ASA non c'è niente, e vanno incollati sulla battuta **sei
-dischetti di acciaio dolce Ø8 x 1**, centrati sulle sedi del telaio. Senza
-quelli il pannello non sta su.
+ferro da attrarre.** Con la cassa in lamiera il riscontro è la lamiera stessa e
+non serve aggiungere niente. Con la cassa stampata non c'è niente da attrarre, e
+servono **sei dischetti di acciaio dolce Ø6 x 1**, uno per magnete. Senza quelli
+il pannello non sta su.
 
-## 4. Squadretta della scheda video
+I dischetti vanno **annegati nelle sei sedi** che il modello 3D già prevede,
+Ø6,4 profonde 1,2 sulla faccia di battuta, non incollati sopra. Appoggiati sulla
+battuta si infilerebbero fra battuta e magnete e alzerebbero tutto il gruppo di
+un millimetro, mentre il vetro deve restare a filo dell'intonaco.
+
+Sul disegno le sedi **non sono concentriche ai magneti**, e non è una svista:
+stanno sull'asse dell'anello di battuta, 3 mm dal bordo del vano. L'anello è
+largo 6 mm ma i magneti ne stanno a 4 dal bordo, quindi una sede centrata su di
+loro sborderebbe nel vano, e allargare l'anello non si può perché sotto, a mezzo
+millimetro, passa il lettore NFC. Spostata sull'asse, la sede ci sta e il
+dischetto copre comunque tutto il magnete, che è l'unica cosa che conta.
+
+## 4. Squadretta della scheda di ingresso
 
 Alluminio 1,5 mm, 47 x 59 di sviluppo, **una piega a 90°** a 12 mm dal bordo.
 È un pezzo che si fa anche a mano con una morsa e una lima. I fori sono Ø2,7:
@@ -147,7 +169,12 @@ materiale e si taglia col cutter.
 | Pezzo | Misura | Materiale |
 |---|---|---|
 | Diaframma NFC | 38 x 40 | PET nero opaco 0,2 mm |
-| Rete delle feritoie | 85 x 8, due pezzi | inox maglia 0,6 mm |
+| Rete delle feritoie | 85 x 13, due pezzi | inox maglia 0,6 mm |
+
+La rete è più grande della feritoia, che è 80 x 8, perché va incollata dentro e
+le servono 2,5 mm di bordo per l'adesivo **su tutti i quattro lati**: sono i due
+lati lunghi a tenerla, e un ritaglio alto esattamente come la feritoia non
+avrebbe dove attaccarsi.
 
 **L'adesivo ottico del display fa eccezione**, pur essendo disegnato sullo
 stesso foglio: 70 x 125 di **OCA da 0,35 mm**, e va ordinato già tagliato.

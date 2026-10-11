@@ -120,6 +120,31 @@ def controlla_stl() -> list[str]:
     return problemi
 
 
+def controlla_sedi_riscontri() -> list[str]:
+    """Le sei sedi dei riscontri devono esistere nel solido della cassa.
+
+    Il modello le scava, ma una modifica all'ordine delle operazioni puo'
+    farle riempire dal vano senza che niente protesti: il solido resta chiuso e
+    le quote esterne non cambiano. Qui si va a cercare il fondo di ognuna.
+    """
+    problemi = []
+    percorso = STL / "cassa.stl"
+    if not percorso.exists():
+        return ["cassa.stl: manca, esegui genera_3d.sh"]
+    v = vertici_stl(percorso)
+    # Il gruppo e' montato in piedi: la y del file e' la z del modello.
+    fondo = p.Z_TELAIO + p.TELAIO_S + p.RISCONTRO_SEDE_PROF
+    raggio = p.RISCONTRO_SEDE_D / 2 + 0.3
+    for sx, sy in p.posizioni_riscontri():
+        if not any(abs(q[0] - sx) < raggio and abs(q[2] - sy) < raggio
+                   and abs(q[1] - fondo) < 0.05 for q in v):
+            problemi.append(
+                f"cassa.stl: manca la sede del riscontro in"
+                f" ({sx:.1f}, {sy:.1f}), il dischetto resterebbe in rilievo"
+                " sulla battuta e solleverebbe il gruppo")
+    return problemi
+
+
 def controlla_dxf() -> list[str]:
     """Unita' di misura, contorni chiusi, entita' doppie.
 
@@ -212,6 +237,63 @@ def controlla_coerenza() -> list[str]:
     return problemi
 
 
+def controlla_documenti() -> list[str]:
+    """Le quote che i documenti citano a mano devono essere quelle vere.
+
+    I disegni nascono dai parametri e non possono mentire, ma README,
+    PRODUZIONE e ASSEMBLAGGIO scrivono le misure in prosa, perche' una tabella
+    di ordinazione deve dire "Ø6 x 1" e non "RISCONTRO_D". Quelle cifre
+    nessuno le ricontrolla quando un parametro cambia, ed e' cosi' che i
+    documenti sono arrivati a chiedere al fornitore dischetti da 8 mentre il
+    disegno li faceva da 6, e una rete alta come la feritoia che quindi non
+    aveva dove incollarsi.
+
+    Qui sotto c'e' una riga per ogni quota che un documento ripete a mano. Non
+    e' un controllo generale sui numeri, che non si puo' fare: e' un elenco di
+    cose che devono comparire, e che si rompe quando il parametro si muove.
+    """
+    attese = [
+        ("README.md", f"Ø{p.RISCONTRO_D:.0f} x {p.RISCONTRO_S:.0f}",
+         "diametro e spessore del riscontro ferroso"),
+        ("README.md", f"{p.RETE_L:.0f} x {p.RETE_H:.0f} mm",
+         "ritaglio della rete delle feritoie"),
+        ("README.md", f"{p.BIADESIVO_S:.1f} mm".replace(".", ","),
+         "spessore del VHB fra vetro e telaio"),
+        ("README.md",
+         f"{p.DISPLAY_MODULO_L:.0f} x {p.DISPLAY_MODULO_H:.0f} mm",
+         "ritaglio dell'adesivo ottico"),
+        ("PRODUZIONE.md", f"Ø{p.RISCONTRO_D:.0f} x {p.RISCONTRO_S:.0f}",
+         "diametro e spessore del riscontro ferroso"),
+        ("PRODUZIONE.md", f"{p.RETE_L:.0f} x {p.RETE_H:.0f}",
+         "ritaglio della rete delle feritoie"),
+        ("PRODUZIONE.md", f"**{p.CASSA_PARETE} mm**".replace(".", ","),
+         "parete della cassa stampata"),
+        ("PRODUZIONE.md",
+         f"{p.VETRO_L:.0f} x {p.VETRO_H:.0f} x {p.VETRO_S:.0f}",
+         "formato del vetro"),
+        ("PRODUZIONE.md",
+         f"{p.FINESTRA_DISPLAY_L:.1f} x {p.FINESTRA_DISPLAY_H:.1f}"
+         .replace(".", ","),
+         "finestra del display da controllare alla consegna"),
+        ("ASSEMBLAGGIO.md", f"Ø{p.RISCONTRO_D:.0f} x {p.RISCONTRO_S:.0f}",
+         "diametro e spessore del riscontro ferroso"),
+        ("ASSEMBLAGGIO.md", f"{p.RETE_L:.0f} x {p.RETE_H:.0f}",
+         "ritaglio della rete delle feritoie"),
+        ("ASSEMBLAGGIO.md",
+         f"{p.FORO_MURO_L:.0f} x {p.FORO_MURO_H:.0f} x {p.FORO_MURO_PROF:.0f}",
+         "nicchia da scavare"),
+    ]
+    problemi = []
+    radice = Path(__file__).parent
+    for nome, atteso, descrizione in attese:
+        testo = (radice / nome).read_text()
+        if atteso not in testo:
+            problemi.append(
+                f"{nome}: non dice '{atteso}' da nessuna parte"
+                f" ({descrizione})")
+    return problemi
+
+
 def controlla_ponti() -> list[str]:
     """Quanto materiale resta fra due fori vicini del telaio.
 
@@ -246,12 +328,14 @@ def controlla_ponti() -> list[str]:
 def main() -> int:
     problemi = []
     for titolo, controllo in (("solidi 3D", controlla_stl),
+                              ("sedi riscontri", controlla_sedi_riscontri),
                               ("disegni 2D", controlla_dxf),
                               ("coerenza 2D/3D", controlla_coerenza),
+                              ("quote nei documenti", controlla_documenti),
                               ("ponti fra i fori", controlla_ponti)):
         trovati = controllo()
         stato = f"{len(trovati)} problemi" if trovati else "a posto"
-        print(f"  {titolo:18s} {stato}")
+        print(f"  {titolo:20s} {stato}")
         problemi += trovati
 
     if problemi:

@@ -310,18 +310,26 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
    centro del display cade a 119 mm dal bordo inferiore del vetro, cioè
    praticamente a metà pannello: per averlo a 150 cm da terra, il bordo
    inferiore del vetro va a 138 cm.
-3. Scava la nicchia **124 x 264 x 81**. Nel tufo si arriverebbe a 150 mm, ma
+3. **Se la cassa è stampata e non di lamiera**, incolla ora i sei dischetti di
+   acciaio dolce Ø6 x 1 nelle sei sedi della battuta, con l'epossidica. Vanno
+   fatti adesso perché dopo, a cassa murata, quelle sedi sono in fondo a una
+   nicchia. Devono restare **a filo o sotto** la faccia di battuta: se
+   sporgono, il telaio appoggia su di loro e il vetro resta fuori filo di
+   quanto sporgono. Il telaio è in alluminio e senza questi dischetti i magneti
+   non hanno niente da attrarre; con la cassa in lamiera non servono, il
+   riscontro è la lamiera.
+4. Scava la nicchia **124 x 264 x 81**. Nel tufo si arriverebbe a 150 mm, ma
    non servono: la profondità è il gruppo del Pi più il canale d'aria dietro di
    lui, che con queste feritoie basterebbe a 7 mm e qui ne ha 20,5. Prima di
    scavare però **misura il gruppo montato, dal telaio alla cima dei pin**: la
    quota è calcolata su 50 mm e oltre i 64 la nicchia va rifatta più profonda.
-4. Porta i corrugati nella nicchia e fermali.
-5. **Bagna il tufo a rifiuto** e aspetta che l'acqua in superficie sia
+5. Porta i corrugati nella nicchia e fermali.
+6. **Bagna il tufo a rifiuto** e aspetta che l'acqua in superficie sia
    assorbita. Il tufo è poroso e capillare: su un supporto asciutto si beve
    l'acqua di impasto e la malta non fa presa, resta polverosa e la cassa si
    muove. Non è una raccomandazione generica da manuale, è il modo in cui si
    sbaglia questo lavoro sul tufo.
-6. Mura la cassa con il **fronte a filo dell'intonaco finito**, non del grezzo.
+7. Mura la cassa con il **fronte a filo dell'intonaco finito**, non del grezzo.
    Questo è l'errore classico: se la metti a filo del grezzo, il vetro resterà
    incassato di un centimetro e il montaggio a filo è perso. Ancora la flangia
    con la malta nei suoi fori, verifica bolla e piombo sui due assi, e
@@ -329,15 +337,18 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
    verso l'esterno**, mezzo grado basta: nel tufo l'umidità arriva comunque, e
    l'acqua che entra dalla feritoia bassa deve poter tornare fuori da dove è
    venuta invece di ristagnare sul fondo.
-7. Proteggi la bocca con nastro e cartone e lascia maturare.
-8. **Prima di rasare**, infila un profilo a perdere o una striscia di schiuma
+8. Proteggi la bocca con nastro e cartone e lascia maturare.
+9. **Prima di rasare**, infila un profilo a perdere o una striscia di schiuma
    **profonda almeno 20 mm** nel canale che resta fra il fianco della cassa e
    il bordo della nicchia, in alto e in basso. È lì che sbucano le feritoie,
    che arrivano a 16 mm dal fronte: se il rasante le riempie la ventilazione è
    morta e non te ne accorgi finché il Pi non va in throttling.
-9. Rasa l'intonaco lasciando una luce finita di **106 x 246**, cioè 3 mm per
+10. Rasa l'intonaco lasciando una luce finita di **106 x 246**, cioè 3 mm per
    lato oltre il filo del vetro. Togli il profilo a perdere.
-10. Incolla la rete inox sull'interno delle due feritoie.
+11. Incolla la rete inox sull'interno delle due feritoie. I due ritagli sono
+    85 x 13 su una feritoia di 80 x 8: i 2,5 mm che avanzano su ogni lato sono
+    la superficie su cui prende l'adesivo, quindi vanno rispettati su tutti e
+    quattro i lati e non solo in lunghezza.
 
 ## Fase 6 — Incollaggio del vetro
 

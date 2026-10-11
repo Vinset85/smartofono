@@ -362,7 +362,7 @@ def telaio_portante() -> None:
                y0=p.TELAIO_Y0 + 8.0, layer="INGOMBRI")
     nota(msp, p.REED_X - p.REED_L / 2, p.TELAIO_Y0 + 14.0, "reed", 2.6)
 
-    # Ingombro della scheda video, in piedi sul fianco: non e' una lavorazione,
+    # Ingombro della scheda di ingresso, in piedi sul fianco: non e' una lavorazione,
     # serve a non montare nulla in quella fascia.
     rettangolo(msp, p.DRIVER_S, p.DRIVER_L, cx=p.DRIVER_X,
                y0=p.DRIVER_Y - p.DRIVER_L / 2, layer="INGOMBRI")
@@ -393,7 +393,7 @@ def telaio_portante() -> None:
         "  O1.60 = M2 camera (4), O2.05 = M2.5 Pi (4) e squadretta (2),",
         "  O2.50 = M3 altoparlante (3) e lettore NFC (2).",
         "  (le sedi magnete e i fori perno stanno sul layer TAGLIO)",
-        f"  I due M2.5 della squadretta del display sono CIECHI dal retro,",
+        f"  I due M2.5 della squadretta sono CIECHI dal retro,",
         f"  profondi {p.STAFFA_FORO_PROF:.1f} su {p.TELAIO_S:.0f}: passanti,"
         " la vite tocca il pannello.",
         "LAYER INGOMBRI: sagome dei componenti, riferimento di montaggio",
@@ -510,11 +510,17 @@ def cassa_incasso() -> None:
             foro(msp, sx * (p.CASSA_L / 2 + p.FLANGIA / 2),
                  base3 + p.FLANGIA + 20 + i * 55, p.FLANGIA_FORO_D,
                  layer="PIEGA")
-    # Riscontri dei magneti sulla battuta: se la cassa e' in acciaio bastano
-    # cosi', se e' stampata vanno incollate le piastrine.
+    # Sedi dei riscontri sulla battuta. Sono una lavorazione e non un
+    # riferimento, quindi stanno sul layer delle lavorazioni: disegnate fra gli
+    # INGOMBRI venivano lette come "non lavorare" e il dischetto finiva
+    # appoggiato sopra, dove alza il gruppo. Accanto resta il magnete come
+    # riferimento, per far vedere che le due circonferenze non sono concentriche
+    # e che non e' una svista.
     dy = base3 + p.FLANGIA - p.TELAIO_Y0
     for mx, my in p.posizioni_magneti():
-        foro(msp, mx, my + dy, p.MAGNETE_D + 2, layer="INGOMBRI")
+        foro(msp, mx, my + dy, p.MAGNETE_D, layer="INGOMBRI")
+    for sx, sy in p.posizioni_riscontri():
+        foro(msp, sx, sy + dy, p.RISCONTRO_SEDE_D, layer="FILETTATURA")
     nota(msp, -(p.CASSA_L / 2 + p.FLANGIA),
          base3 + p.CASSA_H + 2 * p.FLANGIA + 4,
          "PROSPETTO FRONTALE: bocca, battuta, riscontri magnetici, flangia",
@@ -547,17 +553,34 @@ def cassa_incasso() -> None:
         "",
         f"Due perni O{p.PERNO_D:.0f} x {p.PERNO_SPORGENZA:.0f} sulla battuta"
         f" alta, passo {p.PERNO_PASSO:.0f}: centrano il telaio.",
-        "Il gruppo si tiene su sei magneti alloggiati nel telaio. Se la cassa",
-        "non e' in acciaio, incollare sulla battuta sei piastrine ferrose nei",
-        "punti indicati sul layer INGOMBRI.",
+        "Il gruppo si tiene su sei magneti alloggiati nel telaio, e i magneti",
+        "hanno bisogno di ferro da attrarre: in lamiera e' la lamiera stessa e",
+        "non serve altro. Se la cassa e' stampata vanno sei dischetti di",
+        f"acciaio dolce O{p.RISCONTRO_D:.0f} x {p.RISCONTRO_S:.0f}, uno per",
+        "magnete, ANNEGATI nelle sedi del layer FILETTATURA:",
+        f"O{p.RISCONTRO_SEDE_D} profonde {p.RISCONTRO_SEDE_PROF}, sulla faccia"
+        " dove appoggia il telaio.",
+        "Appoggiati sopra invece che annegati si infilerebbero fra battuta e",
+        f"magnete e alzerebbero il gruppo di {p.RISCONTRO_S:.0f} mm, mentre il"
+        " vetro va a filo dell'intonaco.",
+        "Le sedi NON sono concentriche ai magneti, che sono disegnati accanto",
+        f"sul layer INGOMBRI: stanno sull'asse dell'anello, {p.BATTUTA / 2:.0f}"
+        " mm dal bordo del vano,",
+        "perche' centrate sul magnete sborderebbero dentro. Il dischetto copre",
+        "comunque tutto il magnete, che e' quello che conta.",
         "",
         f"Feritoie {p.FESSURA_LARGHEZZA:.0f} x {p.FESSURA_ALTEZZA:.0f} mm"
         f" = {p.FESSURA_LARGHEZZA * p.FESSURA_ALTEZZA / 100:.1f} cm2 per lato,",
         f"con rete inox maglia {p.RETE_MAGLIA} mm incollata all'interno.",
         f"Partono a {p.FESSURA_ARRETRAMENTO:.0f} mm dal fronte, cioe' dietro"
         " la battuta e non a",
-        "cavallo: quattro magneti stanno dentro la loro larghezza e i loro",
-        "riscontri appoggiano sull'anello di battuta.",
+        "cavallo: quattro magneti stanno dentro la loro larghezza, e con la",
+        "feritoia davanti l'anello di appoggio restava tagliato proprio dove",
+        "il magnete tira.",
+        "",
+        "LAYER FILETTATURA in questo foglio: non ci sono filetti, ci sono le",
+        "due sedi dei perni e le sei sedi dei riscontri, tutte lavorazioni",
+        "non passanti.",
         "",
         "POSA: il muro e' in tufo. Bagnare la nicchia a rifiuto prima di",
         "murare, altrimenti il tufo assorbe l'acqua d'impasto e la malta non",
@@ -771,8 +794,14 @@ def disposizione() -> None:
         f"il fondo interno a {fondo:.1f}: sono due riferimenti diversi e vanno"
         " tenuti distinti.",
         "",
-        f"Gruppo del Pi: {p.PI_GRUPPO_H:.0f} mm dal telaio, di cui"
-        f" {p.PI_DISTANZIALI:.0f} di base NVMe sotto la scheda.",
+        f"Gruppo del Pi: {p.PI_GRUPPO_H:.1f} mm dal telaio, di cui"
+        f" {p.PI_DISTANZIALI:.1f} di distanziali sotto la scheda."
+        .replace(".", ",", 2),
+        f"In quei {p.PI_DISTANZIALI:.0f} mm ci sta la base NVMe, che con l'SSD"
+        f" montato ne misura {p.NVME_BASE_S}: sono"
+        .replace(".", ",", 1),
+        "due quote diverse e il controllo verifica che la prima contenga la"
+        " seconda.",
         f"Canale d'aria residuo {p.canale_aria():.1f} mm. Il controllo di"
         " interferenza protesta",
         "quando la sua sezione scende sotto quella delle feritoie, cioe' con un",
@@ -1041,7 +1070,7 @@ def gruppo_display() -> None:
     doc.saveas(USCITA / "06-gruppo-display.dxf")
 
 # --------------------------------------------------------------------------
-# 7. Squadretta del display e pezzi piani da tagliare
+# 7. Squadretta della scheda di ingresso e pezzi piani da tagliare
 # --------------------------------------------------------------------------
 
 def pezzi_minori() -> None:
@@ -1157,10 +1186,13 @@ def pezzi_minori() -> None:
          p.NFC_APERTURA_L + 8, p.NFC_APERTURA_H + 8,
          ["PET nero opaco 0,2 mm:", "diaframma dietro l'apertura",
           f"NFC {p.NFC_APERTURA_L:.0f}x{p.NFC_APERTURA_H:.0f}, 4 mm di bordo"]),
-        (f"rete {p.FESSURA_LARGHEZZA + 5:.0f} x {p.FESSURA_ALTEZZA:.0f}",
-         p.FESSURA_LARGHEZZA + 5, p.FESSURA_ALTEZZA,
+        (f"rete {p.RETE_L:.0f} x {p.RETE_H:.0f}",
+         p.RETE_L, p.RETE_H,
          [f"inox maglia {p.RETE_MAGLIA} mm:", "due pezzi, uno per feritoia",
-          "5 mm di sovrapposizione"]),
+          f"{p.RETE_SOVRAPPOSIZIONE / 2:.1f} mm di bordo per incollarla,"
+          .replace(".", ","),
+          f"su una feritoia di {p.FESSURA_LARGHEZZA:.0f}"
+          f" x {p.FESSURA_ALTEZZA:.0f}"]),
     ]
     # Tutti i pezzi appoggiano sulla stessa linea di base e il testo sta
     # sotto quella linea, cosi' nessuna didascalia finisce su un disegno.

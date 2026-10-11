@@ -124,7 +124,7 @@ module telaio() {
         // Sedi passanti dei magneti.
         for (m = MAGNETI)
             translate([m[0], m[1], z0 + TELAIO_S / 2])
-                foro(MAGNETE_D + 0.1, TELAIO_S * 3);
+                foro(MAGNETE_SEDE_D, TELAIO_S * 3);
     }
 }
 
@@ -288,6 +288,15 @@ module cassa() {
                            20 + i * 55,
                            z0 + FLANGIA_ARRETRAMENTO + CASSA_PARETE / 2])
                     foro(FLANGIA_FORO_D, CASSA_PARETE * 4);
+
+        // Sedi dei riscontri ferrosi, scavate nella faccia su cui appoggia il
+        // telaio: il dischetto ci sta dentro a filo e non solleva il gruppo.
+        // Non sono centrate sui magneti ma sull'asse dell'anello di battuta,
+        // che e' l'unico modo di starci dentro.
+        for (r = RISCONTRI)
+            translate([r[0], r[1],
+                       z0 + TELAIO_S + RISCONTRO_SEDE_PROF / 2])
+                foro(RISCONTRO_SEDE_D, RISCONTRO_SEDE_PROF);
     }
 
     // Perni di centraggio in alto: il telaio si aggancia qui e poi scende in

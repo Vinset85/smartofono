@@ -33,7 +33,7 @@ cad/03-cassa-incasso.dxf     sviluppo lamiera / riferimento stampa 3D
 cad/04-dima-muratura.dxf     sagoma 1:1 da stampare per fare il foro
 cad/05-disposizione.dxf      mappa dei componenti: pianta e sezione
 cad/06-gruppo-display.dxf    come si monta il gruppo del display
-cad/07-staffa-e-pezzi-piani.dxf  squadretta della scheda video e ritagli
+cad/07-staffa-e-pezzi-piani.dxf  squadretta della scheda di ingresso, ritagli
 render/                      render e filmati, non quotati
 render/schermata-*.jpg       le interfacce reali, fotografate dal display
 render/monta-video.sh        rimonta i filmati dai fotogrammi
@@ -215,9 +215,21 @@ Sui riscontri serve un avvertimento, perché è il genere di dettaglio che si
 scopre a pannello montato: **il telaio è in alluminio e l'alluminio non è
 ferromagnetico**, quindi i magneti non tengono niente da soli. Con la cassa in
 lamiera zincata il riscontro è la lamiera stessa e non c'è nulla da aggiungere.
-Con la **cassa stampata in ASA il magnete non ha nulla da attrarre**: vanno
-incollati sulla battuta sei dischetti di **acciaio dolce Ø8 x 1**, centrati
-sulle sedi del telaio. Costano niente e senza di loro il pannello non sta su.
+Con la **cassa stampata in ASA il magnete non ha nulla da attrarre**: servono
+sei dischetti di **acciaio dolce Ø6 x 1**, uno per magnete. Costano niente e
+senza di loro il pannello non sta su.
+
+Vanno **annegati nelle sei sedi** che il modello della cassa prevede, Ø6,4
+profonde 1,2 sulla faccia di battuta, non incollati sopra. Appoggiati sulla
+battuta si infilerebbero fra battuta e magnete e alzerebbero tutto il gruppo di
+un millimetro, mentre il vetro deve restare a filo dell'intonaco.
+
+Le sedi non sono concentriche ai magneti: stanno sull'asse dell'anello di
+battuta, 3 mm dal bordo del vano. L'anello è largo 6 mm ma i magneti ne stanno a
+4 dal bordo, quindi una sede centrata su di loro sborderebbe nel vano, e
+allargare l'anello non si può perché a mezzo millimetro da lì passa il lettore
+NFC. Decentrata di quel millimetro la sede ci sta, e il dischetto copre comunque
+tutto il magnete.
 
 ### Incollaggio del vetro
 
@@ -313,15 +325,18 @@ sollecitare il giunto.
 | 3 | M3 x 18 + colonnine **nylon** 14 mm | altoparlante arretrato sul telaio |
 | 6 | rondella in gomma M3 | sotto flangia e testa vite dell'altoparlante |
 | 2 | M3 x 6 | PN532 appoggiato al retro del telaio, senza distanziali |
-| 2 | rete inox maglia 0,6 mm, 85 x 8 mm | feritoie di ventilazione |
-| 1 | squadretta in alluminio 1,5 mm, 47 x 59 piegata | tiene in piedi la scheda video, DXF 07 |
-| 4 | M2.5 x 8 + dado | scheda video alla squadretta |
+| 2 | rete inox maglia 0,6 mm, 85 x 13 mm | feritoie di ventilazione, 2,5 mm di bordo per incollarla |
+| 1 | squadretta in alluminio 1,5 mm, 47 x 59 piegata | tiene in piedi la scheda di ingresso, DXF 07 |
+| 4 | M2.5 x 8 + dado | scheda di ingresso alla squadretta |
 | 2 | M2.5 x 4 | squadretta al telaio, nei due fori **ciechi** |
 | 1 | membrana acustica PTFE Ø 8 mm | fra vetro e basetta del microfono |
 | 1 | anello schiuma nera, est. 10 int. 6, 1 mm | fra obiettivo e vetro |
 | 6 | cavetto M-F passo 2,54 da 20 cm | prolunga del microfono fino all'HAT |
 | 1 | foglio OCA 0,35 mm, 70 x 125 mm | display al vetro, in pieno. Chiedilo tagliato al fornitore del vetro |
 | 1 | foglio PET nero opaco 0,2 mm, 38 x 40 mm | diaframma dietro la zona NFC |
+| 1 | **3M VHB 4959**, 3,0 mm, nastro da 12 mm | cornice fra vetro e telaio. Lo spessore **non è sostituibile**: è lui a fissare la distanza vetro-telaio e tutta la catena di quote parte da lì |
+| 1 | primer 3M 94 | sull'alluminio del telaio, prima del VHB |
+| 6 | dischetto di acciaio dolce Ø6 x 1 | **solo se la cassa è stampata**: riscontro dei magneti, annegato nelle sedi della battuta |
 | 1 | silicone neutro ossimico nero | fessura d'ombra, solo sui lati |
 
 Il diaframma in PET serve perché l'apertura nel telaio lascerebbe intravedere
