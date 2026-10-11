@@ -41,4 +41,7 @@ except Exception as e:
     print("ArcFace preload skip:", e)
 PY
 
+APP_USER="${APP_USER:-vinset}"
+chown -R "${APP_USER}:${APP_USER}" "${APP_ROOT}/venv" "${APP_ROOT}/data" 2>/dev/null || true
+
 echo "==> Face deps completato"

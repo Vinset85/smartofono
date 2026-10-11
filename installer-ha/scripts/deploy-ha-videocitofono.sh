@@ -58,12 +58,16 @@ else:
     print('evento sensor: aggiunto')
 PY"
 
-echo "==> [3/4] Lovelace: resource + card NFC in view Utenti"
-scp_ha "$REPO_HA/scripts/patch_lovelace_utenti_nfc.py" "${HA_USER}@${HA_HOST}:/tmp/patch_lovelace_utenti_nfc.py"
-ssh_ha "sudo python3 /tmp/patch_lovelace_utenti_nfc.py"
+echo "==> [3/5] Lovelace: le card NFC stanno in www/ (copiate al passo 1)."
+if [[ -f "$REPO_HA/scripts/patch_lovelace_utenti_nfc.py" ]]; then
+  scp_ha "$REPO_HA/scripts/patch_lovelace_utenti_nfc.py" "${HA_USER}@${HA_HOST}:/tmp/patch_lovelace_utenti_nfc.py"
+  ssh_ha "sudo python3 /tmp/patch_lovelace_utenti_nfc.py"
+fi
 
 echo "==> [4/5] input_button + script applica + automazioni"
-"${REPO_HA}/scripts/patch_ha_config_apply.sh" || true
+if [[ -f "${REPO_HA}/scripts/patch_ha_config_apply.sh" ]]; then
+  "${REPO_HA}/scripts/patch_ha_config_apply.sh" || true
+fi
 
 echo "==> [5/5] reload HA (opzionale)"
 ssh_ha "TOK=\$(cat /run/s6/container_environment/SUPERVISOR_TOKEN 2>/dev/null); curl -sS -X POST -H \"Authorization: Bearer \$TOK\" http://supervisor/core/restart 2>/dev/null || true"

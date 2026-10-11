@@ -32,8 +32,7 @@ ssh_ha "mkdir -p ${TMP}"
 
 echo "    pyscript + www + lovelace + scripts"
 tar -C "${ROOT}" -czf "/tmp/vc-deploy-${TS}.tar.gz" pyscript www lovelace \
-  scripts/patch_lovelace_health_guest.py packages/automations.yaml.fixed \
-  packages/configuration.yaml.fixed
+  packages/automations.yaml.fixed packages/configuration.yaml.fixed
 scp_ha "/tmp/vc-deploy-${TS}.tar.gz" "${HA_SSH}:${TMP}/bundle.tar.gz"
 rm -f "/tmp/vc-deploy-${TS}.tar.gz"
 
@@ -43,13 +42,11 @@ cd ${TMP}
 tar -xzf bundle.tar.gz
 cp -f pyscript/* ${HA_CONFIG}/pyscript/
 cp -f www/* ${HA_CONFIG}/www/
-mkdir -p ${HA_CONFIG}/lovelace ${HA_CONFIG}/scripts
+mkdir -p ${HA_CONFIG}/lovelace
 cp -f lovelace/* ${HA_CONFIG}/lovelace/
-cp -f scripts/patch_lovelace_health_guest.py ${HA_CONFIG}/scripts/
 cp -f packages/automations.yaml.fixed /tmp/vc_automations.fixed
 cp -f packages/configuration.yaml.fixed /tmp/vc_configuration.fixed
-chown -R root:root ${HA_CONFIG}/pyscript ${HA_CONFIG}/www ${HA_CONFIG}/lovelace \
-  ${HA_CONFIG}/scripts/patch_lovelace_health_guest.py
+chown -R root:root ${HA_CONFIG}/pyscript ${HA_CONFIG}/www ${HA_CONFIG}/lovelace
 
 python3 - <<'PY'
 from pathlib import Path
@@ -119,7 +116,6 @@ else:
 PY
 
 cd ${HA_CONFIG}
-python3 scripts/patch_lovelace_health_guest.py
 
 TOK=\$(cat /run/s6/container_environment/SUPERVISOR_TOKEN 2>/dev/null || true)
 if command -v ha >/dev/null 2>&1 && [ -n "\$TOK" ]; then

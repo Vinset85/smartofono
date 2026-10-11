@@ -46,7 +46,7 @@ fi
 
 echo "--> Generazione asset placeholder"
 "$APP_ROOT/venv/bin/python3" "$REPO_ROOT/scripts/genera_assets.py" || true
-# I PNG bundled (icone accesso) restano da rsync sopra; genera_assets crea solo default.png
+rsync -a "$REPO_ROOT/app/assets/" "$APP_ROOT/app/assets/"
 
 echo "--> Config (se manca, copia example)"
 if [ ! -f "$APP_ROOT/app/config/config.yaml" ]; then
@@ -60,7 +60,7 @@ SUBSYSTEM=="backlight", ACTION=="add", \
     RUN+="/bin/sh -c 'chgrp video /sys/class/backlight/%k/brightness && chmod g+w /sys/class/backlight/%k/brightness'"
 EOF
 sudo udevadm control --reload-rules || true
-sudo udevadm trigger --subsystem-match=backlight || true
+sudo udevadm trigger --action=add --subsystem-match=backlight || true
 sudo usermod -aG video "$APP_USER" || true
 # Porta seriale USB del lettore NFC (ttyUSB*)
 sudo usermod -aG dialout "$APP_USER" || true
@@ -149,6 +149,14 @@ echo "--> Face recognition deps (ArcFace + liveness)"
 sudo install -m 0755 "$REPO_ROOT/scripts/install-face-deps.sh" \
     "$APP_ROOT/scripts/install-face-deps.sh"
 sudo "$APP_ROOT/scripts/install-face-deps.sh" || echo "    WARN: face deps parziali"
+
+echo "--> Config Mosquitto e go2rtc (per setup-mqtt-auth e motion snapshot)"
+sudo mkdir -p "$APP_ROOT/config"
+sudo install -m 0644 "$REPO_ROOT/config/mosquitto-videocitofono.conf" \
+    "$APP_ROOT/config/mosquitto-videocitofono.conf"
+sudo install -m 0644 "$REPO_ROOT/config/go2rtc.yaml" \
+    "$APP_ROOT/config/go2rtc.yaml"
+sudo chown -R "$APP_USER:$APP_USER" "$APP_ROOT/config"
 
 echo "--> MQTT auth (opzionale: sudo setup-mqtt-auth.sh)"
 if [[ -f "$REPO_ROOT/scripts/setup-mqtt-auth.sh" ]]; then

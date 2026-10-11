@@ -528,3 +528,19 @@ videocitofono_pulisci_registro:
       title: Videocitofono
       message: Registro chiamate e video locali HA puliti.
       notification_id: videocitofono_pulisci_registro
+videocitofono_simulate_doorbell:
+  alias: Videocitofono - Simula campanello
+  description: Invia simulate_doorbell al Raspberry (test dashboard)
+  icon: mdi:bell-ring
+  mode: single
+  fields:
+    campanello:
+      description: ID campanello (vuoto = il primo)
+      example: mario_rossi
+  sequence:
+  - action: mqtt.publish
+    data:
+      topic: videocitofono/cmd
+      qos: 1
+      payload: >-
+        {"action":"simulate_doorbell","campanello":"{{ campanello | default('') }}","token":"{{ states('input_text.videocitofono_cmd_token') | default('') }}"}
