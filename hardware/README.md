@@ -283,7 +283,7 @@ anche nel caso a sei passate.
 
 **La cosa migliore di questa correzione è che non costa niente.** La quota del
 telaio la fissa il VHB da 3,0 mm, non l'adesivo del display: display più OCA
-arrivano a 2,15, quindi il pacchetto resta un millimetro sotto e nessuna
+arrivano a 2,15, quindi il pacchetto resta 0,85 mm sotto e nessuna
 quota si muove. Il controllo è in `parametri.py` e lo spessore dell'inchiostro
 è un parametro, `SERIGRAFIA_S`: **va confermato dal fornitore nel preventivo**,
 perché è lui a scegliere quante passate fare, e se risponde 90 µm il controllo
@@ -307,7 +307,7 @@ continua sul perimetro. Lo spessore non è una scelta estetica: è il nastro che
 fissa la distanza del telaio dal vetro, e quindi `Z_TELAIO`, il piano da cui
 partono tutti i componenti. Con un VHB da 1,1 mm il telaio arriverebbe a
 spingere sul display, che con il suo adesivo ottico occupa 2,0 mm; con i 3,0
-resta invece un millimetro d'aria dietro il pannello, e i 2,5 mm della basetta
+resta invece 0,85 mm d'aria dietro il pannello, e i 2,5 mm della basetta
 del microfono ci stanno. La schiuma assorbe anche le differenze di dilatazione
 fra vetro e alluminio, che su 240 mm e 40 °C di escursione valgono qualche
 decimo, e le ondulazioni del vetro temperato.
@@ -434,7 +434,7 @@ riportando in basso i fili che oggi si infilano sui pin in cima — l'altezza
 vera là sopra non la fanno i pin ma i gusci dei connettori Dupont infilati in
 verticale.
 
-E non servono. Il canale d'aria è a 20,0 mm, la cassa a 75 e la nicchia a 81,
+E non servono. Il canale d'aria è a 20,0 mm, la cassa a 75 e la nicchia a 86,
 contro i 170 che il tufo concederebbe: non c'è nessun vincolo da rilassare.
 
 Il costo invece sarebbe concreto. I pin da portare non sono pochi: l'I2S
@@ -779,11 +779,10 @@ sta ferma per anni: gli stessi pulsanti, lo stesso orologio, la stessa barra.
 Un LCD se ne infischia, un OLED no. Quattro accortezze, tutte gratuite:
 
 - **schermo spento quando nessuno lo guarda**, non uno screensaver: è la
-  mitigazione che conta più di tutte le altre insieme, e il progetto la vuole
-  già per il consumo e per non fare da lampione. Oggi non lo fa: dopo 60
-  secondi l'app entra nello stato `screensaver` e **ci resta per sempre**, al
-  20% ma accesa. Lo strumento però c'è già: `install.sh` installa `wlr-randr`,
-  che in tutto il progetto non viene mai chiamato con `--off`;
+  mitigazione che conta più di tutte le altre insieme. Dopo `idle_dim_sec`
+  (20 s) l'app smorza al 20%, dopo `screensaver_timeout_sec` (60 s) mostra
+  l'indirizzo, e dopo `display_off_sec` (180 s) **spegne l'uscita HDMI** con
+  `wlr-randr --off`. Tocco, motion e squillo la riaccendono;
 - **sfondo nero e pochi elementi luminosi**, che è già lo stile scelto: su OLED
   il nero non invecchia, perché il pixel è spento;
 - **luminosità bassa di default**, perché l'invecchiamento va con la corrente:
@@ -880,10 +879,11 @@ finirebbe sotto il vetro incollato, dal basso avrebbe la testa annegata nella
 malta, e la fessura d'ombra da 3 mm non lascia passare una chiave. È il motivo
 per cui il pannello è pulito.
 
-Al posto della vite di sicurezza c'è un **reed switch** sul retro del telaio,
-con il magnete sulla battuta: se qualcuno stacca il pannello, il Raspberry lo
-rileva su GPIO e lo segnala a Home Assistant, che ha già la camera sul posto.
-È una protezione più utile di una vite, che comunque si svita.
+Al posto della vite di sicurezza il telaio prevede un **reed switch** sul
+retro, con il magnete sulla battuta. Il pezzo non è ancora acquistato e
+**nessun modulo software lo legge**: quando ci sarà, il Raspberry lo segnala
+a Home Assistant sulla GPIO, e la camera è già sul posto. È una protezione
+più utile di una vite, che comunque si svita.
 
 ## Cosa hanno cambiato i pezzi reali
 
@@ -940,7 +940,7 @@ di nastro contro 2,0 di display più adesivo non si conciliano: la schiuma non s
 comprime di un millimetro.
 
 `Z_TELAIO` dipende ora dal più spesso dei due incollaggi, che è quello del
-telaio, e dietro il display restano **1,0 mm d'aria**. Vanno bene: il pannello è
+telaio, e dietro il display restano **0,85 mm d'aria**. Vanno bene: il pannello è
 incollato in pieno al vetro con l'adesivo ottico, che su una lastra da 0,4 mm
 basta e avanza, e la coda ripiegata resta libera invece di essere schiacciata
 dall'alluminio. Un VHB da 2,0 mm esiste, ma la schiuma più spessa assorbe meglio
@@ -1002,7 +1002,7 @@ Due cose l'hanno disegnata, e nessuna delle due era prevedibile a mano:
 
 L'ala lunga sta dalla parte del fianco e non verso l'interno: da quel lato
 restano 5 mm fino alla parete della cassa, che bastano per le teste delle viti,
-mentre verso l'interno ce ne sono 3 e ci passa il Pi.
+mentre verso l'interno ce ne sono 11 e ci passa il Pi.
 
 ## Da verificare prima di ordinare
 

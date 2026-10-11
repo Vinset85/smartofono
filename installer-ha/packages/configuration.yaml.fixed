@@ -350,6 +350,14 @@ input_number:
     initial: 60
     unit_of_measurement: s
     icon: mdi:monitor-off
+  videocitofono_display_off_timeout:
+    name: Schermo spento dopo (s)
+    min: 0
+    max: 3600
+    step: 30
+    initial: 180
+    unit_of_measurement: s
+    icon: mdi:television-off
   videocitofono_motion_sensitivity:
     name: Sensibilità motion (% area)
     min: 0.1
@@ -365,7 +373,7 @@ input_number:
     min: 0
     max: 100
     step: 5
-    initial: 85
+    initial: 70
     unit_of_measurement: '%'
     icon: mdi:speaker
   videocitofono_volume_microfono:
@@ -373,7 +381,7 @@ input_number:
     min: 0
     max: 200
     step: 10
-    initial: 200
+    initial: 140
     unit_of_measurement: '%'
     icon: mdi:microphone
   videocitofono_volume_feedback:
@@ -381,7 +389,7 @@ input_number:
     min: 0
     max: 100
     step: 5
-    initial: 30
+    initial: 40
     unit_of_measurement: '%'
     icon: mdi:volume-medium
   # Volume in uso adesso. Niente `initial`: lo imposta pyscript/voce_notturna.py
@@ -594,7 +602,7 @@ input_text:
   videocitofono_cmd_token:
     name: Token MQTT cmd (RPi)
     mode: password
-    initial: ""
+    initial: !secret videocitofono_cmd_secret
   videocitofono_lk_token:
     name: Token issuer LiveKit
     mode: password

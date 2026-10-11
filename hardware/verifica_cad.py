@@ -517,6 +517,13 @@ def controlla_documenti() -> list[str]:
          "salto termico a riposo"),
         ("README.md", f"**{p.salto_termico(p.POTENZA_PICCO):.0f} gradi**",
          "salto termico a pieno carico"),
+        ("README.md", f"**{virgola(p.DISPLAY_ARIA_TELAIO, 2)} mm d'aria**",
+         "aria fra display e telaio"),
+        ("MISURE.md", f"**{virgola(p.DISPLAY_ARIA_TELAIO, 2)} mm d'aria**",
+         "aria fra display e telaio"),
+        ("ASSEMBLAGGIO.md",
+         f"{p.DISPLAY_MODULO_Y0 + p.DISPLAY_MODULO_H / 2:.0f} mm",
+         "centro del display dal bordo inferiore del vetro"),
     ]
     # Le frasi di un progetto che non esiste piu'. Ciascuna e' stata vera, e
     # ciascuna e' sopravvissuta almeno una volta alla modifica che la smentiva.
@@ -529,6 +536,9 @@ def controlla_documenti() -> list[str]:
         ("solo sui due lati verticali", "il silicone nella fessura, tolto"),
         ("limite di 64", "il vecchio limite del gruppo del Pi"),
         ("gruppo da 64", "il vecchio limite del gruppo del Pi"),
+        ("64 di gruppo", "il vecchio limite del gruppo del Pi"),
+        ("nicchia a 81", "la nicchia e' 86 mm dal filo dell'intonaco"),
+        ("1,0 mm d'aria", "l'aria dietro il display e' 0,85 mm"),
         ("distanziali 9,5", "i distanziali del Pi sono da 10"),
     ]
     problemi = []

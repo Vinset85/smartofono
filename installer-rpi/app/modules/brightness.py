@@ -30,7 +30,7 @@ LOG = logging.getLogger(__name__)
 class BrightnessController:
     """Astrazione controllo luminosità (0-100%)."""
 
-    def __init__(self, idle_pct: int = 30, active_pct: int = 100, prefer_software_dim: bool = False):
+    def __init__(self, idle_pct: int = 20, active_pct: int = 100, prefer_software_dim: bool = False):
         self.idle_pct = max(1, min(100, idle_pct))
         self.active_pct = max(1, min(100, active_pct))
         self._backend: str = "noop"
@@ -39,6 +39,8 @@ class BrightnessController:
         self._current_pct: int = -1
         self._overlay_setter = None  # callback(alpha:float) -> None
         self._prefer_software_dim = prefer_software_dim
+        self._output_off = False
+        self._wlr_output: Optional[str] = None
         self._init_backend()
 
     def set_overlay_setter(self, fn) -> None:
@@ -126,7 +128,74 @@ class BrightnessController:
         self.set_pct(self.idle_pct)
 
     def active(self) -> None:
+        self.ensure_on()
         self.set_pct(self.active_pct)
+
+    def off(self) -> None:
+        """Spegne l'uscita video (OLED: pixel a zero, niente burn-in)."""
+        if self._output_off:
+            return
+        if self._wlr_set(False) or self._vcgencmd_power(False):
+            self._output_off = True
+            LOG.info("Display spento")
+            return
+        self.set_pct(1)
+        self._output_off = True
+        LOG.warning("Display: nessun wlr-randr/vcgencmd, overlay al minimo")
+
+    def ensure_on(self) -> None:
+        if not self._output_off:
+            return
+        self._wlr_set(True)
+        self._vcgencmd_power(True)
+        self._output_off = False
+        self._current_pct = -1
+        LOG.info("Display acceso")
+
+    @property
+    def is_off(self) -> bool:
+        return self._output_off
+
+    def _wlr_output_name(self) -> Optional[str]:
+        if self._wlr_output:
+            return self._wlr_output
+        if not self._has_cmd("wlr-randr"):
+            return None
+        try:
+            r = subprocess.run(
+                ["wlr-randr"], capture_output=True, text=True, timeout=3)
+            for line in r.stdout.splitlines():
+                if line and not line[0].isspace():
+                    self._wlr_output = line.split()[0]
+                    return self._wlr_output
+        except Exception as e:
+            LOG.debug("wlr-randr list err: %s", e)
+        return None
+
+    def _wlr_set(self, on: bool) -> bool:
+        name = self._wlr_output_name()
+        if not name:
+            return False
+        try:
+            r = subprocess.run(
+                ["wlr-randr", "--output", name, "--on" if on else "--off"],
+                capture_output=True, text=True, timeout=5)
+            return r.returncode == 0
+        except Exception as e:
+            LOG.debug("wlr-randr %s err: %s", "on" if on else "off", e)
+            return False
+
+    def _vcgencmd_power(self, on: bool) -> bool:
+        if not self._has_cmd("vcgencmd"):
+            return False
+        try:
+            subprocess.run(
+                ["vcgencmd", "display_power", "1" if on else "0"],
+                capture_output=True, check=False, timeout=3)
+            return True
+        except Exception as e:
+            LOG.debug("vcgencmd display_power err: %s", e)
+            return False
 
     @property
     def current_pct(self) -> int:

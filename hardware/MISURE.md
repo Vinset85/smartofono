@@ -102,7 +102,7 @@ perché display più adesivo facevano 3,2 e il nastro 3,0; coi numeri misurati
 fanno 2,0, e un nastro da 3,0 mm non si comprime di un millimetro.
 
 `Z_TELAIO` dipende ora dal più spesso dei due incollaggi, e dietro il display
-restano **1,0 mm d'aria**. Vanno bene: il pannello è incollato in pieno al vetro
+restano **0,85 mm d'aria**. Vanno bene: il pannello è incollato in pieno al vetro
 con l'adesivo ottico, che su una lastra da 0,4 mm basta e avanza, e la coda
 ripiegata resta libera invece di essere schiacciata dall'alluminio.
 

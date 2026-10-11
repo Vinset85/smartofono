@@ -95,5 +95,5 @@ a mano si scolla dal codice al primo topic nuovo.
   un'autenticazione GitHub;
 - **non tocca i certificati**: restano al setup di HA con DuckDNS e Let's
   Encrypt;
-- **non crea gli helper**: `input_text`, `input_select` e `input_boolean` li
-  definiscono i package, quindi arrivano col riavvio.
+- **non crea gli helper a mano**: `input_text`, `input_select` e
+  `input_boolean` li definiscono i package, quindi arrivano col riavvio.

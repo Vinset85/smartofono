@@ -253,7 +253,7 @@ insieme il contatto a frizione sul disco di avvio. Oppure crimpare su
 alzarlo. Oppure, se si lascia tutto come è, **misurare l'altezza coi connettori
 inseriti** e verificare che l'ansa dei fili non vada a sbattere sui fianchi
 della cassa. In profondità c'è spazio: il canale dietro lo stack è di 20,0 mm e
-il limite è a 64 di gruppo contro i 50 di oggi.
+il limite è a 57 di gruppo contro i 50,5 del modello.
 
 ## Fase 4 — Collaudo a banco
 
@@ -334,7 +334,7 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
 1. Stampa `cad/04-dima-muratura.dxf` in scala 1:1 e verifica la quota di
    controllo da 100 mm con il calibro.
 2. Incolla la dima al muro, asse verticale a piombo, all'altezza voluta. Il
-   centro del display cade a 119 mm dal bordo inferiore del vetro, cioè
+   centro del display cade a 120 mm dal bordo inferiore del vetro, cioè
    praticamente a metà pannello: per averlo a 150 cm da terra, il bordo
    inferiore del vetro va a 138 cm.
 3. Se non l'hai già fatto per la prova termica, incolla ora i sei dischetti di

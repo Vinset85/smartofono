@@ -270,6 +270,10 @@ class VideocitofonoApp(App):
         # Inizializza moduli
         self.mqtt = MqttPublisher(self.cfg["mqtt"])
         self.cmd_auth = CmdAuthGuard(self.cfg.get("mqtt") or {})
+        if not self.cmd_auth.enabled:
+            LOG.warning(
+                "mqtt.cmd_secret vuoto: i comandi su videocitofono/cmd "
+                "vengono accettati senza token")
         self.mqtt.start()
         self.ha = HaClient(self.cfg["home_assistant"])
         bootstrap_users(self.cfg["pin"])
@@ -456,9 +460,9 @@ class VideocitofonoApp(App):
         # Brightness + Motion
         ui = self.cfg.get("ui", {})
         self.brightness = BrightnessController(
-            idle_pct=ui.get("brightness_idle_pct", 25),
+            idle_pct=ui.get("brightness_idle_pct", 20),
             active_pct=ui.get("brightness_active_pct", 100),
-            prefer_software_dim=ui.get("prefer_software_dim", False),
+            prefer_software_dim=ui.get("prefer_software_dim", True),
         )
 
         mcfg = self.cfg.get("motion", {})
@@ -529,6 +533,7 @@ class VideocitofonoApp(App):
         # Soglie idle
         self._idle_dim_sec = ui.get("idle_dim_sec", 20)
         self._screensaver_timeout = ui.get("screensaver_timeout_sec", 60)
+        self._display_off_sec = ui.get("display_off_sec", 180)
         self._wake_screensaver_on_motion = mcfg.get("wake_screensaver", True)
 
         if ui.get("fullscreen", True):
@@ -850,6 +855,8 @@ class VideocitofonoApp(App):
         return not bool(self._eco_cfg().get("motion_only_on_screensaver", True))
 
     def _screen_dimmed(self) -> bool:
+        if self.brightness.is_off:
+            return True
         pct = self.brightness.current_pct
         return 0 <= pct < self.brightness.active_pct
 
@@ -1480,7 +1487,7 @@ class VideocitofonoApp(App):
           {"action":"restart_app"}                           - systemctl restart videocitofono
           {"action":"reboot"}                                - systemctl reboot
           {"action":"set_config","config":{...}}             - merge in config.override.yaml + restart
-          {"action":"enroll_face"}                           - avvia iscrizione volto (stub)
+          {"action":"enroll_face"}                           - avvia iscrizione volto
           {"action":"enroll_fingerprint"}                    - avvia iscrizione impronta (stub)
           {"action":"set_admin_pin","pin":"1234"}            - cambia PIN admin
           {"action":"set_sfondi_library","files":[...],"base_url":"/local/vc-sfondi/"}
@@ -2152,7 +2159,7 @@ class VideocitofonoApp(App):
                     Clock.schedule_once(lambda *_: setattr(sc, "indirizzo", ind), 0)
             if "brightness_idle_pct" in ui_dict or "brightness_active_pct" in ui_dict:
                 try:
-                    self.brightness.idle_pct = int(cur_ui.get("brightness_idle_pct", 25))
+                    self.brightness.idle_pct = int(cur_ui.get("brightness_idle_pct", 20))
                     self.brightness.active_pct = int(cur_ui.get("brightness_active_pct", 100))
                     self.brightness.active()
                 except Exception as e:
@@ -2161,6 +2168,8 @@ class VideocitofonoApp(App):
                 self._idle_dim_sec = int(ui_dict["idle_dim_sec"])
             if "screensaver_timeout_sec" in ui_dict:
                 self._screensaver_timeout = int(ui_dict["screensaver_timeout_sec"])
+            if "display_off_sec" in ui_dict:
+                self._display_off_sec = int(ui_dict["display_off_sec"])
             if "sfondo" in ui_dict:
                 sfondo = str(ui_dict["sfondo"]).strip() or "default"
                 self._set_sfondo_live(sfondo)
@@ -2938,7 +2947,8 @@ class VideocitofonoApp(App):
         idle = Clock.get_time() - self.last_activity
         # 1) Dimming progressivo
         if self._idle_dim_sec > 0 and idle >= self._idle_dim_sec:
-            self.brightness.idle()
+            if not self.brightness.is_off:
+                self.brightness.idle()
         # 2) Screensaver
         if (
             self._screensaver_timeout > 0
@@ -2947,6 +2957,14 @@ class VideocitofonoApp(App):
         ):
             LOG.info("Screensaver dopo %ds idle", int(idle))
             self.sm.current = "screensaver"
+        # 3) Spegnimento HDMI: OLED a zero, niente burn-in da indirizzo fisso
+        if (
+            self._display_off_sec > 0
+            and idle >= self._display_off_sec
+            and not self.brightness.is_off
+        ):
+            LOG.info("Display off dopo %ds idle", int(idle))
+            self.brightness.off()
         try:
             self._sync_motion_state()
         except Exception as e:

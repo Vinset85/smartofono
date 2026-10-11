@@ -66,3 +66,39 @@ def test_fingerprint_stub():
     fp = FingerprintReader({"enabled": True})
     assert not fp.is_available()
     assert fp.enroll_next() is None
+
+
+def test_cmd_auth_senza_secret_accetta():
+    from modules.cmd_auth import CmdAuthGuard
+
+    g = CmdAuthGuard({"cmd_secret": ""})
+    assert not g.enabled
+    assert g.verify({"action": "reboot"})
+
+
+def test_brightness_off_on(monkeypatch=None):
+    from modules.brightness import BrightnessController
+
+    calls = []
+
+    def fake_run(cmd, **_kw):
+        calls.append(cmd)
+        class R:
+            returncode = 0
+            stdout = "HDMI-A-1 unknown\n"
+        return R()
+
+    import modules.brightness as br
+    orig = br.subprocess.run
+    br.subprocess.run = fake_run
+    try:
+        c = BrightnessController(prefer_software_dim=True)
+        c._backend = "software"
+        assert c._has_cmd("wlr-randr")
+        c.off()
+        assert c.is_off
+        c.ensure_on()
+        assert not c.is_off
+        assert any(cmd[:2] == ["wlr-randr", "--output"] for cmd in calls if isinstance(cmd, list))
+    finally:
+        br.subprocess.run = orig

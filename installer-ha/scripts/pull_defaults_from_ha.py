@@ -79,13 +79,14 @@ def build_ha_json(st: dict[str, str]) -> dict:
         "input_number.videocitofono_brightness_active": _num(g("input_number.videocitofono_brightness_active"), 100),
         "input_number.videocitofono_idle_dim_timeout": _num(g("input_number.videocitofono_idle_dim_timeout"), 20),
         "input_number.videocitofono_screensaver_timeout": _num(g("input_number.videocitofono_screensaver_timeout"), 60),
+        "input_number.videocitofono_display_off_timeout": _num(g("input_number.videocitofono_display_off_timeout"), 180),
         # Snapshot motion: min 5.0 per evitare falsi positivi JPEG (standby).
         "input_number.videocitofono_motion_sensitivity": max(
             _num(g("input_number.videocitofono_motion_sensitivity"), 5.0), 5.0
         ),
-        "input_number.videocitofono_volume_speaker": _num(g("input_number.videocitofono_volume_speaker"), 85),
+        "input_number.videocitofono_volume_speaker": _num(g("input_number.videocitofono_volume_speaker"), 70),
         "input_number.videocitofono_volume_microfono": _num(g("input_number.videocitofono_volume_microfono"), 140),
-        "input_number.videocitofono_volume_feedback": _num(g("input_number.videocitofono_volume_feedback"), 30),
+        "input_number.videocitofono_volume_feedback": _num(g("input_number.videocitofono_volume_feedback"), 40),
         "input_number.videocitofono_volume_tts": _num(g("input_number.videocitofono_volume_tts"), 85),
         "input_boolean.videocitofono_motion_enabled": _bool_on(g("input_boolean.videocitofono_motion_enabled", "on")),
         "input_boolean.videocitofono_face_enabled": _bool_on(g("input_boolean.videocitofono_face_enabled", "on")),
@@ -113,6 +114,7 @@ def patch_example(cfg: dict, ha: dict) -> dict:
     cfg["ui"]["brightness_active_pct"] = int(ha["input_number.videocitofono_brightness_active"])
     cfg["ui"]["idle_dim_sec"] = int(ha["input_number.videocitofono_idle_dim_timeout"])
     cfg["ui"]["screensaver_timeout_sec"] = int(ha["input_number.videocitofono_screensaver_timeout"])
+    cfg["ui"]["display_off_sec"] = int(ha["input_number.videocitofono_display_off_timeout"])
     cfg["ui"]["feedback_volume"] = round(ha["input_number.videocitofono_volume_feedback"] / 100.0, 2)
 
     campanelli = []

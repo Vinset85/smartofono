@@ -23,6 +23,7 @@
   "input_number.videocitofono_brightness_active": 100,
   "input_number.videocitofono_idle_dim_timeout": 20,
   "input_number.videocitofono_screensaver_timeout": 60,
+  "input_number.videocitofono_display_off_timeout": 180,
   "input_number.videocitofono_motion_sensitivity": 5.0,
   "input_number.videocitofono_volume_speaker": 70,
   "input_number.videocitofono_volume_microfono": 140,

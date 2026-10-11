@@ -18,8 +18,9 @@ port: 7880
 # 192.168.1.160:8100 -> drop -> DTLS timeout -> schermo verde.
 # Bindando esplicitamente, sendto() usa src=192.168.1.160 come voluto,
 # e va in coppia con la `ip rule from 192.168.1.160 lookup 100` che
-# instrada anche fisicamente i pacchetti sulla NIC WiFi (vedi
-# installer-ha/scripts/setup-net-wlan-routing.sh).
+# instrada anche fisicamente i pacchetti sulla NIC WiFi. La regola
+# `ip rule from 192.168.1.160 lookup 100` va messa a mano sull'host HA:
+# nello repo non c'e' lo script di setup.
 bind_addresses:
   # 192.168.1.160 = NIC WiFi del miniPC HA (vedi commento sopra), per ICE/UDP/TCP
   # 127.0.0.1 = necessario per Caddy reverse-proxy che fa dial verso 127.0.0.1:7880

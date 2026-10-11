@@ -155,8 +155,9 @@ journalctl -u videocitofono -f
 | Boot                                      | Luminosità piena                                              |
 | Tocco schermo                             | Luminosità piena + reset timer idle                           |
 | Movimento davanti alla camera             | Luminosità piena + reset timer idle (+ wake da screensaver)   |
-| Inattività `idle_dim_sec` (default 20s)   | Riduce a `brightness_idle_pct` (default 25%)                  |
+| Inattività `idle_dim_sec` (default 20s)   | Riduce a `brightness_idle_pct` (default 20%)                  |
 | Inattività `screensaver_timeout_sec` (60s)| Mostra screensaver con orologio                               |
+| Inattività `display_off_sec` (180s)       | Spegne l'HDMI (`wlr-randr --off`)                             |
 | Chiamata in corso (`calling`)             | Forza luminosità piena, disabilita idle/screensaver           |
 
 Configurabile in `config.yaml` sezioni `ui` e `motion`:
@@ -165,15 +166,16 @@ Configurabile in `config.yaml` sezioni `ui` e `motion`:
 ui:
   idle_dim_sec: 20
   screensaver_timeout_sec: 60
-  brightness_idle_pct: 25
+  display_off_sec: 180
+  brightness_idle_pct: 20
   brightness_active_pct: 100
 
 motion:
   enabled: true
   pixel_thresh: 25          # quanto deve cambiare un pixel per "contare"
-  area_thresh_pct: 1.5      # % minima di pixel cambiati per generare evento
-  cooldown_sec: 1.5
-  tick_hz: 5                # 5 valutazioni/sec (basso CPU)
+  area_thresh_pct: 5.0      # % minima di pixel cambiati per generare evento
+  cooldown_sec: 2.0
+  tick_hz: 1                # 1 valutazione/sec (picamera a basso consumo)
   wake_screensaver: true    # movimento riporta dalla schermata screensaver
 ```
 

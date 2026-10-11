@@ -461,6 +461,7 @@
     - input_number.videocitofono_brightness_active
     - input_number.videocitofono_idle_dim_timeout
     - input_number.videocitofono_screensaver_timeout
+    - input_number.videocitofono_display_off_timeout
     - input_number.videocitofono_motion_sensitivity
     - input_number.videocitofono_volume_speaker
     - input_number.videocitofono_volume_microfono

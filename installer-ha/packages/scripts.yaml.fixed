@@ -337,7 +337,9 @@ videocitofono_applica_config:
       \ -%} {%- set idl = states('input_number.videocitofono_idle_dim_timeout') -%} {%- if idl not in ['unavailable','unknown','']\
       \ %}{% set ui = dict(ui, idle_dim_sec=(idl | int)) %}{% endif -%} {%- set ss = states('input_number.videocitofono_screensaver_timeout')\
       \ -%} {%- if ss not in ['unavailable','unknown',''] %}{% set ui = dict(ui, screensaver_timeout_sec=(ss | int)) %}{%\
-      \ endif -%} {%- set lng = txt('input_select.videocitofono_lingua') | trim -%} {%- if lng %}{% set ui = dict(ui, language=lng)\
+      \ endif -%} {%- set doff = states('input_number.videocitofono_display_off_timeout') -%} {%- if doff not in ['unavailable','unknown','']\
+      \ %}{% set ui = dict(ui, display_off_sec=(doff | int)) %}{% endif -%} {%- set lng = txt('input_select.videocitofono_lingua')\
+      \ | trim -%} {%- if lng %}{% set ui = dict(ui, language=lng)\
       \ %}{% endif -%} {%- set sf = txt('input_select.videocitofono_sfondo') | trim -%} {%- if sf %}{% set ui = dict(ui, sfondo=sf)\
       \ %}{% endif -%} {%- set dnd = states('input_boolean.videocitofono_dnd') -%} {%- if dnd not in ['unavailable','unknown']\
       \ %}{% set ui = dict(ui, dnd=(dnd=='on')) %}{% endif -%} {%- set vfb = states('input_number.videocitofono_volume_feedback')\

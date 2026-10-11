@@ -1,4 +1,4 @@
-"""Schermate placeholder per Fingerprint e NFC (UI completa, hardware non ancora installato)."""
+"""Schermata placeholder per l'impronta (hardware non collegato) e screensaver."""
 from __future__ import annotations
 
 from kivy.clock import Clock

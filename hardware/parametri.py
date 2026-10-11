@@ -96,8 +96,8 @@ FLAT_DRIVER_W = 25.0
 # il fianco e prende i quattro fori della scheda.
 #
 # L'ala lunga va dalla parte del fianco e non verso l'interno: da quel lato
-# restano 7,3 mm fino alla parete della cassa, abbastanza per la lamiera e per
-# le teste delle viti, mentre verso l'interno ce ne sono 5,8 e ci passa il Pi.
+# restano 5 mm fino alla parete della cassa, abbastanza per la lamiera e per
+# le teste delle viti, mentre verso l'interno ce ne sono 11 e ci passa il Pi.
 STAFFA_S = 1.5                     # lamiera di alluminio, piegata a 90 gradi
 # L'ala corta non puo' essere piu' lunga di cosi': oltre i 12 mm va a finire
 # sotto la base dell'NVMe, che comincia a x -25,5 e sta alla stessa quota.
@@ -711,7 +711,7 @@ def posizioni_riscontri() -> list[tuple[float, float]]:
 # alla fessura d'ombra.
 # L'altezza e' misurata nella direzione della profondita', non sul fronte:
 # allargarla non si vede da fuori. Le quote sono quelle che, tolta la rete,
-# lasciano 6,4 cm2 di passaggio vero per lato (il controllo e' in verifica()).
+# lasciano 6,75 cm2 di passaggio vero per lato (il controllo e' in verifica()).
 FESSURA_ALTEZZA = 15.0
 FESSURA_LARGHEZZA = 80.0
 FESSURA_LATO_L = 40.0              # lunghezza di ciascuna delle due laterali
@@ -775,7 +775,7 @@ SMUSSO_SCARICO = (CASSA_INT_L - FESSURA_LARGHEZZA) / 2
 BIADESIVO_DISPLAY_S = 0.35         # OCA in foglio, su tutta la superficie
 # I 35 centesimi al posto dei 20 di prima sono il margine su questo gradino.
 # Non costano niente: la quota del telaio la fissa il VHB da 3,0, e display piu
-# adesivo arrivano a 2,15, quindi il pacchetto resta un millimetro sotto. In
+# adesivo arrivano a 2,15, quindi il pacchetto resta 0,85 mm sotto. In
 # cambio il rapporto regge anche se il fornitore stampa sei passate invece di
 # tre, che e' il caso in cui un OCA da 20 centesimi non ce la farebbe.
 
@@ -820,10 +820,12 @@ BIADESIVO_S = 3.0                  # 3M VHB 4959, cornice perimetrale
 # da 0,4 mm. La x14 impegna 2,9 su 3, che sono sei filetti, e non esce.
 PI_PCB_S = 1.6                     # spessore della scheda del Raspberry
 PI_VITE_L = 14.0                   # M2.5
-CAMERA_PCB_S = 1.0
+# CAMERA_PCB_S resta quello del product brief, 1,12: riassegnarlo qui a 1,0
+# (come era) congelava CAMERA_SPORGENZA al valore vecchio e mentiva al
+# modello 3D e al controllo delle viti.
 # A 12 la vite della camera impegnava 5 mm su 3 di telaio e riemergeva per 2
 # nell'intercapedine, fermandosi a un millimetro dal vetro. A 10 impegna
-# tutto lo spessore e si ferma dentro.
+# 2,88 mm di filetto e si ferma dentro.
 CAMERA_VITE_L = 10.0               # M2
 SPEAKER_VITE_L = 18.0              # M3, nelle colonnine di nylon
 NFC_VITE_L = 6.0                   # M3, lettore appoggiato al telaio
@@ -1071,6 +1073,28 @@ def salto_termico(potenza: float, t_esterna: float = 35.0) -> float:
     return (basso + alto) / 2
 
 
+def costanti_duplicate() -> list[str]:
+    """Una costante maiuscola assegnata due volte: la seconda vince, le
+    derivate calcolate in mezzo restano col valore vecchio."""
+    import ast
+    import pathlib
+
+    albero = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    viste: dict[str, int] = {}
+    problemi = []
+    for nodo in albero.body:
+        if not isinstance(nodo, ast.Assign):
+            continue
+        for t in nodo.targets:
+            if isinstance(t, ast.Name) and t.id.isupper() and t.id in viste:
+                problemi.append(
+                    f"{t.id} e' assegnata due volte (righe {viste[t.id]}"
+                    f" e {nodo.lineno})")
+            if isinstance(t, ast.Name) and t.id.isupper():
+                viste[t.id] = nodo.lineno
+    return problemi
+
+
 def verifica() -> list[str]:
     """Controlla che le zone non si sovrappongano e che tutto entri nella cassa.
 
@@ -1079,6 +1103,13 @@ def verifica() -> list[str]:
     mandare i file in produzione.
     """
     problemi: list[str] = []
+    problemi += costanti_duplicate()
+    if abs(CAMERA_SPORGENZA - (CAMERA_COLONNINE + CAMERA_PCB_S
+                               + CAMERA_CONNETTORE_S)) > 0.01:
+        problemi.append(
+            f"CAMERA_SPORGENZA e' {CAMERA_SPORGENZA} ma colonnine + PCB +"
+            f" connettore fanno {CAMERA_COLONNINE + CAMERA_PCB_S + CAMERA_CONNETTORE_S}:"
+            " una delle quote e' stata riassegnata dopo il calcolo")
 
     componenti_lista = componenti()
 

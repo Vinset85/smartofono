@@ -1,5 +1,7 @@
 # Vista Home ridisegnata - stile "Glassmorphism" (modello fornito).
-# Iniettata in .storage/lovelace.lovelace come vista 0 da scripts/apply_glass_dashboard.py
+# Sorgente della vista Home in stile glass. Non c'e' uno script che la
+# inietta: si importa a mano in Impostazioni > Dashboard, oppure si copia
+# in .storage/lovelace.lovelace.
 # Dipendenze: card-mod, mushroom, button-card (nav). Tema: Glassmorphism (per-vista).
 title: Home
 path: home

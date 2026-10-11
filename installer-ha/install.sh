@@ -22,7 +22,7 @@ fi
 
 install -d "${HA_CONFIG}/packages" "${HA_CONFIG}/pyscript" "${HA_CONFIG}/www"
 
-for f in configuration.yaml.fixed automations.yaml.fixed scripts.yaml.fixed; do
+for f in configuration.yaml.fixed automations.yaml.fixed scripts.yaml.fixed scenes.yaml; do
   src="${ROOT}/packages/${f}"
   dst="${HA_CONFIG}/packages/${f%.fixed}"
   if [[ -f "${src}" ]]; then

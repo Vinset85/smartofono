@@ -1,0 +1,2 @@
+# Nessuna scena del videocitofono. Il file esiste perche' configuration.yaml
+# fa `scene: !include scenes.yaml` e Home Assistant rifiuta l'avvio se manca.
