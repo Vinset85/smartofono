@@ -37,7 +37,9 @@ cad/04-dima-muratura.dxf     sagoma 1:1 da stampare per fare il foro
 cad/05-disposizione.dxf      mappa dei componenti: pianta e sezione
 cad/06-gruppo-display.dxf    come si monta il gruppo del display
 cad/07-staffa-e-pezzi-piani.dxf  squadretta della scheda di ingresso, ritagli
-render/                      render e filmati, non quotati
+render/                      foto del pannello finito, e i filmati
+render/scala/                gli stessi fotogrammi ridisegnati al millimetro
+render/componi.py            ridisegna render/scala da parametri.py
 render/schermata-*.jpg       le interfacce reali, fotografate dal display
 render/monta-video.sh        rimonta i filmati dai fotogrammi
 cad/videocitofono.scad       modello 3D parametrico (OpenSCAD)
@@ -830,9 +832,16 @@ specifica del vetro**: sono loro a fare il lavoro, non i nit.
 
 ## I render e i due filmati
 
-In `render/` ci sono due serie di immagini e i filmati che se ne ricavano. Non
-sono disegni e non vanno misurati: servono a vedere il risultato prima di
-scavare il muro, e un paio di cose le hanno già fatte emergere.
+In `render/` ci sono le foto del pannello finito e i due filmati. Le foto
+tengono le quote del progetto: vetro 100×240 mm a filo dell'intonaco, fessura
+d'ombra di 3 mm, finestra del display 69×122, obiettivo a filo da 10 mm,
+microfono da 3 mm a sinistra della lente, icona NFC sull'antenna, griglia di
+tre strisce e non una matrice di fori. Il disegno in scala, per controllare
+le proporzioni al millimetro, sta in `render/scala/` e si rigenera con
+`../.venv-cad/bin/python render/componi.py`. I filmati si rimontano con
+`render/monta-video.sh`. Le due foto `schermata-*.jpg` restano gli originali
+del display. Il fronte 3D (`anteprime/3d-fronte.png`) mostra la stessa faccia
+finita, con l'intonaco a filo.
 
 **`installazione.mp4`**, dai cinque fotogrammi `inst-*.jpg`, segue l'ordine
 della procedura in `ASSEMBLAGGIO.md`: la nicchia scavata nel tufo con i due

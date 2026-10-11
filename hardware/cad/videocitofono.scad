@@ -18,6 +18,10 @@
 include <parametri.scad>
 
 VISTA = "assieme";
+// Solo per i PNG. Restano fuori dagli STL: la serigrafia non e' un volume
+// del vetro e l'intonaco non e' un pezzo da produrre.
+MOSTRA_SERIGRAFIA = false;
+MOSTRA_INTONACO = false;
 $fn = 48;
 
 // Il riferimento e' lo stesso dei disegni 2D: x = 0 al centro del pannello,
@@ -66,6 +70,59 @@ module vetro() {
     }
     color("#4060a0", 0.3)
         translate([NFC_X, NFC_Y, VETRO_S / 2]) foro(NFC_D, VETRO_S - 0.1);
+}
+
+// Lastra nera sulla faccia esterna. I vuoti sono le finestre della stampa:
+// display, obiettivo da 10 mm, foro del microfono, icona NFC e tre strisce
+// della griglia. Sta un filo davanti al vetro cosi' non litiga con la faccia
+// e non entra nel solido esportato.
+module serigrafia() {
+    color("#0c0c0e")
+    difference() {
+        translate([0, VETRO_H / 2, -0.04])
+            piastra_raccordata(VETRO_L, VETRO_H, 0.08, VETRO_RAGGIO);
+        translate([0, FINESTRA_DISPLAY_Y + FINESTRA_DISPLAY_H / 2, -0.04])
+            cube([FINESTRA_DISPLAY_L, FINESTRA_DISPLAY_H, 0.4], center = true);
+        translate([CAMERA_X, OTTICA_Y, -0.04])
+            foro(OTTICA_D, 0.4);
+        translate([MICROFONO_X, MICROFONO_Y, -0.04])
+            foro(MICROFONO_D, 0.4);
+        translate([NFC_X, NFC_Y, -0.04])
+            foro(NFC_D, 0.4);
+        for (i = [0 : GRIGLIA_N - 1])
+            translate([0, GRIGLIA_Y + GRIGLIA_SPESSORE / 2 + i * GRIGLIA_PASSO,
+                       -0.04])
+                cube([GRIGLIA_L, GRIGLIA_SPESSORE, 0.4], center = true);
+    }
+    // Il foro del microfono guarda la basetta verde: senza questo tappo il
+    // render sembra un led acceso a sinistra della lente.
+    color("#0c0c0e")
+        translate([MICROFONO_X, MICROFONO_Y, 0.8])
+            foro(MICROFONO_D, 1.6);
+    // Dietro le tre strisce, cosi' nel render si legge la griglia e non il
+    // metallo dei magneti.
+    color("#2a2a30")
+        for (i = [0 : GRIGLIA_N - 1])
+            translate([0, GRIGLIA_Y + GRIGLIA_SPESSORE / 2 + i * GRIGLIA_PASSO,
+                       0.2])
+                cube([GRIGLIA_L, GRIGLIA_SPESSORE, 0.3], center = true);
+}
+
+// Intonaco finito, complanare al vetro. Il buco e' la luce: la cornice resta
+// sotto l'intonaco e intorno al vetro resta solo la fessura di 3 mm.
+module intonaco() {
+    margine = 36;
+    color("#e4dccf")
+    difference() {
+        // La faccia esterna e' a z = -0,02, un filo davanti alla cornice cosi'
+        // la copre senza lasciare la faccia complanare a lampeggiare, e resta
+        // complanare al vetro per quello che un render puo' distinguere.
+        translate([0, VETRO_H / 2, 11.98])
+            cube([CORNICE_L + 2 * margine, CORNICE_H + 2 * margine, 24],
+                 center = true);
+        translate([0, VETRO_H / 2, 0])
+            cube([LUCE_INTONACO_L, LUCE_INTONACO_H, 40], center = true);
+    }
 }
 
 // ---------------------------------------------------------------- telaio
@@ -376,6 +433,8 @@ module assieme() {
     telaio();
     componenti();
     vetro();
+    if (MOSTRA_SERIGRAFIA) serigrafia();
+    if (MOSTRA_INTONACO) intonaco();
 }
 
 module esploso() {

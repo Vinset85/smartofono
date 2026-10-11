@@ -19,16 +19,30 @@ python3 parametri.py >/dev/null
 # --render calcola le differenze invece di disegnarle in anteprima: senza, le
 # facce coincidenti di cornice, feritoie e battuta escono a strisce.
 echo "render:"
-render() {           # render <nome> <vista> <rot_x> <rot_z>
-  "$SCAD" --quiet --backend=manifold --render -D "VISTA=\"$2\"" \
+# Gli argomenti dopo i quattro fissi sono -D extra, solo per il PNG.
+# Il fronte mostra la faccia finita: serigrafia opaca e intonaco a filo,
+# con la sola fessura di 3 mm. L'assieme tiene la serigrafia ma non l'intonaco,
+# cosi' si vede la cassa. Esploso, sezione e retro restano il modello nudo.
+render() {           # render <nome> <vista> <rot_x> <rot_z> [ortho] [-D ...]
+  local nome=$1 vista=$2 rx=$3 rz=$4
+  shift 4
+  local proj=()
+  if [[ ${1:-} == ortho ]]; then
+    proj=(--projection=ortho)
+    shift
+  fi
+  "$SCAD" --quiet --backend=manifold --render -D "VISTA=\"$vista\"" "$@" \
+    "${proj[@]}" \
     --imgsize=900,1150 --colorscheme=Tomorrow \
-    --camera=0,0,0,"$3",0,"$4",0 --viewall --autocenter \
-    -o "anteprime/3d-$1.png" "$MODELLO"
-  echo "  anteprime/3d-$1.png"
+    --camera=0,0,0,"$rx",0,"$rz",0 --viewall --autocenter \
+    -o "anteprime/3d-$nome.png" "$MODELLO"
+  echo "  anteprime/3d-$nome.png"
 }
 
-render fronte   assieme 90 0
-render assieme  assieme 72 25
+# Il fronte e' in proiezione ortografica: le proporzioni del vetro restano
+# 100 x 240 e non si intravede il fondo della cassa.
+render fronte   assieme 90 0 ortho -D MOSTRA_SERIGRAFIA=true -D MOSTRA_INTONACO=true
+render assieme  assieme 72 25 -D MOSTRA_SERIGRAFIA=true
 render esploso  esploso 76 22
 render sezione  sezione 80 55
 render retro    assieme 76 200
