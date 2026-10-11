@@ -1908,7 +1908,9 @@ class VideocitofonoApp(App):
         elif fp and fp.is_reader_ready():
             subs["fingerprint_status"] = "ok"
         else:
-            subs["fingerprint_status"] = "idle"
+            # enabled ma stub/assente: non "idle", altrimenti HA crede che
+            # il lettore sia in ascolto.
+            subs["fingerprint_status"] = "down"
         lk = getattr(self.ctx, "lk_session", None)
         if lk:
             subs["livekit_status"] = "active"
