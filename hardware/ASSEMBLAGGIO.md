@@ -24,7 +24,7 @@ tag a 2 cm.
 |---|---|
 | Vetro frontale serigrafato | `cad/01-vetro-frontale.dxf` |
 | Telaio portante in alluminio | `cad/02-telaio-portante.dxf` |
-| Cassa da incasso | `cad/03-cassa-incasso.dxf` |
+| Cassa da incasso, stampata in ASA | `stl/cassa.stl`, controllo su `cad/03-cassa-incasso.dxf` |
 
 ### Elettronica
 
@@ -56,7 +56,7 @@ Vedi la tabella in `README.md`. Procurati in anticipo il biadesivo **3M VHB
 4959** da 3,0 mm (cornice del telaio), l'adesivo ottico del display (**foglio di
 OCA da 0,35 mm**, meglio se tagliato a misura dal fornitore del vetro: il bordo
 di un foglio rifilato a mano è il punto da cui partono le bolle), il primer
-**3M 94**, la rete inox a maglia 0,6 mm, la
+**3M 94**, la rete inox a maglia 0,6 mm con filo 0,2, la
 membrana acustica in PTFE e il foglio di PET nero opaco.
 
 ### Attrezzi
@@ -297,6 +297,33 @@ Alimenta il gruppo appoggiato sul tavolo, con un pezzo di vetro di prova da
     `cat /sys/class/hwmon/hwmon*/fan1_input` deve dare 0 sotto i 50 °C. Se gira
     sempre, la ventola dell'HAT è attaccata ai 5 V dell'HAT invece che al
     connettore FAN del Pi, e dentro la cassa la sentirai in ogni chiamata.
+13. **la prova termica in cassa chiusa**, che decide se si mura. Il calore esce
+    per più di metà dal vetro e dal muro, non dalle feritoie (README,
+    Ventilazione), e il conto che lo dice è una stima: va misurato. Infila il
+    gruppo nella cassa stampata, coi dischetti già annegati (fase 5, passo 3),
+    appoggia il vetro di prova sul fronte del telaio e chiudi la cassa in una
+    scatola di polistirolo spessa almeno 3 cm, lasciando libere solo cornice e
+    fessura d'ombra. Il polistirolo isola più del tufo, quindi la prova è più
+    severa della realtà. Tieni la cassa in piedi come andrà murata, chiudi col
+    nastro i due fori dei corrugati, che in opera saranno sigillati, e
+    appoggia i tre ritagli di rete sulle feritoie con un pezzetto di nastro
+    sui bordi: la rete dimezza la sezione, e senza la prova sarebbe indulgente.
+    Poi:
+    - due ore **a riposo**, nell'uso normale: display spento, Home Assistant
+      collegato, nessuna chiamata. Annota la temperatura ambiente, quella del
+      SoC con `vcgencmd measure_temp`, e la potenza assorbita dalla porta PoE
+      dello switch, se la mostra: è il numero che il conto stima in 5 W;
+    - un'ora **a pieno carico**: display acceso al massimo, chiamata aperta o
+      stream video, ventola libera di girare.
+    Il criterio è il **salto del SoC sopra la stanza**, che non dipende da
+    quanto è calda la stanza: deve restare entro i **40 gradi**, a riposo e a
+    fine carico, con `vcgencmd get_throttled` a `0x0`. Con la stanza a 25 °C
+    vuol dire sotto i 65; in opera, con 35 °C fuori, vuol dire 75, cinque gradi
+    sotto il throttling. Se la prova la supera, in opera la supera di sicuro,
+    perché il tufo disperde più del polistirolo. Se non la supera, il margine
+    dipende dal tufo, cioè da un numero che nessuno ha misurato: abbassa la
+    potenza di riposo (luminosità, servizi, `tune-system-thermal.sh`) e ripeti,
+    prima di scavare il muro.
 
 Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
 
@@ -310,45 +337,54 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
    centro del display cade a 119 mm dal bordo inferiore del vetro, cioè
    praticamente a metà pannello: per averlo a 150 cm da terra, il bordo
    inferiore del vetro va a 138 cm.
-3. **Se la cassa è stampata e non di lamiera**, incolla ora i sei dischetti di
+3. Se non l'hai già fatto per la prova termica, incolla ora i sei dischetti di
    acciaio dolce Ø6 x 1 nelle sei sedi della battuta, con l'epossidica. Vanno
-   fatti adesso perché dopo, a cassa murata, quelle sedi sono in fondo a una
-   nicchia. Devono restare **a filo o sotto** la faccia di battuta: se
-   sporgono, il telaio appoggia su di loro e il vetro resta fuori filo di
-   quanto sporgono. Il telaio è in alluminio e senza questi dischetti i magneti
-   non hanno niente da attrarre; con la cassa in lamiera non servono, il
-   riscontro è la lamiera.
-4. Scava la nicchia **124 x 264 x 81**. Nel tufo si arriverebbe a 150 mm, ma
-   non servono: la profondità è il gruppo del Pi più il canale d'aria dietro di
-   lui, che con queste feritoie basterebbe a 7 mm e qui ne ha 20,5. Prima di
-   scavare però **misura il gruppo montato, dal telaio alla cima dei pin**: la
-   quota è calcolata su 50 mm e oltre i 64 la nicchia va rifatta più profonda.
-5. Porta i corrugati nella nicchia e fermali.
+   fatti prima di murare perché dopo quelle sedi sono in fondo a una nicchia.
+   Devono restare **a filo o sotto** la faccia di battuta: se sporgono, il
+   telaio appoggia su di loro e il vetro resta fuori filo di quanto sporgono.
+   Il telaio è in alluminio, la cassa in ASA, e senza questi dischetti i
+   magneti non hanno niente da attrarre.
+4. Scava la nicchia **135 x 275 x 86**, con la profondità misurata **dalla
+   superficie dell'intonaco esistente**, non dal tufo. Nel tufo si arriverebbe
+   a 170 mm, ma non servono: la profondità è il gruppo del Pi più il canale
+   d'aria dietro di lui, che deve superare 13,2 mm e qui ne ha 20,0. Prima di
+   scavare però **misura il gruppo montato, dal telaio alla cima dei pin coi
+   Dupont innestati**: il progetto conta 50,5 mm, e oltre i 57 il canale
+   diventa il collo di bottiglia e la cassa va rifatta più profonda.
+5. Porta i corrugati nella nicchia, fermali e infilali nei due fori del fondo
+   della cassa. Sigilla col silicone neutro il giunto fra corrugato e fondo e
+   tappa l'interno del corrugato attorno ai cavi: da lì entrerebbero l'aria
+   umida della casa e, se il corrugato arriva da fuori, l'acqua.
 6. **Bagna il tufo a rifiuto** e aspetta che l'acqua in superficie sia
    assorbita. Il tufo è poroso e capillare: su un supporto asciutto si beve
    l'acqua di impasto e la malta non fa presa, resta polverosa e la cassa si
    muove. Non è una raccomandazione generica da manuale, è il modo in cui si
    sbaglia questo lavoro sul tufo.
-7. Mura la cassa con il **fronte a filo dell'intonaco finito**, non del grezzo.
-   Questo è l'errore classico: se la metti a filo del grezzo, il vetro resterà
-   incassato di un centimetro e il montaggio a filo è perso. Ancora la flangia
-   con la malta nei suoi fori, verifica bolla e piombo sui due assi, e
-   controlla che il fronte non sia svergolato. Dalle una **minima pendenza
-   verso l'esterno**, mezzo grado basta: nel tufo l'umidità arriva comunque, e
-   l'acqua che entra dalla feritoia bassa deve poter tornare fuori da dove è
-   venuta invece di ristagnare sul fondo.
-8. Proteggi la bocca con nastro e cartone e lascia maturare.
-9. **Prima di rasare**, infila un profilo a perdere o una striscia di schiuma
-   **profonda almeno 20 mm** nel canale che resta fra il fianco della cassa e
-   il bordo della nicchia, in alto e in basso. È lì che sbucano le feritoie,
-   che arrivano a 16 mm dal fronte: se il rasante le riempie la ventilazione è
-   morta e non te ne accorgi finché il Pi non va in throttling.
-10. Rasa l'intonaco lasciando una luce finita di **106 x 246**, cioè 3 mm per
-   lato oltre il filo del vetro. Togli il profilo a perdere.
-11. Incolla la rete inox sull'interno delle due feritoie. I due ritagli sono
-    85 x 13 su una feritoia di 80 x 8: i 2,5 mm che avanzano su ogni lato sono
-    la superficie su cui prende l'adesivo, quindi vanno rispettati su tutti e
-    quattro i lati e non solo in lunghezza.
+7. Mura la cassa con il **fronte della cornice a filo dell'intonaco finito**,
+   cioè della superficie dell'intonaco esistente intorno alla nicchia. Il
+   riferimento è la cornice, non il fronte del corpo, che sta 5 mm più
+   indietro: un regolo appoggiato all'intonaco a cavallo della nicchia deve
+   toccare la cornice su tutti e quattro i lati. Ancora la flangia con la malta
+   nei suoi fori, verifica bolla e piombo sui due assi, e controlla che la
+   cornice non sia svergolata. **Nessuna pendenza**: il vetro è parallelo alla
+   cornice, e inclinarla lo porterebbe fuori filo in alto o in basso. L'acqua
+   non ha bisogno di pendenza per uscire, perché la feritoia bassa guarda in
+   giù e gli smussi del fondo la portano lì.
+8. Proteggi la luce della cornice con nastro e cartone e lascia maturare.
+9. Chiudi con malta e poi con rasante l'anello fra cornice e bordo della
+   nicchia, fino a filo dell'intonaco esistente. La cornice fa da sponda: il
+   canale d'aria sta dentro di lei e la flangia lo chiude dietro, quindi il
+   rasante non ci può entrare. Non rasare sopra la cornice e non stuccarne la
+   luce.
+10. Verifica che la luce finita sia **106 x 246**, cioè 3 mm per lato oltre il
+   filo del vetro, e che dalla fessura si veda il canale libero fino alle
+   feritoie.
+11. Incolla la rete inox sull'interno delle tre feritoie: un ritaglio
+    85 x 20 sulla feritoia bassa da 80 x 15, due ritagli 45 x 20 sulle laterali
+    da 40 x 15. I 2,5 mm che avanzano su ogni lato sono la superficie su cui
+    prende l'adesivo, quindi vanno rispettati su tutti e quattro i lati e non
+    solo in lunghezza. Va fatto adesso, con la cassa vuota, ma va fatto dopo la
+    malta: la polvere di cantiere intaserebbe la maglia.
 
 ## Fase 6 — Incollaggio del vetro
 
@@ -397,27 +433,40 @@ Lascia il gruppo acceso un'ora e ricontrolla la temperatura.
 
 1. Collega l'ethernet, già passato nel corrugato, lasciandolo lungo quanto
    serve a tenere il gruppo in mano davanti alla cassa.
-2. Presenta il gruppo alla bocca, infila i due fori superiori sui perni della
+2. Facoltativo: stendi un velo di grasso al silicone sulla faccia della
+   battuta, dove appoggia il telaio, senza coprire perni e dischetti. Riduce la
+   risalita dell'acqua nel gioco fra telaio e cassa; non serve a tenere niente.
+3. Presenta il gruppo alla bocca, infila i due fori superiori sui perni della
    battuta e accompagna il basso: gli ultimi millimetri li fanno i magneti.
    Accompagna fino in fondo, non lasciarlo schioccare: il vetro è incollato a
    una piastra che sta per prendere un colpo magnetico.
-3. Verifica che il vetro sia a filo dell'intonaco e che la fessura d'ombra sia
-   regolare sui quattro lati. Se il pannello balla, controlla che nessun cavo
-   sia rimasto schiacciato fra telaio e battuta.
-5. Sigilla col silicone neutro nero **solo i due lati verticali** della fessura
-   d'ombra. Sopra e sotto restano aperti: sono la via d'aria e, in basso, lo
-   scarico della condensa.
+4. Verifica che il vetro sia a filo della cornice e dell'intonaco e che la
+   fessura d'ombra sia regolare sui quattro lati. Se il pannello balla,
+   controlla che nessun cavo sia rimasto schiacciato fra telaio e battuta.
+   **Non mettere silicone nella fessura d'ombra**, su nessun lato: è la via
+   d'aria e lo scarico, e il pannello deve poter uscire con la ventosa.
 
 ## Fase 8 — Collaudo in opera
 
 1. Ripeti le verifiche della fase 4, in particolare la lettura NFC, che ora
    avviene attraverso il vetro definitivo.
-2. Fai una chiamata completa e ascolta il volume dall'esterno: il suono esce
-   dalla feritoia superiore e deve risultare chiaro a tre metri.
-3. Lascia il sistema a regime e controlla la temperatura per qualche giorno con
-   `sensor.videocitofono_temp_max_24h`. Atteso: circa 50 °C a riposo e picchi
-   sotto i 72 °C. Se supera i 75 °C, prima di tutto verifica che le feritoie
-   non siano state stuccate per errore.
+2. Fai una chiamata completa e ascolta il volume dall'esterno, di fronte e di
+   lato: il suono esce dalle due feritoie laterali, attraverso la fessura
+   d'ombra dei fianchi, e deve risultare chiaro a tre metri di fronte.
+3. **Prova di pioggia.** Spegni il pannello dalla porta PoE dello switch. Con
+   la canna da giardino sul getto a pioggia, da un paio di metri, bagna il
+   pannello per cinque minuti dall'alto a 45°, poi cinque per lato e cinque di
+   fronte: è grosso modo quello che la norma chiede per il secondo 4 di IP44.
+   Aspetta dieci minuti, estrai il gruppo con la ventosa e guarda: dalla
+   feritoia bassa deve essere uscita acqua, e non deve essercene sulla
+   battuta, sul fondo del vano oltre una velatura, né sull'elettronica. Se ce
+   n'è, la via è quasi sempre il gioco fra telaio e cassa: asciuga, metti il
+   grasso al silicone del passo 2 della fase 7 e ripeti.
+4. Lascia il sistema a regime e controlla la temperatura per qualche giorno con
+   `sensor.videocitofono_temp_max_24h`. Deve restare entro il salto misurato
+   nella prova termica della fase 4, sopra la temperatura esterna all'ombra; se
+   lo supera di molto, prima di tutto guarda dalla fessura d'ombra che la rete
+   delle feritoie non sia intasata di polvere o ragnatele.
 
 ## Smontaggio
 

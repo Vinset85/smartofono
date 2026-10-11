@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461325.0807407405
+2461325.1575810187
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461325.0807407405
+2461325.1575810187
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-AE
+B1
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{E4554EAE-94BD-4C61-A850-6B8B7E9543A5}
+{9B988182-44AF-4EF9-AE46-B4F67359862F}
   9
 $VERSIONGUID
   2
-{545CE124-C7C2-427C-9027-301E39712836}
+{D602314F-71D5-4B88-B113-0AB987331BC8}
   9
 $EXTNAMES
 290
@@ -1323,9 +1323,9 @@ ISM
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -1339,9 +1339,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -3301,7 +3301,7 @@ ACAD
   0
 APPID
   5
-AB
+AE
 330
 3
 100
@@ -3315,7 +3315,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-AC
+AF
 330
 3
 100
@@ -5441,43 +5441,43 @@ AcDbPolyline
  70
 1
  10
--58.0
+-63.5
  20
--12.0
+-17.5
  10
-58.0
+63.5
  20
--12.0
+-17.5
  42
 0.4142135623730951
  10
-62.0
+67.5
  20
--8.0
+-13.5
  10
-62.0
+67.5
  20
-248.0
+253.5
  42
 0.4142135623730951
  10
-58.0
+63.5
  20
-252.0
+257.5
  10
--58.0
+-63.5
  20
-252.0
+257.5
  42
 0.4142135623730951
  10
--62.0
+-67.5
  20
-248.0
+253.5
  10
--62.0
+-67.5
  20
--8.0
+-13.5
  42
 0.4142135623730951
   0
@@ -5493,25 +5493,49 @@ INGOMBRI
 100
 AcDbPolyline
  90
-4
+8
  70
 1
  10
--47.0
+-60.5
  20
-3.0
+-14.5
  10
-47.0
+60.5
  20
-3.0
+-14.5
+ 42
+0.4142135623730951
  10
-47.0
+64.5
  20
-237.0
+-10.5
  10
--47.0
+64.5
  20
-237.0
+250.5
+ 42
+0.4142135623730951
+ 10
+60.5
+ 20
+254.5
+ 10
+-60.5
+ 20
+254.5
+ 42
+0.4142135623730951
+ 10
+-64.5
+ 20
+250.5
+ 10
+-64.5
+ 20
+-10.5
+ 42
+0.4142135623730951
   0
 LWPOLYLINE
   5
@@ -5521,57 +5545,65 @@ LWPOLYLINE
 100
 AcDbEntity
   8
-PIEGA
+SMOKE
 100
 AcDbPolyline
  90
-8
+4
  70
 1
  10
--50.0
+-54.5
  20
--3.0
+-4.5
  10
-50.0
+54.5
  20
--3.0
- 42
-0.4142135623730951
+-4.5
  10
-53.0
+54.5
  20
-0.0
+244.5
  10
-53.0
+-54.5
  20
-240.0
- 42
-0.4142135623730951
- 10
-50.0
- 20
-243.0
- 10
--50.0
- 20
-243.0
- 42
-0.4142135623730951
- 10
--53.0
- 20
-240.0
- 10
--53.0
- 20
-0.0
- 42
-0.4142135623730951
+244.5
   0
 LWPOLYLINE
   5
 96
+330
+17
+100
+AcDbEntity
+  8
+PIEGA
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+-53.0
+ 20
+-3.0
+ 10
+53.0
+ 20
+-3.0
+ 10
+53.0
+ 20
+243.0
+ 10
+-53.0
+ 20
+243.0
+  0
+LWPOLYLINE
+  5
+97
 330
 17
 100
@@ -5627,7 +5659,7 @@ AcDbPolyline
   0
 LINE
   5
-97
+98
 330
 17
 100
@@ -5651,7 +5683,7 @@ AcDbLine
   0
 LINE
   5
-98
+99
 330
 17
 100
@@ -5661,47 +5693,17 @@ QUOTE
 100
 AcDbLine
  10
--77.0
+-82.5
  20
 120.0
  30
 0.0
  11
-77.0
+82.5
  21
 120.0
  31
 0.0
-  0
-TEXT
-  5
-99
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--62.0
- 20
--26.0
- 30
-0.0
- 40
-2.5
-  1
-DIMA DI TRACCIAMENTO 1:1
- 11
--62.0
- 21
--26.0
- 31
-0.0
-100
-AcDbText
   0
 TEXT
   5
@@ -5715,19 +5717,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--30.5
+-26.0
  30
 0.0
  40
 2.5
   1
-Stampare in scala 1:1 (verificare la quota di controllo sotto),
+DIMA DI TRACCIAMENTO 1:1
  11
--62.0
+-67.5
  21
--30.5
+-26.0
  31
 0.0
 100
@@ -5745,19 +5747,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--35.0
+-30.5
  30
 0.0
  40
 2.5
   1
-appoggiare al muro con l'asse verticale a piombo e tracciare.
+Stampare in scala 1:1 (verificare la quota di controllo in cima),
  11
--62.0
+-67.5
  21
--35.0
+-30.5
  31
 0.0
 100
@@ -5775,19 +5777,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--39.5
+-35.0
  30
 0.0
  40
 2.5
   1
-
+appoggiare al muro con l'asse verticale a piombo e tracciare.
  11
--62.0
+-67.5
  21
--39.5
+-35.0
  31
 0.0
 100
@@ -5805,19 +5807,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--44.0
+-39.5
  30
 0.0
  40
 2.5
   1
-TAGLIO (rosso): nicchia da scavare, 124 x 264 x 81 mm
+
  11
--62.0
+-67.5
  21
--44.0
+-39.5
  31
 0.0
 100
@@ -5835,19 +5837,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--48.5
+-44.0
  30
 0.0
  40
 2.5
   1
-INGOMBRI (grigio): ingombro della cassa
+TAGLIO (rosso): nicchia da scavare, 135 x 275 x 86 mm,
  11
--62.0
+-67.5
  21
--48.5
+-44.0
  31
 0.0
 100
@@ -5865,19 +5867,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--53.0
+-48.5
  30
 0.0
  40
 2.5
   1
-PIEGA (giallo): luce finita dell'intonaco, 106 x 246
+  la profondita' misurata dalla superficie dell'intonaco
  11
--62.0
+-67.5
  21
--53.0
+-48.5
  31
 0.0
 100
@@ -5895,19 +5897,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--57.5
+-53.0
  30
 0.0
  40
 2.5
   1
-FINESTRE (ciano): filo del vetro, 100 x 240
+INGOMBRI (grigio): flangia della cassa, 129 x 269
  11
--62.0
+-67.5
  21
--57.5
+-53.0
  31
 0.0
 100
@@ -5925,19 +5927,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--62.0
+-57.5
  30
 0.0
  40
 2.5
   1
-
+SMOKE (blu): bordo esterno della cornice, 109 x 249: l'intonaco finisce qui
  11
--62.0
+-67.5
  21
--62.0
+-57.5
  31
 0.0
 100
@@ -5955,19 +5957,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--66.5
+-62.0
  30
 0.0
  40
 2.5
   1
-Fra giallo e ciano corre la fessura d'ombra di 3 mm: non va stuccata sopra e sotto,
+PIEGA (giallo): luce, cioe' bordo interno della cornice, 106 x 246
  11
--62.0
+-67.5
  21
--66.5
+-62.0
  31
 0.0
 100
@@ -5985,19 +5987,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--71.0
+-66.5
  30
 0.0
  40
 2.5
   1
-perche' e' la via d'aria delle feritoie.
+FINESTRE (ciano): filo del vetro, 100 x 240
  11
--62.0
+-67.5
  21
--71.0
+-66.5
  31
 0.0
 100
@@ -6015,9 +6017,9 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--75.5
+-71.0
  30
 0.0
  40
@@ -6025,9 +6027,9 @@ AcDbText
   1
 
  11
--62.0
+-67.5
  21
--75.5
+-71.0
  31
 0.0
 100
@@ -6045,19 +6047,19 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--80.0
+-75.5
  30
 0.0
  40
 2.5
   1
-Muro in tufo: si scava facilmente e si arriverebbe a 150 mm, ma la
+Fra giallo e ciano corre la fessura d'ombra di 3 mm, aperta su tutti e
  11
--62.0
+-67.5
  21
--80.0
+-75.5
  31
 0.0
 100
@@ -6075,25 +6077,25 @@ NOTE
 100
 AcDbText
  10
--62.0
+-67.5
  20
--84.5
+-80.0
  30
 0.0
  40
 2.5
   1
-nicchia va fatta di 81 e non di piu'. Bagnarla a rifiuto prima di murare.
+quattro i lati: e' la via d'aria. La fa la cornice, non il rasante.
  11
--62.0
+-67.5
  21
--84.5
+-80.0
  31
 0.0
 100
 AcDbText
   0
-LINE
+TEXT
   5
 A7
 330
@@ -6103,21 +6105,27 @@ AcDbEntity
   8
 NOTE
 100
-AcDbLine
+AcDbText
  10
--50.0
+-67.5
  20
-256.0
+-84.5
  30
 0.0
+ 40
+2.5
+  1
+
  11
-50.0
+-67.5
  21
-256.0
+-84.5
  31
 0.0
+100
+AcDbText
   0
-LINE
+TEXT
   5
 A8
 330
@@ -6127,23 +6135,107 @@ AcDbEntity
   8
 NOTE
 100
+AcDbText
+ 10
+-67.5
+ 20
+-89.0
+ 30
+0.0
+ 40
+2.5
+  1
+Muro in tufo: si scava facilmente e si arriverebbe a 170 mm, ma la
+ 11
+-67.5
+ 21
+-89.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+A9
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-67.5
+ 20
+-93.5
+ 30
+0.0
+ 40
+2.5
+  1
+nicchia va fatta di 86 e non di piu'. Bagnarla a rifiuto prima di murare.
+ 11
+-67.5
+ 21
+-93.5
+ 31
+0.0
+100
+AcDbText
+  0
+LINE
+  5
+AA
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
 AcDbLine
  10
 -50.0
  20
-253.0
+267.5
  30
 0.0
  11
--50.0
+50.0
  21
-259.0
+267.5
  31
 0.0
   0
 LINE
   5
-A9
+AB
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+-50.0
+ 20
+264.5
+ 30
+0.0
+ 11
+-50.0
+ 21
+270.5
+ 31
+0.0
+  0
+LINE
+  5
+AC
 330
 17
 100
@@ -6155,19 +6247,19 @@ AcDbLine
  10
 50.0
  20
-253.0
+264.5
  30
 0.0
  11
 50.0
  21
-259.0
+270.5
  31
 0.0
   0
 TEXT
   5
-AA
+AD
 330
 17
 100
@@ -6179,7 +6271,7 @@ AcDbText
  10
 -22.0
  20
-259.0
+270.5
  30
 0.0
  40
@@ -6189,7 +6281,7 @@ controllo stampa: 100 mm
  11
 -22.0
  21
-259.0
+270.5
  31
 0.0
 100
@@ -7285,7 +7377,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-AD
+B0
   0
 DICTIONARYVAR
   5
@@ -7297,7 +7389,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:56:16.708417+00:00
+1.4.4 @ 2026-10-11T01:46:55.058377+00:00
   0
 VISUALSTYLE
   5
@@ -8001,7 +8093,7 @@ X-Ray
   0
 DICTIONARYVAR
   5
-AD
+B0
 330
 2D
 100
@@ -8009,7 +8101,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:56:16.711434+00:00
+1.4.4 @ 2026-10-11T01:46:55.061528+00:00
   0
 ENDSEC
   0

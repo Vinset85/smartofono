@@ -14,7 +14,9 @@ il video, apre il cancello e tiene il registro delle chiamate con i filmati.
 
 L'unico dettaglio visibile del montaggio è una **fessura d'ombra di 3 mm** su
 tutto il perimetro, che è anche la via d'aria: le feritoie di ventilazione si
-affacciano lì dentro e guardando il pannello di fronte non si vedono.
+affacciano lì dentro e guardando il pannello di fronte non si vedono. La cassa
+è ventilata e progettata per **IP44 in posa riparata**, non per IP65: il
+perché è in [hardware/README.md](hardware/README.md#acqua-e-polvere-ip44-non-ip65).
 
 ---
 
@@ -50,6 +52,7 @@ python3 parametri.py      # verifica le interferenze, esporta le quote
 python3 genera_dxf.py     # i sette DXF
 python3 anteprime.py      # i PNG di controllo
 ./genera_3d.sh            # render e STL (richiede OpenSCAD)
+python3 verifica_cad.py   # i file scritti dicono quello che dicono i parametri?
 ```
 
 I due script intermedi hanno bisogno di `ezdxf` e `matplotlib`:

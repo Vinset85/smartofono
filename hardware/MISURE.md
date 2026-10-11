@@ -20,13 +20,20 @@ Il **touch è integrato nel pannello**, confermato dalla scheda del prodotto: no
 quanto il progetto conti. Era l'ultima cosa che poteva muovere il piano da cui
 parte tutto, e **il vetro si può ordinare.**
 
-Resta un'osservazione e restano due quote su pezzi non ancora acquistati:
+Resta un'osservazione, restano due quote su pezzi non ancora acquistati e
+resta una misura che non è una quota:
 
 1. su quale **bordo** sta il connettore del flat, su ciascuna delle due schede
    del display: da quello dipende come si girano in piedi sul fianco. Non
    cambia nessuna lavorazione, cambia il montaggio.
 2. l'**impedenza dell'altoparlante**, dall'etichetta, e il **reed switch**, che
    non è ancora stato scelto. Entrambe rifiniscono quote già prudenti.
+3. la **potenza assorbita**, a riposo e in chiamata, letta sulla porta PoE
+   dello switch. Il bilancio termico la stima in 5 e 11,5 W, e a differenza
+   delle quote qui sopra non è prudente: è il numero da cui dipendono tutte le
+   temperature in cassa. Si prende durante la prova termica della fase 4
+   dell'assemblaggio, e se è diversa va scritta in `POTENZA_RIPOSO` e
+   `POTENZA_PICCO`.
 
 La ~~piazzola di dimming del backlight~~ non serve più: il pannello è un OLED,
 non ha backlight, e la luminosità si abbassa in software. L'argomento è lo
@@ -151,9 +158,10 @@ flat, e il suo USB esce dalla scheda di ingresso.
 | Sporgenza del RJ45 dal bordo PCB, **con cavo inserito** | — | **34** |
 | Sporgenza del micro-HDMI, **con cavo inserito** | — | **20** |
 
-I 50 mm sono esattamente il valore che il progetto assumeva, quindi la cassa
-resta a 75 e il canale d'aria a 20,5: su questo non c'è niente da cambiare. Il
-margine fino al limite di 64 mm resta di quattordici millimetri.
+I 50 mm sono il valore che il progetto assumeva, quindi la cassa resta a 75.
+Il modello ne tiene 50,5, mezzo millimetro a favore di sicurezza, e il canale
+d'aria resta a 20,0; il limite oltre il quale il canale diventa il collo di
+bottiglia è un gruppo da 57 mm, sette millimetri sopra la misura.
 
 Le ultime due hanno invece cambiato il progetto, e per capire come serve
 sapere **dove sono sul Pi 5**: RJ45 e connettore PCIe stanno sul bordo corto da
@@ -178,9 +186,9 @@ quota con l'etichetta `gruppo del Pi`, così c'è un numero con cui confrontarsi
 I 50,5 mm dichiarati lasciano **20,0 mm di canale** fra il pezzo più profondo e
 il fondo interno della cassa, che resta a 75. Il gruppo mangia il canale uno a
 uno, e il canale cessa di funzionare quando la sua sezione scende sotto quella
-delle feritoie, cioè sotto i 7 mm: succede con un gruppo da **64**. Ci sono
-quindi quattordici millimetri di margine, e la verifica lo dice da sé se la
-misura reale li supera.
+lorda di una feritoia, 12 cm², cioè sotto i 13,2 mm: succede con un gruppo da
+**57**. Ci sono quindi sette millimetri di margine, e la verifica lo dice da sé
+se la misura reale li supera.
 
 Va presa **con i connettori dei fili inseriti sui pin in cima**, perché quelli
 non si possono togliere: sui pin dell'header arrivano l'alimentazione
@@ -406,21 +414,28 @@ dalla scheda, e se la scheda ha un interasse diverso vanno rifatti.
 | Profondità raggiungibile per la nicchia | **170 mm** |
 | Spessore di intonaco + rasante esistente | **10,0 — confermato** |
 
-Dei 170 mm se ne usano 81, con la cassa a 75. Lo spazio serve a due cose: al
+Dei 170 mm se ne usano 86 dal filo dell'intonaco, con la cassa a 75 e il suo
+fronte 5 mm dietro quel filo, più 6 di malta sul fondo. Lo spazio serve a due
+cose: al
 gruppo del Pi, che col PoE HAT misura 50,5 mm dal telaio, e al **canale d'aria
 dietro i componenti**, che resta a 20,0. Oltre non comprerebbe niente:
 l'alimentatore non va dentro, perché l'alimentazione arriva in PoE.
 
 Il tufo porta con sé due cose che non riguardano le quote ma la posa. La prima è
-che **è isolante**: non va considerato una via di dissipazione per il calore,
-che deve uscire dal fronte e dalle feritoie. La seconda è che è **poroso e
+che **è isolante**: come dissipatore vale poco, circa 0,12 W/K col tufo a
+0,3 W/mK, ma nel bilancio termico conta quanto il tiraggio delle feritoie, e la
+sua conduttività è la stima più incerta del conto (README, Ventilazione). Non
+si misura facilmente, e per questo il criterio vero è la prova termica in
+cassa chiusa, che la mette dalla parte peggiore. La seconda è che è **poroso e
 capillare**, quindi assorbe l'acqua della malta e la malta non fa presa: il vano
 va bagnato a rifiuto prima di annegare la cassa. La stessa porosità trasporta
 umidità, e il vano resterà più umido di quanto sarebbe in un laterizio.
 
-Lo spessore dell'intonaco determina l'arretramento della flangia, oggi fissato a
-10 mm: se è più sottile la flangia resta in vista, se è più spesso la cassa
-affonda e il vetro non arriva a filo.
+Lo spessore dell'intonaco non decide più niente della cassa. Prima fissava
+l'arretramento della flangia, e un intonaco più sottile del previsto la
+lasciava in vista; adesso il riferimento è la cornice, che va a filo
+dell'intonaco qualunque sia il suo spessore, e la flangia sta 33 mm dietro
+quel filo, dentro la malta in ogni caso.
 
 ## 7. Basetta del microfono I2S — misurato
 

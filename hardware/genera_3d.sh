@@ -16,9 +16,11 @@ python3 parametri.py >/dev/null
 
 # L'inquadratura usa --viewall con distanza 0: OpenSCAD calcola da se' la
 # distanza giusta e restano da scegliere solo gli angoli di rotazione.
+# --render calcola le differenze invece di disegnarle in anteprima: senza, le
+# facce coincidenti di cornice, feritoie e battuta escono a strisce.
 echo "render:"
 render() {           # render <nome> <vista> <rot_x> <rot_z>
-  "$SCAD" --quiet -D "VISTA=\"$2\"" \
+  "$SCAD" --quiet --backend=manifold --render -D "VISTA=\"$2\"" \
     --imgsize=900,1150 --colorscheme=Tomorrow \
     --camera=0,0,0,"$3",0,"$4",0 --viewall --autocenter \
     -o "anteprime/3d-$1.png" "$MODELLO"

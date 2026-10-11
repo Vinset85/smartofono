@@ -11,25 +11,28 @@ di parametri, quindi i disegni 2D e il modello 3D non possono divergere.
 | Vetro frontale | 100 x 240 x 2 | Gorilla Glass 3, rinforzato chimicamente, stampato |
 | Finestra serigrafata | 69 x 122 a y 59 | area attiva 68,04 x 120,96 |
 | Telaio portante | 89 x 229 x 3 | alluminio 5754 o 6082 anodizzato nero |
-| Cassa da incasso | 94 x 234 x 75 | lamiera zincata 1,5 mm o ASA stampato |
+| Cassa da incasso | 94 x 234 x 75 | ASA stampato, pareti 1,5 mm |
+| Cornice della cassa | 109 x 249 | fa da filo dell'intonaco e da luce |
 | Luce finita dell'intonaco | 106 x 246 | — |
-| Nicchia da scavare | 124 x 264 x 81 | nel tufo, dove se ne potrebbero fare 150 |
+| Nicchia da scavare | 135 x 275 x 86 | nel tufo, dove se ne potrebbero fare 170 |
+| Protezione | IP44 di progetto | in posa riparata, non certificata |
 
 Il vetro copre interamente la cassa e lascia su tutto il perimetro una
-**fessura d'ombra di 3 mm** verso l'intonaco. È l'unico dettaglio visibile del
+**fessura d'ombra di 3 mm** verso la cornice. È l'unico dettaglio visibile del
 montaggio, e insieme è la via d'aria: le feritoie di ventilazione si affacciano
 lì dentro, quindi restano invisibili guardando il pannello di fronte.
 
-Della profondità disponibile ne sono impegnati 58,5 mm su 75: vetro, adesivo,
-modulo display, telaio, distanziali e stack Pi 5 con NVMe, HAT audio e ventola.
-I 20,0 mm residui sono il plenum di aria sul fondo, 18,2 cm² di sezione.
+Della profondità ne sono impegnati 58,5 mm, dalla faccia del vetro alla cima
+dello stack: vetro, adesivo, modulo display, telaio, distanziali e stack Pi 5
+con NVMe, HAT audio e ventola. Il fondo interno della cassa sta a 78,5, e i
+20,0 mm che restano sono il plenum d'aria sul fondo, 18,2 cm² di sezione.
 
 ## File
 
 ```
 cad/01-vetro-frontale.dxf    da mandare alla vetreria
 cad/02-telaio-portante.dxf   da mandare al taglio laser
-cad/03-cassa-incasso.dxf     sviluppo lamiera / riferimento stampa 3D
+cad/03-cassa-incasso.dxf     viste di controllo della cassa stampata
 cad/04-dima-muratura.dxf     sagoma 1:1 da stampare per fare il foro
 cad/05-disposizione.dxf      mappa dei componenti: pianta e sezione
 cad/06-gruppo-display.dxf    come si monta il gruppo del display
@@ -179,45 +182,46 @@ posteriore con epossidica e tutti con la stessa polarità.
 
 ### Cassa da incasso
 
-Due strade, entrambe valide:
-
-**Lamiera di acciaio zincato 1,5 mm**, piegata e puntata, verniciata a polvere.
-È la soluzione industriale delle cassette da incasso: indeformabile, si mura
-senza precauzioni, costa poco se si ha un lattoniere. Lo sviluppo è nel DXF 03,
-ma le quote di piega vanno ricalcolate dal lattoniere sulla detrazione della sua
-macchina.
-
-**ASA o PETG stampato in 3D**, pareti 2 mm, 4 perimetri. Comodo per
-l'autoproduzione e per iterare sulla geometria. Da evitare assolutamente il
-**PLA**: rammollisce intorno ai 55-60 °C e dentro la scatola si arriva a 70 °C
-nei picchi. L'ASA è preferibile al PETG per stabilità dimensionale e resistenza
-UV; entrambi tollerano bene gli alcali della malta.
+**ASA stampato in 3D**, pareti 1,5 mm, da `stl/cassa.stl`. Una strada sola.
+La lamiera piegata, che il progetto prevedeva in alternativa, non fa più la
+cassa che serve: cornice, gocciolatoi e smussi di scarico non sono una scatola
+piegata. Il PETG è escluso per la temperatura: ammorbidisce sopra i 70 °C, e la
+cassa a pieno carico d'estate ci arriva vicino (vedi Ventilazione). Il **PLA**
+ancora di più, perché cede già a 55-60 °C. L'ASA regge oltre i 90 °C, non
+teme gli UV e tollera gli alcali della malta.
 
 Il Raspberry è collegato in **ethernet cablato** (`eth0`, WiFi non attivo) e
 alimentato dallo stesso cavo in **PoE**, con il PoE HAT (F) di Waveshare
-impilato fra il Pi e l'HAT audio. Quindi una cassa metallica non crea problemi
-di radio. Se in futuro si passasse
-al WiFi, la cassa metallica più il telaio in alluminio lo renderebbero
-inutilizzabile: in quel caso solo ASA/PETG.
+impilato fra il Pi e l'HAT audio. Il WiFi non servirebbe comunque: il telaio in
+alluminio fa da schermo proprio verso l'esterno.
 
-Due dettagli della cassa che vale la pena non perdere di vista:
+I dettagli della cassa, dal fronte verso il fondo:
 
-- la **flangia di muratura è arretrata di 10 mm** rispetto al fronte. Se fosse a
-  filo resterebbe in vista, perché è più larga del vetro: arretrata, finisce
-  sotto lo spessore di intonaco e rasante;
-- sul fronte corre una **battuta interna larga 6 mm**. Il telaio si appoggia
-  lì; senza battuta cadrebbe dentro la cassa, dato che è più piccolo della luce
-  interna. È un gradino profondo 4 mm: dietro il vano torna pieno, altrimenti
-  la scheda video non ci starebbe. Sulla battuta alta ci sono due **perni di
-  centraggio** da 4 mm a passo 48, e sei riscontri per i magneti.
+- la **cornice**, un anello 109 x 249 con la luce 106 x 246, è il pezzo che si
+  vede intorno alla fessura d'ombra. Il suo fronte va **a filo dell'intonaco
+  finito** ed è il riferimento della posa: il vetro è complanare a lei, e
+  murando la cassa si guarda la cornice, non il fronte del corpo, che sta
+  5 mm più indietro. Fra cornice e corpo resta un canale di 6 mm su tutto il
+  perimetro, che porta l'aria dalla fessura d'ombra alle feritoie;
+- sul fronte del corpo corre una **battuta interna larga 6 mm**. Il telaio si
+  appoggia lì; senza battuta cadrebbe dentro la cassa, dato che è più piccolo
+  della luce interna. È un gradino profondo 4 mm: dietro il vano torna pieno,
+  altrimenti la scheda video non ci starebbe. Sul fianco sinistro l'anello si
+  restringe a 4,5 mm per 49 mm, perché lì scende l'ala della squadretta della
+  scheda di ingresso. Sulla battuta alta ci sono due **perni di centraggio** da
+  4 mm a passo 48, e sei riscontri per i magneti;
+- le **feritoie** partono 8 mm dietro il fronte del corpo, dietro la battuta;
+- la **flangia di muratura** sta a 33 mm dal filo dell'intonaco, dietro le
+  feritoie: annegata nella malta, non può chiudere il canale da cui passa
+  l'aria. È più larga di 17,5 mm per lato e ha quattro fori per fianco, dove la
+  malta fa da chiodo.
 
 Sui riscontri serve un avvertimento, perché è il genere di dettaglio che si
 scopre a pannello montato: **il telaio è in alluminio e l'alluminio non è
-ferromagnetico**, quindi i magneti non tengono niente da soli. Con la cassa in
-lamiera zincata il riscontro è la lamiera stessa e non c'è nulla da aggiungere.
-Con la **cassa stampata in ASA il magnete non ha nulla da attrarre**: servono
-sei dischetti di **acciaio dolce Ø6 x 1**, uno per magnete. Costano niente e
-senza di loro il pannello non sta su.
+ferromagnetico**, quindi i magneti non tengono niente da soli, e la cassa in
+ASA non ha niente da offrire loro. Servono sei dischetti di **acciaio dolce
+Ø6 x 1**, uno per magnete. Costano niente e senza di loro il pannello non sta
+su.
 
 Vanno **annegati nelle sei sedi** che il modello della cassa prevede, Ø6,4
 profonde 1,2 sulla faccia di battuta, non incollati sopra. Appoggiati sulla
@@ -320,12 +324,13 @@ sollecitare il giunto.
 | 2 | perno inox Ø4 x 3 | centraggio sulla battuta alta, a filo del fronte del telaio |
 | 1 | reed switch NC + magnete | antimanomissione, su GPIO |
 | 1 | ventosa Ø30 | per estrarre il pannello |
-| 4 | M2.5 x 14 + distanziali 9,5 mm | Raspberry al telaio. **Non più lunghe**: oltre i 3 mm di telaio c'è il display |
+| 4 | M2.5 x 14 + distanziali 10 mm | Raspberry al telaio. **Non più lunghe**: oltre i 3 mm di telaio c'è il display |
 | 4 | M2 x 10 + colonnine 6 mm | camera arretrata sul telaio |
 | 3 | M3 x 18 + colonnine **nylon** 14 mm | altoparlante arretrato sul telaio |
 | 6 | rondella in gomma M3 | sotto flangia e testa vite dell'altoparlante |
 | 2 | M3 x 6 | PN532 appoggiato al retro del telaio, senza distanziali |
-| 2 | rete inox maglia 0,6 mm, 85 x 13 mm | feritoie di ventilazione, 2,5 mm di bordo per incollarla |
+| 1 | rete inox maglia 0,6 filo 0,2, 85 x 20 mm | feritoia bassa, 2,5 mm di bordo per incollarla |
+| 2 | stessa rete, 45 x 20 mm | feritoie laterali |
 | 1 | squadretta in alluminio 1,5 mm, 47 x 59 piegata | tiene in piedi la scheda di ingresso, DXF 07 |
 | 4 | M2.5 x 8 + dado | scheda di ingresso alla squadretta |
 | 2 | M2.5 x 4 | squadretta al telaio, nei due fori **ciechi** |
@@ -336,8 +341,9 @@ sollecitare il giunto.
 | 1 | foglio PET nero opaco 0,2 mm, 38 x 40 mm | diaframma dietro la zona NFC |
 | 1 | **3M VHB 4959**, 3,0 mm, nastro da 12 mm | cornice fra vetro e telaio. Lo spessore **non è sostituibile**: è lui a fissare la distanza vetro-telaio e tutta la catena di quote parte da lì |
 | 1 | primer 3M 94 | sull'alluminio del telaio, prima del VHB |
-| 6 | dischetto di acciaio dolce Ø6 x 1 | **solo se la cassa è stampata**: riscontro dei magneti, annegato nelle sedi della battuta |
-| 1 | silicone neutro ossimico nero | fessura d'ombra, solo sui lati |
+| 6 | dischetto di acciaio dolce Ø6 x 1 | riscontro dei magneti, annegato nelle sedi della battuta |
+| 1 | silicone neutro ossimico | tenuta dei corrugati dove entrano nella cassa. **Non** nella fessura d'ombra |
+| 1 | grasso al silicone | velo sulla battuta, contro la risalita dell'acqua. Facoltativo |
 
 Il diaframma in PET serve perché l'apertura nel telaio lascerebbe intravedere
 il circuito del lettore attraverso la serigrafia semitrasparente dell'icona
@@ -469,7 +475,7 @@ stava dal lato dei micro-HDMI, e lì fra il bordo del Pi e la scheda restano
 3 mm, dove nemmeno il cavo angolato entra.
 
 Restano due margini stretti, entrambi in basso e entrambi sopra il lettore NFC:
-l'ansa del flat PCIe si ferma a **2 mm** dal suo bordo, e il patch di rete gli
+l'ansa del flat PCIe si ferma a **3,5 mm** dal suo bordo, e il patch di rete gli
 passa sopra a **2,0 mm**, perché il connettore sta sul piano del PCB mentre il
 lettore arriva più avanti. Il modello li controlla, ma sono margini di
 montaggio: una fascetta che schiaccia il patch verso il vetro basta a farlo
@@ -477,31 +483,35 @@ appoggiare sul lettore.
 
 ## Ventilazione
 
-Le due feritoie sono profonde 8 mm e larghe 80, e stanno nelle **pareti
-orizzontali** della cassa, non sul fronte: il fronte è coperto interamente dal
-vetro e l'aria non avrebbe modo di uscire. Si affacciano nella fessura d'ombra
-fra vetro e intonaco, dove nessuno le vede. Sono 6,4 cm² per lato.
+Le feritoie sono tre e nessuna sta sul fronte, che è coperto interamente dal
+vetro. Una è **nella parete bassa**, 80 x 15, e guarda in basso: è l'ingresso
+dell'aria e lo scarico dell'acqua. Due sono **nei fianchi, in alto**, 40 x 15
+ciascuna, fra 192,5 e 232,5 mm d'altezza: sono l'uscita. Tutte e tre partono
+8 mm dietro il fronte del corpo e sbucano nel canale fra corpo e cornice, che
+le porta alla fessura d'ombra, dove nessuno le vede. Nella parete alta non ce
+n'è nessuna, ed è voluto: lì guarderebbe in su, e raccoglierebbe tutta l'acqua
+che entra dalla fessura sopra il vetro.
 
-Quella sezione è il vincolo di tutto il raffreddamento, perché il muro è in
-**tufo**: con 0,2-0,5 W/mK di conduttività, quattro volte meno di un laterizio
-pieno, come dissipatore non esiste. Gli undici watt e mezzo di Pi, display,
-scheda driver e conversione PoE devono quindi uscire tutti da qui e dal vetro. Per tenere l'aria interna
-dieci gradi sopra l'ambiente serve mezzo litro d'aria al secondo e qualcosa, che
-su 3,2 cm² vorrebbe dire farla correre a 2,6 m/s: troppo per un tiraggio
-naturale e troppa perdita di carico anche per la ventola. Con 6,4 cm² si scende
-a 1,5 m/s. I millimetri in più sono presi nella direzione della profondità,
-quindi da fuori non cambia niente.
+Per verso, la sezione è 12 cm² lordi e **6,75 cm² liberi**, tolta la rete
+inox, che con maglia 0,6 e filo 0,2 lascia passare il 56% dell'area. È il
+numero che conta, e il progetto lo contava male: dava 6,4 cm² lordi, cioè 3,2
+liberi. Le bocche nella fessura d'ombra, cioè la strada fra feritoia e
+esterno, sono 6,9 cm² in ingresso e 9,7 in uscita: non sono più strette delle
+feritoie, e `verifica()` controlla che non lo diventino.
 
-Le feritoie cadono **dietro la battuta**, a 8 mm dal fronte, non a cavallo di
-essa. Il motivo non è l'aria ma i magneti: quattro dei sei stanno a x ±32, cioè
-dentro la larghezza della feritoia, e i loro riscontri appoggiano proprio
-sull'anello di battuta. Con la feritoia più avanti quell'anello restava tagliato
-esattamente dove il magnete deve tirare. Starci dietro giova anche al flusso,
-perché l'aria sbuca nel vano invece di dover girare attorno all'anello.
+Le feritoie cadono **dietro la battuta**, non a cavallo di essa. Il motivo non è
+l'aria ma i magneti: quattro dei sei stanno a x ±32, cioè dentro la larghezza
+della feritoia bassa, e i loro riscontri appoggiano proprio sull'anello di
+battuta. Con la feritoia più avanti quell'anello restava tagliato esattamente
+dove il magnete deve tirare. Starci dietro giova anche al flusso, perché l'aria
+sbuca nel vano invece di dover girare attorno all'anello.
 
-Il percorso dell'aria è: ingresso dalla fessura d'ombra inferiore, salita lungo
-il retro del display, attraversamento del dissipatore del Pi al centro, uscita
-dalla feritoia alta. Per questo il Raspberry è centrato in altezza.
+Il percorso dell'aria è: ingresso dalla fessura d'ombra inferiore e dalla
+feritoia bassa, salita nel vano dietro il telaio, attraverso il dissipatore del
+Pi al centro, uscita dalle due feritoie laterali in alto e da lì, lungo i
+canali dei fianchi, alla fessura d'ombra. Per questo il Raspberry è centrato,
+in larghezza e in altezza, e fra lui e le feritoie d'uscita c'è solo
+l'altoparlante, che sta alla loro stessa quota.
 
 I 10 mm fra telaio e PCB del Pi erano pensati come passaggio d'aria, ma nel
 montaggio reale **non lo sono**: lì sotto c'è la base con l'SSD NVMe, collegata
@@ -514,11 +524,14 @@ temperature della prova in cassa chiusa.
 
 Il telaio non ha feritoie proprie, e non servirebbero: davanti a lui c'è il
 vetro incollato, quindi quel volume è chiuso, e l'aria circola tutta nel vano
-dietro, dove le due feritoie della cassa si affacciano direttamente.
+dietro, dove le tre feritoie della cassa si affacciano direttamente.
 
-Dalla feritoia superiore esce anche il suono dell'altoparlante: la griglia sul
-vetro non è forata, il vetro lì è pieno. Il vano fa da camera di compressione e
-la feritoia da porta d'uscita, che per la voce è più che sufficiente.
+Dalle due feritoie laterali esce anche il suono dell'altoparlante: la griglia
+sul vetro non è forata, il vetro lì è pieno. Il vano fa da camera di
+compressione e le feritoie, che stanno proprio all'altezza del cono, da porte
+d'uscita verso la fessura d'ombra dei fianchi. Per la voce bastano, ma la
+resa va sentita in opera (vedi la fase 8 dell'assemblaggio): il suono esce di
+lato e non di fronte.
 
 Le tre strisce della griglia sono però **finestre nella serigrafia**, cioè vetro
 nudo, non inchiostro: attraverso di loro si vede quello che c'è dietro. Dietro
@@ -564,24 +577,50 @@ disattivati con i due microswitch sul retro della scheda: suonerebbero chiusi
 dentro il vano, contro il fondo della cassa. L'altoparlante del videocitofono è
 quello sui morsetti a vite, dietro la griglia serigrafata.
 
-Entrambe le feritoie vanno chiuse con rete inox a maglia 0,6 mm: ferma insetti e
-ragni, che in un vano caldo e riparato ci entrano nel giro di una stagione.
+Tutte e tre le feritoie vanno chiuse con rete inox a maglia 0,6 mm: ferma
+insetti e ragni, che in un vano caldo e riparato ci entrano nel giro di una
+stagione.
 
-La fessura d'ombra va sigillata con silicone **solo sui due lati verticali**.
-Sopra e sotto deve restare aperta: è l'unica via d'aria, e in basso fa anche da
-scarico della condensa.
+La fessura d'ombra resta **aperta su tutti e quattro i lati**, e niente
+silicone: è la via d'aria, in basso è lo scarico, e un cordone sui fianchi
+incollerebbe il vetro alla cornice, mentre il gruppo deve uscire con una
+ventosa.
 
-C'è un dettaglio di cantiere che decide se la ventilazione funziona o no. Le
-feritoie non si affacciano direttamente all'esterno, ma nel canale che resta
-dietro l'aggetto del vetro, fra il fianco della cassa e lo spigolo
-dell'intonaco. Quel canale **non deve essere riempito dal rasante**: va
-protetto con un profilo a perdere o una striscia di schiuma durante la
-rasatura, da togliere dopo. Se si stucca, le feritoie restano cieche e la
-scatola si comporta come se fossero chiuse.
+Il canale fra corpo e cornice, da cui passa tutta l'aria, non si può più
+riempire per errore: la cornice fa da sponda al rasante e la flangia lo chiude
+dietro. Era il dettaglio di cantiere che decideva se la ventilazione funzionava
+o no, e prima lo affidava a un profilo a perdere da togliere a mano.
 
-Con questa geometria la stima è **50 °C a riposo e 72 °C di picco** con 35 °C di
-ambiente esterno, contro gli 85-90 °C che si misurerebbero in una scatola
-chiusa. Il margine di throttling del Pi 5 è a 80 °C.
+**Quanto scalda.** Il bilancio è in `parametri.py`, `salto_termico()`, e il
+primo risultato è che le feritoie non sono la via principale del calore. Col
+solo tiraggio naturale, l'effetto camino fra la feritoia bassa e le laterali,
+escono 2,6 W con l'aria interna 20 gradi sopra l'esterno e 4,8 W a 30. La
+ventola non cambia questo conto: rimescola l'aria del vano, non la ricambia. Il
+resto passa per il vetro, circa 0,06 W/K, e per il muro, circa 0,12 W/K col
+tufo a 0,3 W/mK; il muro è la stima più incerta delle due.
+
+Con 35 °C all'ombra:
+
+- **a riposo**, 5 W stimati in cassa (Pi senza carico, SSD, perdita del PoE,
+  display spento), l'aria interna sta **17 gradi sopra**, intorno ai 52 °C;
+- **a pieno carico continuo**, 11,5 W, sale di **33 gradi**, intorno ai 68 °C.
+  Col tufo fra 0,2 e 0,5 W/mK fa fra 30 e 36 gradi; senza contare il muro, che
+  è il caso peggiore, 25 gradi a riposo e 45 a pieno carico.
+
+Il pieno carico continuo non è l'uso normale: una chiamata dura minuti, e la
+massa di vetro, telaio, elettronica e cassa, senza contare malta e tufo, dà una
+costante di tempo dell'ordine della mezz'ora, quindi una chiamata aggiunge pochi
+gradi a quelli del riposo. Ma i numeri dicono due cose precise. La prima è che
+il SoC del Pi sta 15-25 gradi sopra l'aria che lo raffredda: a riposo, d'estate,
+si arriva fra 67 e 77 °C, sotto gli 80 del throttling ma senza un margine
+largo, e un carico continuo, come l'analisi video sul Pi, d'estate **lo manda
+in throttling**. Il Pi non si rompe: rallenta. La seconda è che i 5 W di riposo
+sono una stima, e decidono tutto: vanno misurati (MISURE.md) e la prova termica
+in cassa chiusa della fase 4 va fatta **prima di murare**.
+
+La stima che c'era prima, 50 °C a riposo e 72 di picco, non veniva da nessun
+conto, e contava sulle feritoie per una portata d'aria che il tiraggio naturale
+non dà.
 
 Quei numeri sono la giunzione del Raspberry, non il pannello, e la distinzione
 conta perché **un OLED ha un campo di funzionamento più stretto di un LCD**:
@@ -592,6 +631,55 @@ di ventilazione fra sé e il dissipatore. La sua temperatura segue quindi quella
 del vetro, non quella del processore — ed è un'altra ragione per la posizione
 riparata, perché un vetro nero al sole diretto arriva a 60 o 70 °C da solo,
 indipendentemente da cosa c'è dietro.
+
+## Acqua e polvere: IP44, non IP65
+
+Il pannello sta all'esterno, e la domanda naturale è se arrivi a IP65. **No, e
+non può**: IP65 vuol dire nessun ingresso di polvere e getti d'acqua da ogni
+direzione, cioè una cassa chiusa, e una cassa chiusa con 5-11 W dentro un muro
+di tufo non smaltisce il calore (vedi sopra: anche aperta, il margine è
+stretto). Le alternative che chiudono una cassa senza scaldarla, cioè membrane
+traspiranti, scambiatori o dissipatori passanti, non stanno in una fessura
+d'ombra da 3 mm e cambierebbero il frontale. La cassa è quindi **ventilata e
+progettata per IP44**, con la posa al riparo, sotto il portico. La classe è di
+progetto: nessun laboratorio l'ha provata, e il pannello è per uso personale,
+senza marcatura CE.
+
+In pratica, IP44 vuol dire:
+
+- **4 sulla polvere**: non entra niente sopra 1 mm. La rete delle feritoie ha
+  maglia 0,6 e ferma insetti e ragni; la polvere fine entra, come in ogni
+  cassetta ventilata, e si toglie alla manutenzione;
+- **4 sull'acqua**: gli spruzzi da ogni direzione non fanno danni. Il progetto
+  ci arriva con la geometria, non con le guarnizioni:
+  - nessuna feritoia guarda in su. Sopra il vetro c'è solo la fessura d'ombra,
+    e l'acqua che ci entra cade nel canale fra corpo e cornice, chiuso dietro
+    dalla flangia e aperto in basso;
+  - le feritoie laterali hanno sopra un **gocciolatoio**, una nervatura da
+    2,5 mm sul fianco esterno: l'acqua che scende lungo il fianco gira attorno
+    alla feritoia invece di entrarci;
+  - la rete è tessuta con filo 0,2 su maglia 0,6, e una tela così è opaca per
+    una goccia che arriva più radente di 33,7° sul suo piano: la goccia trova un
+    filo e scende lungo la rete. Lo spruzzo più ripido che passando per la
+    fessura d'ombra raggiunge una feritoia arriva a 28,6°, e `verifica()` tiene
+    almeno tre gradi fra i due numeri;
+  - quello che entra comunque esce dal basso: la feritoia bassa guarda in giù, e
+    due smussi interni portano sul suo bordo l'acqua che scende lungo i fianchi,
+    così il fondo non fa ristagno.
+
+Restano due vie che la geometria non chiude, e vanno dette:
+
+- **il gioco fra telaio e cassa**, 1 mm per lato. L'acqua spinta dal vento
+  contro la fessura d'ombra può risalirlo per capillarità fino alla battuta e
+  da lì scendere nel vano. Il vano ha lo scarico in basso proprio per questo,
+  e un velo di grasso al silicone sulla battuta riduce la risalita;
+- **i corrugati**: l'aria calda e umida della casa, o l'acqua di un corrugato
+  che arriva da fuori, entrano nella cassa dal fondo. Vanno sigillati col
+  silicone neutro dove entrano.
+
+Che la geometria faccia quello che promette lo dice solo una prova: la pioggia
+della fase 8 dell'assemblaggio, con la canna, prima di considerare finito il
+lavoro.
 
 ## Il display: 350 nit, e perché bastano solo grazie all'AR
 
@@ -780,8 +868,8 @@ e una lenta carrellata di zoom su ciascuno, e ne ricava le GIF di anteprima.
 La procedura completa, passo per passo e con i collegamenti elettrici, è in
 [ASSEMBLAGGIO.md](ASSEMBLAGGIO.md). In sintesi l'ordine è: preparazione e
 anodizzazione del telaio, montaggio dell'elettronica sul retro, **collaudo a
-banco**, muratura della cassa, incollaggio del vetro, inserimento del gruppo e
-sigillatura.
+banco** con la prova termica in cassa chiusa, muratura della cassa, incollaggio
+del vetro, inserimento del gruppo e prova di pioggia.
 
 Due passaggi sono irreversibili: la muratura della cassa e l'incollaggio del
 vetro. Il collaudo a banco viene prima di entrambi e non è facoltativo.
@@ -931,13 +1019,15 @@ reed switch. Nessuna delle tre blocca una produzione.
 Quanto all'**altezza del gruppo del Pi**, era da riprendere col calibro prima di
 scavare, perché il gruppo e il canale d'aria si scambiano i millimetri uno a
 uno. La quota da prendere è una sola e il riepilogo di `parametri.py` la stampa:
-dal piano del telaio alla cima dei pin, oggi 50 mm, che si spartiscono in 10 mm
-di base NVMe sotto il Pi e 40 di HAT sopra. Con 50 la cassa sta a 75, con 58,2
-di componenti davanti e 20,0 mm di canale libero fra il pezzo più profondo e il
-fondo interno della cassa. Il canale diventa più stretto delle feritoie, e
-quindi il collo di bottiglia del raffreddamento, solo sotto i 7 mm, cioè con un
-gruppo da 64: ci sono quattordici millimetri fra la misura e il limite, che
-bastano anche a coprire i gusci dei connettori infilati sui pin in cima.
+dal piano del telaio alla cima dei pin coi Dupont innestati, misurata 50,0 mm.
+Il modello ne tiene 50,5, cioè 10 di distanziali sotto il Pi e 40,5 sopra il
+suo PCB, mezzo millimetro a favore di sicurezza. Con quello la cassa sta a 75,
+con 58,5 mm di componenti dalla faccia del vetro e 20,0 mm di canale libero fra
+il pezzo più profondo e il fondo interno della cassa. Il canale diventa più
+stretto di una feritoia lorda, e quindi il collo di bottiglia del
+raffreddamento, sotto i 13,2 mm, cioè con un gruppo da 57: ci sono sette
+millimetri fra la misura e il limite, che coprono anche i gusci dei connettori
+infilati sui pin in cima.
 
 Le quote dell'**altoparlante** non sono più stimate: 69,5 x 30,5 x 16,5 con
 fori da 3,5 a interasse 63,5 x 24, dentro il millimetro e mezzo dalle stime

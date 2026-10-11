@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Genera i disegni 2D del videocitofono da incasso in formato DXF.
 
-Produce quattro file nella cartella cad/:
+Produce sette file nella cartella cad/:
 
-  01-vetro-frontale.dxf   per la vetreria: sagoma, fori passanti e serigrafia
-  02-telaio-portante.dxf  per la carpenteria: piastra in alluminio forata
-  03-cassa-incasso.dxf    pianta e prospetti della cassa, con le forature
-  04-dima-muratura.dxf    sagoma 1:1 da stampare per tracciare la nicchia
+  01-vetro-frontale.dxf          per la vetreria: sagoma, fori e serigrafia
+  02-telaio-portante.dxf         per la carpenteria: piastra in alluminio
+  03-cassa-incasso.dxf           viste di controllo della cassa stampata
+  04-dima-muratura.dxf           sagoma 1:1 per tracciare la nicchia
+  05-disposizione.dxf            ingombri dei componenti, pianta e sezione
+  06-gruppo-display.dxf          display, schede e flat
+  07-staffa-e-pezzi-piani.dxf    squadretta e ritagli 1:1
 
 Ogni file usa layer separati per lavorazioni diverse, cosi' il fornitore
 importa solo quello che gli serve: TAGLIO per il profilo e i fori passanti,
 SERIGRAFIA per la stampa, PIEGA per le piegature, QUOTE e NOTE come
-riferimento da ignorare in macchina.
+riferimento da ignorare in macchina. Nei fogli che non vanno in macchina
+(03, 04, 05) i colori distinguono le parti, e ogni foglio ha la sua legenda.
 
 Uso:
     ../.venv-cad/bin/python genera_dxf.py
@@ -23,6 +27,7 @@ from pathlib import Path
 
 import ezdxf
 from ezdxf import units
+from ezdxf.enums import TextEntityAlignment
 
 import parametri as p
 
@@ -150,6 +155,109 @@ def nota(msp, x: float, y: float, testo: str, altezza: float = 2.5,
                  dxfattribs={"layer": layer}).set_placement((x, y))
 
 
+def richiamo(msp, punto: tuple[float, float], x: float, y: float, testo: str,
+             altezza: float = 2.6, layer: str = "NOTE"):
+    """Nota fuori dal pezzo, con una linea che la lega al punto che descrive.
+
+    Con x a sinistra del punto il testo finisce in x, allineato a destra.
+    """
+    a_sinistra = x < punto[0]
+    msp.add_line(punto, (x, y + altezza / 2), dxfattribs={"layer": "NOTE"})
+    t = msp.add_text(testo, height=altezza, dxfattribs={"layer": layer})
+    if a_sinistra:
+        t.set_placement((x - 1, y), align=TextEntityAlignment.BOTTOM_RIGHT)
+    else:
+        t.set_placement((x + 1, y))
+
+
+def _segmenti(msp):
+    """I tratti gia' disegnati, per cercare dove una scritta non li copre.
+
+    Un cerchio conta come il suo quadrato circoscritto: e' piu' severo, ed e'
+    lo stesso criterio di verifica_cad.py.
+    """
+    for e in msp:
+        t = e.dxftype()
+        if t == "LINE":
+            yield (e.dxf.start[0], e.dxf.start[1], e.dxf.end[0], e.dxf.end[1])
+        elif t == "LWPOLYLINE":
+            q = [(v[0], v[1]) for v in e.get_points()]
+            if e.closed:
+                q.append(q[0])
+            for a, b in zip(q, q[1:]):
+                yield (a[0], a[1], b[0], b[1])
+        elif t == "CIRCLE":
+            c, r = e.dxf.center, e.dxf.radius
+            for a, b in (((-r, -r), (r, -r)), ((r, -r), (r, r)),
+                         ((r, r), (-r, r)), ((-r, r), (-r, -r))):
+                yield (c[0] + a[0], c[1] + a[1], c[0] + b[0], c[1] + b[1])
+
+
+def segmento_nel_riquadro(box, s) -> bool:
+    """Liang-Barsky: True se il segmento s entra nel riquadro box."""
+    x0, y0, x1, y1 = box
+    ax, ay, bx, by = s
+    ddx, ddy = bx - ax, by - ay
+    t0, t1 = 0.0, 1.0
+    for pp, q in ((-ddx, ax - x0), (ddx, x1 - ax), (-ddy, ay - y0),
+                  (ddy, y1 - ay)):
+        if pp == 0:
+            if q < 0:
+                return False
+            continue
+        r = q / pp
+        if pp < 0:
+            t0 = max(t0, r)
+        else:
+            t1 = min(t1, r)
+        if t0 > t1:
+            return False
+    return True
+
+
+def riquadro_testo(x: float, y: float, testo: str, altezza: float):
+    """Stessa stima di verifica_cad.bbox_testo, ristretta di 0,3 per lato."""
+    return (x + 0.3, y - altezza * 0.25 + 0.3,
+            x + len(testo) * altezza * 0.62 - 0.3, y + altezza - 0.3)
+
+
+def etichetta_libera(msp, x: float, y: float, testo: str, altezza: float,
+                     layer: str, occupate: list) -> None:
+    """Scrive testo vicino a (x, y), dove non copre linee ne' altre scritte.
+
+    Cerca su anelli sempre piu' larghi; se deve allontanarsi piu' di 3 mm
+    traccia un richiamo, altrimenti un numero lontano dal suo riquadro non si
+    sa a chi appartiene.
+    """
+    tratti = list(_segmenti(msp))
+    scelto = None
+    for giro in range(0, 13):
+        r = giro * 1.5
+        prove = [(0.0, 0.0)] if giro == 0 else [
+            (r * math.cos(math.radians(a)), r * math.sin(math.radians(a)))
+            for a in range(0, 360, 30)]
+        for ox, oy in prove:
+            box = riquadro_testo(x + ox, y + oy, testo, altezza)
+            if any(segmento_nel_riquadro(box, s) for s in tratti):
+                continue
+            if any(min(box[2], b[2]) > max(box[0], b[0])
+                   and min(box[3], b[3]) > max(box[1], b[1])
+                   for b in occupate):
+                continue
+            scelto = (x + ox, y + oy)
+            break
+        if scelto:
+            break
+    if scelto is None:
+        scelto = (x, y)
+    elif math.hypot(scelto[0] - x, scelto[1] - y) > 3.0:
+        msp.add_line((x, y + altezza / 2),
+                     (scelto[0], scelto[1] + altezza / 2),
+                     dxfattribs={"layer": "NOTE"})
+    occupate.append(riquadro_testo(*scelto, testo, altezza))
+    nota(msp, scelto[0], scelto[1], testo, altezza, layer)
+
+
 def quota_oriz(msp, x1: float, x2: float, y: float, distanza: float = 8.0):
     msp.add_linear_dim(base=(0, y + distanza), p1=(x1, y), p2=(x2, y),
                        dxfattribs={"layer": "QUOTE"}).render()
@@ -211,10 +319,8 @@ def vetro_frontale() -> None:
     # Marca di orientamento: rende impossibile confondere la faccia.
     nota(msp, -p.VETRO_L / 2 + 4, p.VETRO_H + 4,
          "FUORI - vista dalla faccia 1", 3.0)
-    msp.add_line((-p.VETRO_L / 2 + 2, p.MICROFONO_Y),
-                 (p.MICROFONO_X - p.MICROFONO_D, p.MICROFONO_Y),
-                 dxfattribs={"layer": "NOTE"})
-    nota(msp, -p.VETRO_L / 2 + 2, p.MICROFONO_Y + 2, "microfono", 2.6)
+    richiamo(msp, (p.MICROFONO_X - p.MICROFONO_D, p.MICROFONO_Y),
+             -p.VETRO_L / 2 - 4, p.MICROFONO_Y - 1.3, "microfono")
 
     quota_oriz(msp, -p.VETRO_L / 2, p.VETRO_L / 2, p.VETRO_H, 10)
     quota_vert(msp, 0, p.VETRO_H, p.VETRO_L / 2, 14)
@@ -285,8 +391,8 @@ def telaio_portante() -> None:
          f" {p.DISPLAY_MODULO_H:.0f} - non forare", 2.6)
     rettangolo(msp, p.FLAT_ASOLA_L, p.FLAT_ASOLA_H, cx=p.FLAT_ASOLA_X,
                y0=p.FLAT_ASOLA_Y - p.FLAT_ASOLA_H / 2, raggio=2.0)
-    nota(msp, p.FLAT_ASOLA_X + p.FLAT_ASOLA_L / 2 + 2,
-         p.FLAT_ASOLA_Y, "flat display", 2.6)
+    richiamo(msp, (p.FLAT_ASOLA_X + p.FLAT_ASOLA_L / 2, p.FLAT_ASOLA_Y),
+             p.TELAIO_L / 2 + 6, p.FLAT_ASOLA_Y - 1.3, "flat display")
 
     # Fissaggio del Raspberry Pi, sul retro del telaio: la scheda e' centrata
     # in altezza, col lato lungo in verticale e l'RJ45 verso il basso. Da qui
@@ -310,10 +416,16 @@ def telaio_portante() -> None:
     rettangolo(msp, p.CAMERA_PCB_L, p.CAMERA_PCB_H,
                cx=p.CAMERA_X, y0=p.CAMERA_PCB_Y0 - p.CAMERA_PCB_H / 2,
                layer="INGOMBRI")
-    nota(msp, p.CAMERA_X + p.CAMERA_PCB_L / 2 + 2, p.OTTICA_Y,
-         f"ottica a {p.CAMERA_ASSE_OFFSET:.1f} sopra i fori", 2.6)
-    nota(msp, p.CAMERA_X + p.CAMERA_PCB_L / 2 + 2, p.OTTICA_Y - 5.5,
-         f"colonnine {p.CAMERA_COLONNINE:.0f} mm", 2.6)
+    # Le note dei componenti stanno fuori dal profilo, coi richiami: dentro
+    # finivano sopra il taglio e sopra i fori.
+    fuori_dx = p.TELAIO_L / 2 + 6
+    fuori_sx = -p.TELAIO_L / 2 - 6
+    richiamo(msp, (p.CAMERA_X + p.CAMERA_PCB_L / 2, p.OTTICA_Y),
+             fuori_dx, p.OTTICA_Y + 3,
+             f"ottica a {p.CAMERA_ASSE_OFFSET:.1f} sopra i fori")
+    richiamo(msp, (p.CAMERA_X + p.CAMERA_PCB_L / 2, p.OTTICA_Y - 8),
+             fuori_dx, p.OTTICA_Y - 4,
+             f"colonnine {p.CAMERA_COLONNINE:.0f} mm")
 
     # Microfono: la basetta e' incollata al vetro, davanti al telaio. Qui
     # serve solo l'asola per i fili.
@@ -321,8 +433,8 @@ def telaio_portante() -> None:
                y0=p.MIC_ASOLA_Y - p.MIC_ASOLA_H / 2, raggio=1.5)
     rettangolo(msp, p.MIC_PCB_L, p.MIC_PCB_H, cx=p.MICROFONO_X,
                y0=p.MICROFONO_Y - p.MIC_PCB_H / 2, layer="INGOMBRI")
-    nota(msp, p.MICROFONO_X - p.MIC_PCB_L / 2,
-         p.MICROFONO_Y + p.MIC_PCB_H / 2 + 1.5, "microfono I2S", 2.6)
+    richiamo(msp, (p.MICROFONO_X - p.MIC_PCB_L / 2, p.MICROFONO_Y),
+             fuori_sx, p.MICROFONO_Y + 4, "microfono I2S")
 
     # Altoparlante: luce davanti al cono e tre fori filettati. Il corpo sta
     # arretrato nel vano, su colonnine, per scavalcare la camera.
@@ -366,21 +478,22 @@ def telaio_portante() -> None:
     # serve a non montare nulla in quella fascia.
     rettangolo(msp, p.DRIVER_S, p.DRIVER_L, cx=p.DRIVER_X,
                y0=p.DRIVER_Y - p.DRIVER_L / 2, layer="INGOMBRI")
-    nota(msp, p.DRIVER_X + p.DRIVER_S, p.DRIVER_Y, "scheda di ingresso", 2.6)
+    richiamo(msp, (p.DRIVER_X - p.DRIVER_S / 2, p.DRIVER_Y + 8),
+             fuori_sx, p.DRIVER_Y + 8, "scheda di ingresso")
     rettangolo(msp, p.TERMINALE_S, p.TERMINALE_H, cx=p.TERMINALE_X,
                y0=p.TERMINALE_Y - p.TERMINALE_H / 2, layer="INGOMBRI")
-    nota(msp, p.TERMINALE_X + p.TERMINALE_S, p.TERMINALE_Y,
-         "schedina terminale", 2.6)
+    richiamo(msp, (p.TERMINALE_X - p.TERMINALE_S / 2, p.TERMINALE_Y),
+             fuori_sx, p.TERMINALE_Y, "schedina terminale")
 
     # I due fori della squadretta che tiene in piedi la scheda di ingresso.
     # Sono gli unici fori ciechi del pezzo, e vanno segnati come tali: cadono
     # nell'ombra del display, che corre a 1 mm dal fronte del telaio.
     for sx, sy in p.posizioni_fori_staffa():
         foro(msp, sx, sy, p.STAFFA_FORO_TELAIO_D, layer="FILETTATURA")
-    sx, sy = p.posizioni_fori_staffa()[0]
-    nota(msp, sx - 30, sy - 5.0,
-         f"2x M2.5 CIECHI prof. {p.STAFFA_FORO_PROF:.1f} (squadretta)", 2.6,
-         "FILETTATURA")
+    sx, sy = min(p.posizioni_fori_staffa(), key=lambda f: f[1])
+    richiamo(msp, (sx, sy), fuori_sx, sy - 8,
+             f"2x M2.5 CIECHI prof. {p.STAFFA_FORO_PROF:.1f} (squadretta)",
+             layer="FILETTATURA")
 
     y = -14.0
     for riga in [
@@ -459,103 +572,183 @@ def telaio_portante() -> None:
 def cassa_incasso() -> None:
     doc = nuovo_disegno()
     msp = doc.modelspace()
+    estremo = p.CASSA_L / 2 + p.FLANGIA
+    z_fer = p.Z_TELAIO + p.FESSURA_ARRETRAMENTO
+    y_basso = (p.VETRO_H - p.CASSA_H) / 2   # faccia esterna della parete bassa
 
-    # --- pianta (sezione orizzontale) ---
-    rettangolo(msp, p.CASSA_L, p.CASSA_PROF, y0=0)
+    # --- pianta: sezione orizzontale all'altezza delle feritoie laterali ---
+    # La profondita' cresce verso l'alto del foglio e parte dal piano
+    # dell'intonaco finito, che e' il fronte della cornice.
+    msp.add_line((-estremo - 6, 0), (estremo + 6, 0),
+                 dxfattribs={"layer": "QUOTE"})
+    rettangolo(msp, p.CASSA_L, p.CASSA_PROF, y0=p.Z_TELAIO)
     rettangolo(msp, p.CASSA_INT_L, p.CASSA_PROF - p.CASSA_PARETE,
-               y0=p.CASSA_PARETE, layer="INGOMBRI")
-    # Flangia arretrata: due alette che escono dai fianchi.
+               y0=p.Z_TELAIO, layer="INGOMBRI")
     for sx in (-1, 1):
+        # anello di battuta, feritoia nel fianco, flangia e cornice
+        rettangolo(msp, p.BATTUTA, p.BATTUTA_PROF,
+                   cx=sx * (p.CASSA_INT_L / 2 - p.BATTUTA / 2),
+                   y0=p.Z_TELAIO + p.TELAIO_S)
+        rettangolo(msp, p.CASSA_PARETE, p.FESSURA_ALTEZZA,
+                   cx=sx * (p.CASSA_L / 2 - p.CASSA_PARETE / 2), y0=z_fer)
         rettangolo(msp, p.FLANGIA, p.CASSA_PARETE,
                    cx=sx * (p.CASSA_L / 2 + p.FLANGIA / 2),
-                   y0=p.FLANGIA_ARRETRAMENTO, layer="PIEGA")
-    nota(msp, -p.CASSA_L / 2, p.CASSA_PROF + 4,
-         "PIANTA: fronte in basso, flangia arretrata di "
-         f"{p.FLANGIA_ARRETRAMENTO:.0f} mm", 3.0)
+                   y0=p.Z_FLANGIA, layer="PIEGA")
+        rettangolo(msp, p.CORNICE_S, p.Z_FLANGIA,
+                   cx=sx * (p.LUCE_INTONACO_L / 2 + p.CORNICE_S / 2),
+                   y0=0, layer="PIEGA")
+    quota_vert(msp, 0, p.Z_TELAIO, estremo, 6)
+    quota_vert(msp, z_fer, z_fer + p.FESSURA_ALTEZZA, estremo, 6)
+    quota_vert(msp, 0, p.Z_FLANGIA, estremo, 20)
+    quota_oriz(msp, -p.LUCE_INTONACO_L / 2, p.LUCE_INTONACO_L / 2, 0, -8)
+    nota(msp, -estremo, p.Z_TELAIO + p.CASSA_PROF + 4,
+         "PIANTA all'altezza delle feritoie laterali: in basso il piano"
+         " dell'intonaco finito", 3.0)
 
-    # --- fianchi orizzontali: qui sta la feritoia d'aria ---
-    base = p.CASSA_PROF + 24.0
-    rettangolo(msp, p.CASSA_L, p.CASSA_PROF, y0=base)
+    # --- parete bassa vista da sotto, con la cornice in trasparenza ---
+    base = p.Z_TELAIO + p.CASSA_PROF + 24.0
+    rettangolo(msp, p.CASSA_L, p.CASSA_PROF, y0=base + p.Z_TELAIO)
     rettangolo(msp, p.FESSURA_LARGHEZZA, p.FESSURA_ALTEZZA,
-               y0=base + p.FESSURA_ARRETRAMENTO, raggio=p.FESSURA_ALTEZZA / 2)
-    nota(msp, -p.CASSA_L / 2, base + p.CASSA_PROF + 4,
-         "FIANCHI ALTO E BASSO (uguali): feritoia a "
-         f"{p.FESSURA_ARRETRAMENTO:.0f} mm dal fronte", 3.0)
+               y0=base + z_fer)
+    rettangolo(msp, p.CORNICE_L, p.Z_FLANGIA, y0=base, layer="PIEGA")
+    rettangolo(msp, p.CASSA_L + 2 * p.FLANGIA, p.CASSA_PARETE,
+               y0=base + p.Z_FLANGIA, layer="PIEGA")
+    quota_oriz(msp, -p.FESSURA_LARGHEZZA / 2, p.FESSURA_LARGHEZZA / 2,
+               base + z_fer + p.FESSURA_ALTEZZA, 30)
+    nota(msp, -estremo, base + p.Z_TELAIO + p.CASSA_PROF + 4,
+         "PARETE BASSA vista da sotto: l'unica feritoia rivolta in basso."
+         " La parete alta e' chiusa.", 3.0)
+
+    # --- fianco destro (il sinistro e' speculare), visto da fuori ---
+    # In orizzontale la profondita' dal piano dell'intonaco, in verticale
+    # l'altezza con lo zero sul bordo basso del vetro.
+    ox = estremo + 40.0
+
+    def fianco(z1, z2, y1, y2, layer="TAGLIO"):
+        rettangolo(msp, z2 - z1, y2 - y1, cx=ox + (z1 + z2) / 2, y0=y1,
+                   layer=layer)
+
+    fianco(p.Z_TELAIO, p.Z_TELAIO + p.CASSA_PROF, y_basso,
+           y_basso + p.CASSA_H)
+    fianco(z_fer, z_fer + p.FESSURA_ALTEZZA, p.FESSURA_LATO_Y0,
+           p.FESSURA_LATO_Y1)
+    fianco(p.Z_TELAIO, p.Z_FLANGIA, p.FESSURA_LATO_Y1 + 1.0,
+           p.FESSURA_LATO_Y1 + 1.0 + p.GOCCIOLATOIO, "SMOKE")
+    fianco(p.Z_FLANGIA, p.Z_FLANGIA + p.CASSA_PARETE,
+           y_basso - p.FLANGIA, y_basso + p.CASSA_H + p.FLANGIA, "PIEGA")
+    fianco(0, p.Z_FLANGIA, (p.VETRO_H - p.CORNICE_H) / 2,
+           (p.VETRO_H + p.CORNICE_H) / 2, "PIEGA")
+    quota_vert(msp, p.FESSURA_LATO_Y0, p.FESSURA_LATO_Y1,
+               ox + p.Z_TELAIO + p.CASSA_PROF, 8)
+    nota(msp, ox, y_basso + p.CASSA_H + p.FLANGIA + 4,
+         "FIANCO, visto da fuori: feritoia e gocciolatoio", 3.0)
 
     # --- fondo, con i passaggi dei cavi ---
-    base2 = base + p.CASSA_PROF + 26.0
-    rettangolo(msp, p.CASSA_INT_L, p.CASSA_INT_H, y0=base2)
+    base2 = base + p.Z_TELAIO + p.CASSA_PROF + 26.0
+    rettangolo(msp, p.CASSA_L, p.CASSA_H, y0=base2)
     for sx in (-1, 1):
-        foro(msp, sx * p.CORRUGATO_PASSO / 2, base2 + 26.0, p.CORRUGATO_D)
-    nota(msp, -p.CASSA_INT_L / 2, base2 + p.CASSA_INT_H + 4,
-         "FONDO: passaggi dei corrugati", 3.0)
+        foro(msp, sx * p.CORRUGATO_PASSO / 2,
+             base2 + 26.0 - y_basso, p.CORRUGATO_D)
+    nota(msp, -p.CASSA_L / 2, base2 + p.CASSA_H + 4,
+         "FONDO visto da dietro: passaggi dei corrugati", 3.0)
 
-    # --- prospetto frontale: bocca, battuta e flangia ---
-    base3 = base2 + p.CASSA_INT_H + 26.0
+    # --- prospetto frontale: cornice, bocca, battuta e flangia ---
+    base3 = base2 + p.CASSA_H + 26.0 + p.FLANGIA
+    dy = base3 - y_basso                    # dalla quota del vetro al foglio
     rettangolo(msp, p.CASSA_L + 2 * p.FLANGIA, p.CASSA_H + 2 * p.FLANGIA,
-               y0=base3, raggio=4.0, layer="PIEGA")
-    rettangolo(msp, p.CASSA_L, p.CASSA_H, y0=base3 + p.FLANGIA)
-    # Bocca utile: il telaio appoggia sulla battuta perimetrale.
-    rettangolo(msp, p.CASSA_INT_L - 2 * p.BATTUTA,
-               p.CASSA_INT_H - 2 * p.BATTUTA,
-               y0=base3 + p.FLANGIA + p.CASSA_PARETE + p.BATTUTA)
+               y0=base3 - p.FLANGIA, raggio=4.0, layer="PIEGA")
+    rettangolo(msp, p.CORNICE_L, p.CORNICE_H,
+               y0=dy + (p.VETRO_H - p.CORNICE_H) / 2, layer="PIEGA")
+    rettangolo(msp, p.LUCE_INTONACO_L, p.LUCE_INTONACO_H,
+               y0=dy + (p.VETRO_H - p.LUCE_INTONACO_H) / 2, layer="PIEGA")
+    rettangolo(msp, p.CASSA_L, p.CASSA_H, y0=base3)
+    # Luce della battuta, con lo scarico lungo la squadretta sul fianco
+    # sinistro (visto da fuori la x cresce verso destra, come nel modello).
+    bx = p.CASSA_INT_L / 2 - p.BATTUTA
+    by0 = dy + (p.VETRO_H - p.CASSA_INT_H) / 2 + p.BATTUTA
+    by1 = dy + (p.VETRO_H + p.CASSA_INT_H) / 2 - p.BATTUTA
+    s0, s1 = dy + p.SCARICO_STAFFA_Y0, dy + p.SCARICO_STAFFA_Y1
+    msp.add_lwpolyline(
+        [(-bx, by0), (bx, by0), (bx, by1), (-bx, by1), (-bx, s1),
+         (p.SCARICO_STAFFA_X, s1), (p.SCARICO_STAFFA_X, s0), (-bx, s0)],
+        close=True, dxfattribs={"layer": "TAGLIO"})
     # Perni di centraggio sulla battuta alta.
     for sx in (-1, 1):
         foro(msp, sx * p.PERNO_PASSO / 2,
-             base3 + p.FLANGIA + (p.CASSA_H + p.TELAIO_H) / 2
-             - p.PERNO_MARGINE / 2, p.PERNO_D, layer="FILETTATURA")
-    # Fori di ancoraggio nella malta.
+             dy + (p.VETRO_H + p.TELAIO_H) / 2 - p.PERNO_MARGINE / 2,
+             p.PERNO_D, layer="FILETTATURA")
+    # Fori di ancoraggio nella malta, fuori dalla cornice.
     for sx in (-1, 1):
-        for i in range(4):
-            foro(msp, sx * (p.CASSA_L / 2 + p.FLANGIA / 2),
-                 base3 + p.FLANGIA + 20 + i * 55, p.FLANGIA_FORO_D,
-                 layer="PIEGA")
+        for i in range(p.FLANGIA_FORI_N):
+            foro(msp, sx * p.FLANGIA_FORI_X,
+                 dy + p.VETRO_H / 2
+                 + (i - (p.FLANGIA_FORI_N - 1) / 2) * p.FLANGIA_FORI_PASSO,
+                 p.FLANGIA_FORO_D)
     # Sedi dei riscontri sulla battuta. Sono una lavorazione e non un
     # riferimento, quindi stanno sul layer delle lavorazioni: disegnate fra gli
     # INGOMBRI venivano lette come "non lavorare" e il dischetto finiva
     # appoggiato sopra, dove alza il gruppo. Accanto resta il magnete come
     # riferimento, per far vedere che le due circonferenze non sono concentriche
-    # e che non e' una svista.
-    dy = base3 + p.FLANGIA - p.TELAIO_Y0
+    # e che non e' una svista. Le quote sono quelle del vetro, quindi si
+    # riportano al foglio con lo stesso dy della cassa: col bordo del telaio
+    # al posto di quello della cassa finivano 2,5 mm piu' in basso.
     for mx, my in p.posizioni_magneti():
         foro(msp, mx, my + dy, p.MAGNETE_D, layer="INGOMBRI")
     for sx, sy in p.posizioni_riscontri():
         foro(msp, sx, sy + dy, p.RISCONTRO_SEDE_D, layer="FILETTATURA")
-    nota(msp, -(p.CASSA_L / 2 + p.FLANGIA),
-         base3 + p.CASSA_H + 2 * p.FLANGIA + 4,
-         "PROSPETTO FRONTALE: bocca, battuta, riscontri magnetici, flangia",
+    nota(msp, -estremo, base3 + p.CASSA_H + p.FLANGIA + 4,
+         "PROSPETTO FRONTALE: cornice, bocca, battuta, riscontri, flangia",
          3.0)
 
+    sez = p.sezioni_aria()
     y = -16.0
     for riga in [
-        "CASSA DA INCASSO",
-        f"esterno {p.CASSA_L} x {p.CASSA_H} x {p.CASSA_PROF}",
+        "CASSA DA INCASSO - disegno di controllo della cassa stampata",
+        f"corpo {p.CASSA_L:.0f} x {p.CASSA_H:.0f} x {p.CASSA_PROF:.0f},"
+        f" con la cornice {p.CORNICE_L:.0f} x {p.CORNICE_H:.0f} e profonda"
+        f" {p.Z_TELAIO + p.CASSA_PROF:.0f} in tutto",
         f"nicchia da scavare {p.FORO_MURO_L:.0f} x {p.FORO_MURO_H:.0f}"
-        f" x {p.FORO_MURO_PROF:.0f}",
+        f" x {p.FORO_MURO_PROF:.0f}, profondita' dal filo dell'intonaco",
         "",
+        "Si stampa da stl/cassa.stl in ASA. Questo foglio serve a controllare",
+        "il pezzo e a murarlo, non a produrlo: cornice, gocciolatoi e smussi",
+        "non sono una scatola piegata.",
         f"PARETE {p.CASSA_PARETE} mm, MASSIMO"
         f" {(p.CASSA_L - p.TELAIO_L - 1.0) / 2:.1f}: il telaio da"
         f" {p.TELAIO_L:.0f} x {p.TELAIO_H:.0f} va dentro il vano, e la misura",
         "esterna la fissa la fessura d'ombra. Parete piu' grossa = non entra.",
         "",
-        "Due realizzazioni possibili:",
-        f"  lamiera: acciaio zincato {p.CASSA_PARETE} mm, piegata sui tratti",
-        "    del layer PIEGA, saldature agli spigoli. Questo foglio e' un",
-        "    disegno a quattro viste, non uno sviluppo in piano: lo sviluppo",
-        "    lo ricava il lamierista con la detrazione della sua macchina.",
-        f"  stampa 3D: ASA o PETG, pareti {p.CASSA_PARETE} mm,"
-        " mai PLA (deforma a 55 gradi).",
+        "LAYER in questo foglio:",
+        "  TAGLIO (rosso): corpo, battuta e tutte le aperture passanti",
+        "  PIEGA (giallo): cornice d'intonaco e flangia di muratura",
+        "  SMOKE (blu): gocciolatoi sopra le feritoie laterali",
+        "  FILETTATURA (verde): sedi non passanti, due perni e sei riscontri",
+        "  INGOMBRI (grigio): magneti del telaio e vano, per riferimento",
         "",
-        "Le feritoie NON vanno sul fronte: il vetro lo copre tutto e l'aria",
-        "non uscirebbe. Stanno nei fianchi alto e basso, affacciate alla",
-        f"fessura d'ombra di {p.OMBRA_PERIMETRALE:.0f} mm fra vetro e"
-        " intonaco.",
+        "LA CORNICE e' il riferimento della posa: il suo fronte va a filo",
+        "dell'intonaco finito, e allora il vetro e' a filo anche lui. Il",
+        f"fronte del corpo sta {p.Z_TELAIO:.0f} mm piu' indietro. Fra cornice e"
+        f" corpo resta un canale di {p.CANALE_PERIMETRALE:.0f} mm,"
+        " chiuso in fondo dalla",
+        f"flangia a {p.Z_FLANGIA:.0f} mm: la malta resta fuori, l'aria passa.",
+        "",
+        "FERITOIE: una in basso, rivolta in basso, e due nei fianchi in alto.",
+        "Nessuna nella parete alta, dove guarderebbe in su sotto la fessura",
+        "d'ombra e prenderebbe l'acqua che entra. Partono"
+        f" a {p.FESSURA_ARRETRAMENTO:.0f} mm dal fronte",
+        "del corpo, dietro la battuta: quattro magneti stanno dentro la",
+        "larghezza di quella bassa e l'anello deve restare intero.",
+        f"Bassa {p.FESSURA_LARGHEZZA:.0f} x {p.FESSURA_ALTEZZA:.0f},"
+        f" laterali {p.FESSURA_LATO_L:.0f} x {p.FESSURA_ALTEZZA:.0f}:"
+        f" {sez['ingresso']:.0f} cm2 per verso, {sez['ingresso_libera']:.1f}"
+        .replace(".", ",") + " tolta la rete.",
+        f"Rete inox maglia {p.RETE_MAGLIA} filo {p.RETE_FILO},"
+        .replace(".", ",") + " incollata all'interno.",
         "",
         f"Due perni O{p.PERNO_D:.0f} x {p.PERNO_SPORGENZA:.0f} sulla battuta"
         f" alta, passo {p.PERNO_PASSO:.0f}: centrano il telaio.",
-        "Il gruppo si tiene su sei magneti alloggiati nel telaio, e i magneti",
-        "hanno bisogno di ferro da attrarre: in lamiera e' la lamiera stessa e",
-        "non serve altro. Se la cassa e' stampata vanno sei dischetti di",
+        "Il gruppo si tiene su sei magneti alloggiati nel telaio di",
+        "alluminio, e la cassa stampata non ha ferro: vanno sei dischetti di",
         f"acciaio dolce O{p.RISCONTRO_D:.0f} x {p.RISCONTRO_S:.0f}, uno per",
         "magnete, ANNEGATI nelle sedi del layer FILETTATURA:",
         f"O{p.RISCONTRO_SEDE_D} profonde {p.RISCONTRO_SEDE_PROF}, sulla faccia"
@@ -568,26 +761,19 @@ def cassa_incasso() -> None:
         " mm dal bordo del vano,",
         "perche' centrate sul magnete sborderebbero dentro. Il dischetto copre",
         "comunque tutto il magnete, che e' quello che conta.",
-        "",
-        f"Feritoie {p.FESSURA_LARGHEZZA:.0f} x {p.FESSURA_ALTEZZA:.0f} mm"
-        f" = {p.FESSURA_LARGHEZZA * p.FESSURA_ALTEZZA / 100:.1f} cm2 per lato,",
-        f"con rete inox maglia {p.RETE_MAGLIA} mm incollata all'interno.",
-        f"Partono a {p.FESSURA_ARRETRAMENTO:.0f} mm dal fronte, cioe' dietro"
-        " la battuta e non a",
-        "cavallo: quattro magneti stanno dentro la loro larghezza, e con la",
-        "feritoia davanti l'anello di appoggio restava tagliato proprio dove",
-        "il magnete tira.",
-        "",
-        "LAYER FILETTATURA in questo foglio: non ci sono filetti, ci sono le",
-        "due sedi dei perni e le sei sedi dei riscontri, tutte lavorazioni",
-        "non passanti.",
+        "Sul fianco sinistro l'anello si restringe a"
+        f" {p.CASSA_INT_L / 2 - abs(p.SCARICO_STAFFA_X):.1f}"
+        .replace(".", ",") + " mm per",
+        f"{p.SCARICO_STAFFA_Y1 - p.SCARICO_STAFFA_Y0:.0f} mm: e' lo scarico"
+        " per la squadretta della scheda di ingresso.",
         "",
         "POSA: il muro e' in tufo. Bagnare la nicchia a rifiuto prima di",
         "murare, altrimenti il tufo assorbe l'acqua d'impasto e la malta non",
-        "fa presa. Dare mezzo grado di pendenza verso l'esterno: l'acqua che",
-        "entra dalla feritoia bassa deve poter tornare fuori.",
+        "fa presa. La cassa va murata a piombo e in bolla, senza pendenze: il",
+        "vetro e' parallelo alla cornice, e inclinarla lo porterebbe fuori",
+        "filo in alto o in basso. L'acqua esce dalla feritoia bassa.",
     ]:
-        nota(msp, -(p.CASSA_L / 2 + p.FLANGIA), y, riga)
+        nota(msp, -estremo, y, riga)
         y -= 4.5
 
     doc.saveas(USCITA / "03-cassa-incasso.dxf")
@@ -605,11 +791,13 @@ def dima_muratura() -> None:
     cy = p.VETRO_H / 2
     rettangolo(msp, p.FORO_MURO_L, p.FORO_MURO_H,
                y0=cy - p.FORO_MURO_H / 2, raggio=4.0)
-    rettangolo(msp, p.CASSA_L, p.CASSA_H, y0=cy - p.CASSA_H / 2,
+    rettangolo(msp, p.CASSA_L + 2 * p.FLANGIA, p.CASSA_H + 2 * p.FLANGIA,
+               y0=cy - p.CASSA_H / 2 - p.FLANGIA, raggio=4.0,
                layer="INGOMBRI")
+    rettangolo(msp, p.CORNICE_L, p.CORNICE_H, y0=cy - p.CORNICE_H / 2,
+               layer="SMOKE")
     rettangolo(msp, p.LUCE_INTONACO_L, p.LUCE_INTONACO_H,
-               y0=cy - p.LUCE_INTONACO_H / 2, raggio=p.VETRO_RAGGIO,
-               layer="PIEGA")
+               y0=cy - p.LUCE_INTONACO_H / 2, layer="PIEGA")
     rettangolo(msp, p.VETRO_L, p.VETRO_H, y0=0,
                raggio=p.VETRO_RAGGIO, layer="FINESTRE")
 
@@ -622,21 +810,25 @@ def dima_muratura() -> None:
     y = -26.0
     for riga in [
         "DIMA DI TRACCIAMENTO 1:1",
-        "Stampare in scala 1:1 (verificare la quota di controllo sotto),",
+        "Stampare in scala 1:1 (verificare la quota di controllo in cima),",
         "appoggiare al muro con l'asse verticale a piombo e tracciare.",
         "",
         f"TAGLIO (rosso): nicchia da scavare, {p.FORO_MURO_L:.0f} x"
-        f" {p.FORO_MURO_H:.0f} x {p.FORO_MURO_PROF:.0f} mm",
-        "INGOMBRI (grigio): ingombro della cassa",
-        f"PIEGA (giallo): luce finita dell'intonaco,"
+        f" {p.FORO_MURO_H:.0f} x {p.FORO_MURO_PROF:.0f} mm,",
+        "  la profondita' misurata dalla superficie dell'intonaco",
+        f"INGOMBRI (grigio): flangia della cassa,"
+        f" {p.CASSA_L + 2 * p.FLANGIA:.0f} x {p.CASSA_H + 2 * p.FLANGIA:.0f}",
+        f"SMOKE (blu): bordo esterno della cornice, {p.CORNICE_L:.0f} x"
+        f" {p.CORNICE_H:.0f}: l'intonaco finisce qui",
+        f"PIEGA (giallo): luce, cioe' bordo interno della cornice,"
         f" {p.LUCE_INTONACO_L:.0f} x {p.LUCE_INTONACO_H:.0f}",
         f"FINESTRE (ciano): filo del vetro, {p.VETRO_L:.0f} x {p.VETRO_H:.0f}",
         "",
         f"Fra giallo e ciano corre la fessura d'ombra di"
-        f" {p.OMBRA_PERIMETRALE:.0f} mm: non va stuccata sopra e sotto,",
-        "perche' e' la via d'aria delle feritoie.",
+        f" {p.OMBRA_PERIMETRALE:.0f} mm, aperta su tutti e",
+        "quattro i lati: e' la via d'aria. La fa la cornice, non il rasante.",
         "",
-        "Muro in tufo: si scava facilmente e si arriverebbe a 150 mm, ma la",
+        "Muro in tufo: si scava facilmente e si arriverebbe a 170 mm, ma la",
         f"nicchia va fatta di {p.FORO_MURO_PROF:.0f} e non di piu'. Bagnarla a"
         " rifiuto prima di murare.",
     ]:
@@ -644,7 +836,7 @@ def dima_muratura() -> None:
         y -= 4.5
 
     # Quota di controllo stampa: se non misura 100 mm, la scala e' sbagliata.
-    yq = p.VETRO_H + 16
+    yq = cy + p.FORO_MURO_H / 2 + 10
     msp.add_line((-50, yq), (50, yq), dxfattribs={"layer": "NOTE"})
     for x in (-50, 50):
         msp.add_line((x, yq - 3), (x, yq + 3), dxfattribs={"layer": "NOTE"})
@@ -670,7 +862,7 @@ def disposizione() -> None:
     comp = p.componenti()
 
     # ---- vista A: pianta vista dal retro -------------------------------
-    nota(msp, -p.VETRO_L / 2, p.VETRO_H + 10,
+    nota(msp, -p.VETRO_L / 2, (p.VETRO_H + p.CASSA_H) / 2 + p.FLANGIA + 6,
          "A - PIANTA DAL RETRO: dove va cosa", 4.0, "TAGLIO")
     rettangolo(msp, p.VETRO_L, p.VETRO_H, raggio=p.VETRO_RAGGIO,
                layer="FINESTRE")
@@ -683,7 +875,6 @@ def disposizione() -> None:
         msp.add_lwpolyline(
             [(x1, y1), (x2, y1), (x2, y2), (x1, y2)], close=True,
             dxfattribs={"layer": "INGOMBRI"})
-        nota(msp, x2 - 5, y2 - 5, f"{n}", 4.0, "QUOTE")
 
     # Le fasce libere servono a rispondere a "ci sta anche questo?", e la
     # domanda ha senso solo nel vano dietro il telaio: il display e la basetta
@@ -698,15 +889,25 @@ def disposizione() -> None:
         else:
             occupato.append([a, b])
     y = p.TELAIO_Y0
+    fasce = []
     for a, b in occupato + [[p.TELAIO_Y0 + p.TELAIO_H] * 2]:
         if a - y > 6:
             msp.add_lwpolyline(
                 [(-p.TELAIO_L / 2, y), (p.TELAIO_L / 2, y),
                  (p.TELAIO_L / 2, a), (-p.TELAIO_L / 2, a)], close=True,
                 dxfattribs={"layer": "PIEGA"})
-            nota(msp, -p.TELAIO_L / 2 + 2, (y + a) / 2 - 1.5,
-                 f"nel vano: libero {a - y:.0f} mm", 2.5, "PIEGA")
+            fasce.append((y, a))
         y = max(y, b)
+
+    # Le scritte vanno messe dopo tutta la geometria della vista, perche'
+    # etichetta_libera() schiva solo quello che e' gia' disegnato.
+    occupate: list = []
+    for y, a in fasce:
+        etichetta_libera(msp, -p.TELAIO_L / 2 + 2, (y + a) / 2 - 1.5,
+                         f"nel vano: libero {a - y:.0f} mm", 2.5, "PIEGA",
+                         occupate)
+    for n, (nome, x1, y1, z1, x2, y2, z2) in enumerate(comp, 1):
+        etichetta_libera(msp, x2 - 5, y2 - 5, f"{n}", 4.0, "QUOTE", occupate)
 
     # ---- vista B: sezione in profondita' -------------------------------
     # Asse orizzontale = z, cioe' la profondita' misurata dalla faccia del
@@ -714,7 +915,7 @@ def disposizione() -> None:
     # quindi allineate in altezza e si leggono affiancate.
     dx = p.VETRO_L / 2 + 55
     fondo = p.fondo_interno()
-    nota(msp, dx, p.VETRO_H + 10,
+    nota(msp, dx, (p.VETRO_H + p.CASSA_H) / 2 + p.FLANGIA + 6,
          "B - SEZIONE: profondita' da sinistra (vetro) a destra (fondo)",
          4.0, "TAGLIO")
 
@@ -726,47 +927,59 @@ def disposizione() -> None:
     sez(0, 0, p.VETRO_S, p.VETRO_H, "FINESTRE")                  # vetro
     sez(p.Z_TELAIO, p.TELAIO_Y0, p.Z_TELAIO + p.TELAIO_S,
         p.TELAIO_Y0 + p.TELAIO_H, "TAGLIO")                      # telaio
-    # Cassa: pareti orizzontali e fondo, con le due feritoie in evidenza.
-    sez(p.Z_TELAIO, (p.VETRO_H - p.CASSA_H) / 2 - p.CASSA_PARETE,
-        p.Z_TELAIO + p.CASSA_PROF, (p.VETRO_H - p.CASSA_H) / 2, "SMOKE")
-    sez(p.Z_TELAIO, (p.VETRO_H + p.CASSA_H) / 2,
-        p.Z_TELAIO + p.CASSA_PROF,
-        (p.VETRO_H + p.CASSA_H) / 2 + p.CASSA_PARETE, "SMOKE")
-    sez(fondo, (p.VETRO_H - p.CASSA_H) / 2, fondo + p.CASSA_PARETE,
-        (p.VETRO_H + p.CASSA_H) / 2, "SMOKE")
-    for segno in (-1, 1):
-        yf = (p.VETRO_H + segno * p.CASSA_H) / 2
-        sez(p.Z_TELAIO + p.FESSURA_ARRETRAMENTO,
-            yf - (p.CASSA_PARETE if segno > 0 else 0),
-            p.Z_TELAIO + p.FESSURA_ARRETRAMENTO + p.FESSURA_ALTEZZA,
-            yf + (p.CASSA_PARETE if segno < 0 else 0), "TAGLIO")
-    nota(msp, dx + p.Z_TELAIO + p.FESSURA_ARRETRAMENTO,
-         (p.VETRO_H + p.CASSA_H) / 2 + 4,
-         f"feritoia {p.FESSURA_LARGHEZZA:.0f}x{p.FESSURA_ALTEZZA:.0f}"
-         f" a {p.FESSURA_ARRETRAMENTO:.0f} dal fronte", 2.5, "TAGLIO")
-
-    # I numeri dei componenti seguono l'angolo del rispettivo riquadro, e due
-    # componenti che finiscono nello stesso punto si prendono lo stesso posto:
-    # l'8 e il 10 si toccavano. Scendo finche' trovo spazio libero.
-    etichette: list[tuple[float, float]] = []
+    # Cassa: pareti orizzontali e fondo, nelle loro posizioni vere. Le pareti
+    # stanno all'interno del contorno esterno CASSA_H, e il fondo finisce
+    # dove finisce la cassa.
+    y_basso = (p.VETRO_H - p.CASSA_H) / 2
+    y_alto = (p.VETRO_H + p.CASSA_H) / 2
+    z_fer = p.Z_TELAIO + p.FESSURA_ARRETRAMENTO
+    sez(p.Z_TELAIO, y_basso, p.Z_TELAIO + p.CASSA_PROF,
+        y_basso + p.CASSA_PARETE, "SMOKE")
+    sez(p.Z_TELAIO, y_alto - p.CASSA_PARETE, p.Z_TELAIO + p.CASSA_PROF,
+        y_alto, "SMOKE")
+    sez(fondo, y_basso, fondo + p.CASSA_PARETE, y_alto, "SMOKE")
+    # Cornice e flangia, sopra e sotto.
+    for y1, y2 in ((y_basso - p.CANALE_PERIMETRALE - p.CORNICE_S,
+                    y_basso - p.CANALE_PERIMETRALE),
+                   (y_alto + p.CANALE_PERIMETRALE,
+                    y_alto + p.CANALE_PERIMETRALE + p.CORNICE_S)):
+        sez(0, y1, p.Z_FLANGIA, y2, "SMOKE")
+    sez(p.Z_FLANGIA, y_basso - p.FLANGIA, p.Z_FLANGIA + p.CASSA_PARETE,
+        y_basso, "SMOKE")
+    sez(p.Z_FLANGIA, y_alto, p.Z_FLANGIA + p.CASSA_PARETE,
+        y_alto + p.FLANGIA, "SMOKE")
+    # La feritoia bassa sta nel piano della sezione; le laterali sono sui
+    # fianchi e qui si vedono in proiezione.
+    sez(z_fer, y_basso, z_fer + p.FESSURA_ALTEZZA, y_basso + p.CASSA_PARETE,
+        "TAGLIO")
+    sez(z_fer, p.FESSURA_LATO_Y0, z_fer + p.FESSURA_ALTEZZA,
+        p.FESSURA_LATO_Y1, "TAGLIO")
     for n, (nome, x1, y1, z1, x2, y2, z2) in enumerate(comp, 1):
         sez(z1, y1, z2, y2, "INGOMBRI")
-        ex, ey = dx + z2 + 2, y2 - 5
-        while any(abs(ex - ux) < 6.0 and abs(ey - uy) < 5.0
-                  for ux, uy in etichette):
-            ey -= 5.0
-        etichette.append((ex, ey))
-        nota(msp, ex, ey, f"{n}", 4.0, "QUOTE")
 
     # Il canale d'aria, che e' il vincolo del raffreddamento.
     zmax = max(c[6] for c in comp)
-    sez(zmax, (p.VETRO_H - p.CASSA_H) / 2, fondo,
-        (p.VETRO_H + p.CASSA_H) / 2, "PIEGA")
-    nota(msp, dx + zmax + 1, (p.VETRO_H - p.CASSA_H) / 2 + 8,
-         f"canale d'aria {p.canale_aria():.1f} mm"
-         f" = {p.CASSA_INT_L * p.canale_aria() / 100:.1f} cm2", 3.0, "PIEGA")
-    quota_oriz(msp, dx + zmax, dx + fondo, (p.VETRO_H - p.CASSA_H) / 2, -12)
+    sez(zmax, y_basso, fondo, y_alto, "PIEGA")
+    quota_oriz(msp, dx + zmax, dx + fondo, y_basso, -12)
     quota_oriz(msp, dx, dx + p.Z_TELAIO + p.CASSA_PROF, 0, -26)
+
+    # Le scritte dopo la geometria, come nella pianta. Fuori dal disegno
+    # quelle lunghe, dentro solo i numeri dei componenti.
+    z_fuori = p.Z_TELAIO + p.CASSA_PROF + 4
+    richiamo(msp, (dx + z_fer, y_basso), dx - 3, y_basso - 12,
+             f"feritoia bassa {p.FESSURA_LARGHEZZA:.0f}x{p.FESSURA_ALTEZZA:.0f}",
+             2.5, "TAGLIO")
+    richiamo(msp, (dx + z_fer, p.FESSURA_LATO_Y1), dx - 3,
+             p.FESSURA_LATO_Y1 + 4,
+             f"feritoie laterali {p.FESSURA_LATO_L:.0f}x{p.FESSURA_ALTEZZA:.0f}",
+             2.5, "TAGLIO")
+    richiamo(msp, (dx + fondo, y_basso + 20), dx + z_fuori, y_basso + 20,
+             f"canale d'aria {p.canale_aria():.1f} mm"
+             f" = {p.CASSA_INT_L * p.canale_aria() / 100:.1f} cm2", 3.0,
+             "PIEGA")
+    for n, (nome, x1, y1, z1, x2, y2, z2) in enumerate(comp, 1):
+        etichetta_libera(msp, dx + z2 + 1, y2 - 5, f"{n}", 4.0, "QUOTE",
+                         occupate)
 
     y = -40
     righe_legenda = ["LEGENDA   (quote in mm, z dalla faccia esterna del vetro)",
@@ -786,7 +999,10 @@ def disposizione() -> None:
         "PIEGA (giallo): in pianta le fasce libere nel vano dietro il telaio,",
         "  in sezione il canale d'aria. Il display e la basetta del microfono",
         "  stanno davanti al telaio e non restringono quelle fasce.",
-        "SMOKE (blu): pareti della cassa   TAGLIO (rosso): telaio e feritoie",
+        "SMOKE (blu): cassa, cornice e flangia   TAGLIO (rosso): telaio e"
+        " feritoie;",
+        "  in sezione la feritoia bassa e' tagliata, le laterali stanno sui"
+        " fianchi e si vedono in proiezione.",
         "FINESTRE (ciano): vetro",
         "",
         f"La z si misura dalla faccia esterna del vetro. Il fronte della cassa"
@@ -804,8 +1020,11 @@ def disposizione() -> None:
         " seconda.",
         f"Canale d'aria residuo {p.canale_aria():.1f} mm. Il controllo di"
         " interferenza protesta",
-        "quando la sua sezione scende sotto quella delle feritoie, cioe' con un",
-        "gruppo da 64 mm: quattordici in piu' di quanto misura oggi.",
+        "quando la sua sezione scende sotto quella lorda di una feritoia,"
+        " cioe' con un",
+        f"gruppo da {p.gruppo_massimo():.0f} mm:"
+        f" {p.gruppo_massimo() - p.PI_GRUPPO_H:.0f} in piu' di quanto misura"
+        " oggi.",
         "",
         "Cosa questo disegno NON dice: i percorsi dei cavi. L'ansa dei fili fra",
         "la base dell'SSD e i pin in cima allo stack non e' modellata, e nei",
@@ -1044,7 +1263,7 @@ def gruppo_display() -> None:
         "Il flat largo e' 25 mm: fra le due schede il suo",
         "piano sta parallelo al fianco, quindi quei 25 mm",
         "si sviluppano in profondita', dove ce ne sono",
-        f"{p.CASSA_PROF - p.Z_TELAIO - p.TELAIO_S - p.CASSA_PARETE:.0f}.",
+        f"{p.fondo_interno() - p.Z_TELAIO - p.TELAIO_S:.1f}.".replace(".", ",", 1),
     ])
 
     # ================== 3. quello che resta ==============================
@@ -1077,7 +1296,7 @@ def pezzi_minori() -> None:
     """I pezzi che restavano senza disegno, e senza i quali non si monta.
 
     La squadretta della scheda di ingresso era descritta come "biadesivo o una
-    squadretta": qui diventa un pezzo con delle quote. Gli altri tre sono
+    squadretta": qui diventa un pezzo con delle quote. Gli altri quattro sono
     ritagli piani che chiunque fa con un cutter, ma averli in scala 1:1 evita
     di misurarli sul pezzo montato.
 
@@ -1096,13 +1315,13 @@ def pezzi_minori() -> None:
 
     nota(msp, 0, 14, "SQUADRETTA DEL DISPLAY E PEZZI PIANI", 6.0, "TAGLIO")
     righe(0, 6, [
-        "Tutto in scala 1:1. La squadretta e' da piegare, gli altri tre sono"
-        " ritagli. Le quote di piega sono",
-        "nominali: la detrazione va rifatta sulla macchina di chi piega, come"
-        " per lo sviluppo della cassa."], 2.8, 4.5)
+        "Tutto in scala 1:1. La squadretta e' da piegare, gli altri quattro"
+        " sono ritagli. Le quote di piega sono",
+        "nominali: la detrazione va rifatta sulla macchina di chi piega."],
+        2.8, 4.5)
 
     # ================= 1. la squadretta ==================================
-    msp.add_line((0, -16), (260, -16), dxfattribs={"layer": "QUOTE"})
+    msp.add_line((0, -16), (340, -16), dxfattribs={"layer": "QUOTE"})
     nota(msp, 0, -24, "1 - SQUADRETTA DELLA SCHEDA DI INGRESSO", 5.0, "TAGLIO")
     nota(msp, 0, -30, "alluminio 1,5 mm, una piega a 90 gradi."
          "  A sinistra lo sviluppo da tagliare, a destra il pezzo piegato"
@@ -1148,7 +1367,8 @@ def pezzi_minori() -> None:
         (vx + s, y0 + 4), (vx + s + p.DRIVER_S, y0 + 4),
         (vx + s + p.DRIVER_S, y0 + 4 + p.DRIVER_H), (vx + s, y0 + 4 + p.DRIVER_H),
     ], close=True, dxfattribs={"layer": "INGOMBRI"})
-    nota(msp, vx + s + 2, y0 + 4 + p.DRIVER_H / 2, "scheda", 2.4, "INGOMBRI")
+    nota(msp, vx + s + p.DRIVER_S + 1.5, y0 + 4 + p.DRIVER_H / 2, "scheda",
+         2.4, "INGOMBRI")
     gioco = (p.CASSA_L / 2 - p.CASSA_PARETE) - abs(p.STAFFA_X - s / 2)
     msp.add_line((vx - gioco, y0 - 4), (vx - gioco, y0 + sv_h),
                  dxfattribs={"layer": "INGOMBRI"})
@@ -1171,7 +1391,7 @@ def pezzi_minori() -> None:
 
     # ================= 2. i ritagli piani ===============================
     cursore = y0 - 26.0
-    msp.add_line((0, cursore), (260, cursore), dxfattribs={"layer": "QUOTE"})
+    msp.add_line((0, cursore), (340, cursore), dxfattribs={"layer": "QUOTE"})
     nota(msp, 0, cursore - 8, "2 - RITAGLI PIANI, SCALA 1:1", 5.0, "TAGLIO")
     nota(msp, 0, cursore - 14, "sagome in scala 1:1 da riportare sul materiale",
          2.8)
@@ -1188,11 +1408,16 @@ def pezzi_minori() -> None:
           f"NFC {p.NFC_APERTURA_L:.0f}x{p.NFC_APERTURA_H:.0f}, 4 mm di bordo"]),
         (f"rete {p.RETE_L:.0f} x {p.RETE_H:.0f}",
          p.RETE_L, p.RETE_H,
-         [f"inox maglia {p.RETE_MAGLIA} mm:", "due pezzi, uno per feritoia",
-          f"{p.RETE_SOVRAPPOSIZIONE / 2:.1f} mm di bordo per incollarla,"
-          .replace(".", ","),
-          f"su una feritoia di {p.FESSURA_LARGHEZZA:.0f}"
-          f" x {p.FESSURA_ALTEZZA:.0f}"]),
+         [f"inox maglia {p.RETE_MAGLIA} filo {p.RETE_FILO}:".replace(".", ","),
+          "un pezzo, per la feritoia bassa",
+          f"{p.FESSURA_LARGHEZZA:.0f} x {p.FESSURA_ALTEZZA:.0f};"
+          f" {p.RETE_SOVRAPPOSIZIONE / 2:.1f} mm di".replace(".", ","),
+          "bordo per incollarla"]),
+        (f"rete {p.RETE_LATO_L:.0f} x {p.RETE_H:.0f}",
+         p.RETE_LATO_L, p.RETE_H,
+         ["stessa rete: due pezzi, uno",
+          "per feritoia laterale",
+          f"{p.FESSURA_LATO_L:.0f} x {p.FESSURA_ALTEZZA:.0f}, stesso bordo"]),
     ]
     # Tutti i pezzi appoggiano sulla stessa linea di base e il testo sta
     # sotto quella linea, cosi' nessuna didascalia finisce su un disegno.

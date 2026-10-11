@@ -489,7 +489,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461325.0807407405
+2461325.1575810187
   9
 $TDUCREATE
  40
@@ -497,7 +497,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461325.0807407405
+2461325.1575810187
   9
 $TDUUPDATE
  40
@@ -549,7 +549,7 @@ $SPLINESEGS
   9
 $HANDSEED
   5
-128
+133
   9
 $SURFTAB1
  70
@@ -929,11 +929,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{38220E0D-63DE-4268-B09E-52EDB0EA6CC8}
+{F6BC5873-4267-493D-AAFC-668FE2EB03ED}
   9
 $VERSIONGUID
   2
-{AFA7CE3F-2E37-4F73-832F-F36F9DFE35D8}
+{2A8CBAE4-D467-4939-9937-92C23B09DEB0}
   9
 $EXTNAMES
 290
@@ -1323,9 +1323,9 @@ ISM
   0
 CLASS
   1
-LAYOUT
+ACDBPLACEHOLDER
   2
-AcDbLayout
+AcDbPlaceHolder
   3
 ObjectDBX Classes
  90
@@ -1339,9 +1339,9 @@ ObjectDBX Classes
   0
 CLASS
   1
-ACDBPLACEHOLDER
+LAYOUT
   2
-AcDbPlaceHolder
+AcDbLayout
   3
 ObjectDBX Classes
  90
@@ -3301,7 +3301,7 @@ ACAD
   0
 APPID
   5
-125
+130
 330
 3
 100
@@ -3315,7 +3315,7 @@ HATCHBACKGROUNDCOLOR
   0
 APPID
   5
-126
+131
 330
 3
 100
@@ -5121,7 +5121,7 @@ _CLOSEDBLANK
   0
 BLOCK_RECORD
   5
-DE
+D4
 330
 9
 100
@@ -5141,7 +5141,7 @@ AcDbBlockTableRecord
   0
 BLOCK_RECORD
   5
-ED
+E3
 330
 9
 100
@@ -5461,9 +5461,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-DF
+D5
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5487,9 +5487,9 @@ AcDbBlockBegin
   0
 LINE
   5
-E1
+D7
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5511,9 +5511,9 @@ AcDbLine
   0
 LINE
   5
-E2
+D8
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5535,9 +5535,9 @@ AcDbLine
   0
 INSERT
   5
-E3
+D9
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5561,9 +5561,9 @@ _ARCHTICK
   0
 INSERT
   5
-E5
+DB
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5585,9 +5585,9 @@ _ARCHTICK
   0
 LINE
   5
-E7
+DD
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5609,9 +5609,9 @@ AcDbLine
   0
 MTEXT
   5
-E8
-330
 DE
+330
+D4
 100
 AcDbEntity
   8
@@ -5635,9 +5635,9 @@ OpenSansCondensed-Light
   0
 POINT
   5
-E9
+DF
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5653,9 +5653,9 @@ AcDbPoint
   0
 POINT
   5
-EA
+E0
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5671,9 +5671,9 @@ AcDbPoint
   0
 POINT
   5
-EB
+E1
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5689,9 +5689,9 @@ AcDbPoint
   0
 ENDBLK
   5
-E0
+D6
 330
-DE
+D4
 100
 AcDbEntity
   8
@@ -5701,9 +5701,9 @@ AcDbBlockEnd
   0
 BLOCK
   5
-EE
+E4
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5727,9 +5727,9 @@ AcDbBlockBegin
   0
 LINE
   5
-F0
+E6
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5751,9 +5751,9 @@ AcDbLine
   0
 LINE
   5
-F1
+E7
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5775,9 +5775,9 @@ AcDbLine
   0
 INSERT
   5
-F2
+E8
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5801,9 +5801,9 @@ _ARCHTICK
   0
 INSERT
   5
-F4
+EA
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5825,9 +5825,9 @@ _ARCHTICK
   0
 LINE
   5
-F6
+EC
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5849,9 +5849,9 @@ AcDbLine
   0
 MTEXT
   5
-F7
-330
 ED
+330
+E3
 100
 AcDbEntity
   8
@@ -5875,9 +5875,9 @@ OpenSansCondensed-Light
   0
 POINT
   5
-F8
+EE
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5893,9 +5893,9 @@ AcDbPoint
   0
 POINT
   5
-F9
+EF
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5911,9 +5911,9 @@ AcDbPoint
   0
 POINT
   5
-FA
+F0
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5929,9 +5929,9 @@ AcDbPoint
   0
 ENDBLK
   5
-EF
+E5
 330
-ED
+E3
 100
 AcDbEntity
   8
@@ -5959,7 +5959,7 @@ AcDbText
  10
 -50.0
  20
-250.0
+260.5
  30
 0.0
  40
@@ -5969,7 +5969,7 @@ A - PIANTA DAL RETRO: dove va cosa
  11
 -50.0
  21
-250.0
+260.5
  31
 0.0
 100
@@ -6095,7 +6095,7 @@ AcDbPolyline
  20
 49.0
   0
-TEXT
+LWPOLYLINE
   5
 97
 330
@@ -6103,27 +6103,29 @@ TEXT
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
- 10
-25.0
- 20
-44.0
- 30
-0.0
- 40
-4.0
-  1
+AcDbPolyline
+ 90
+4
+ 70
 1
- 11
-25.0
- 21
-44.0
- 31
-0.0
-100
-AcDbText
+ 10
+-35.0
+ 20
+57.5
+ 10
+35.0
+ 20
+57.5
+ 10
+35.0
+ 20
+182.5
+ 10
+-35.0
+ 20
+182.5
   0
 LWPOLYLINE
   5
@@ -6141,23 +6143,23 @@ AcDbPolyline
  70
 1
  10
--35.0
+-12.5
  20
-57.5
+187.5
  10
-35.0
+12.5
  20
-57.5
+187.5
  10
-35.0
+12.5
  20
-182.5
+211.36200000000002
  10
--35.0
+-12.5
  20
-182.5
+211.36200000000002
   0
-TEXT
+LWPOLYLINE
   5
 99
 330
@@ -6165,27 +6167,29 @@ TEXT
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-30.0
+-5.4
  20
-177.5
- 30
-0.0
- 40
-4.0
-  1
-2
- 11
-30.0
- 21
-177.5
- 31
-0.0
-100
-AcDbText
+196.6
+ 10
+5.4
+ 20
+196.6
+ 10
+5.4
+ 20
+207.4
+ 10
+-5.4
+ 20
+207.4
   0
 LWPOLYLINE
   5
@@ -6203,23 +6207,23 @@ AcDbPolyline
  70
 1
  10
--12.5
+-34.75
  20
-187.5
+195.75
  10
-12.5
+34.75
  20
-187.5
+195.75
  10
-12.5
+34.75
  20
-211.36200000000002
+226.25
  10
--12.5
+-34.75
  20
-211.36200000000002
+226.25
   0
-TEXT
+LWPOLYLINE
   5
 9B
 330
@@ -6227,27 +6231,29 @@ TEXT
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-7.5
+-39.75
  20
-206.36200000000002
- 30
-0.0
- 40
-4.0
-  1
-3
- 11
-7.5
- 21
-206.36200000000002
- 31
-0.0
-100
-AcDbText
+198.75
+ 10
+-24.25
+ 20
+198.75
+ 10
+-24.25
+ 20
+205.25
+ 10
+-39.75
+ 20
+205.25
   0
 LWPOLYLINE
   5
@@ -6265,23 +6271,23 @@ AcDbPolyline
  70
 1
  10
--5.4
+-28.0
  20
-196.6
+77.5
  10
-5.4
+28.0
  20
-196.6
+77.5
  10
-5.4
+28.0
  20
-207.4
+162.5
  10
--5.4
+-28.0
  20
-207.4
+162.5
   0
-TEXT
+LWPOLYLINE
   5
 9D
 330
@@ -6289,27 +6295,29 @@ TEXT
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
- 10
-0.40000000000000036
- 20
-202.4
- 30
-0.0
- 40
-4.0
-  1
+AcDbPolyline
+ 90
 4
- 11
-0.40000000000000036
- 21
-202.4
- 31
-0.0
-100
-AcDbText
+ 70
+1
+ 10
+-38.25
+ 20
+128.5
+ 10
+-33.75
+ 20
+128.5
+ 10
+-33.75
+ 20
+171.5
+ 10
+-38.25
+ 20
+171.5
   0
 LWPOLYLINE
   5
@@ -6327,23 +6335,23 @@ AcDbPolyline
  70
 1
  10
--34.75
+-37.0
  20
-195.75
+90.0
  10
-34.75
+-35.0
  20
-195.75
+90.0
  10
-34.75
+-35.0
  20
-226.25
+110.0
  10
--34.75
+-37.0
  20
-226.25
+110.0
   0
-TEXT
+LWPOLYLINE
   5
 9F
 330
@@ -6351,27 +6359,29 @@ TEXT
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-29.75
+-40.45
  20
-221.25
- 30
-0.0
- 40
-4.0
-  1
-5
- 11
-29.75
- 21
-221.25
- 31
-0.0
-100
-AcDbText
+126.5
+ 10
+-38.95
+ 20
+126.5
+ 10
+-38.95
+ 20
+173.5
+ 10
+-40.45
+ 20
+173.5
   0
 LWPOLYLINE
   5
@@ -6389,23 +6399,23 @@ AcDbPolyline
  70
 1
  10
--39.75
+-38.95
  20
-198.75
+126.5
  10
--24.25
+-26.950000000000003
  20
-198.75
+126.5
  10
--24.25
+-26.950000000000003
  20
-205.25
+173.5
  10
--39.75
+-38.95
  20
-205.25
+173.5
   0
-TEXT
+LWPOLYLINE
   5
 A1
 330
@@ -6413,27 +6423,29 @@ A1
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
--29.25
+-25.5
  20
-200.25
- 30
-0.0
- 40
-4.0
-  1
-6
- 11
--29.25
- 21
-200.25
- 31
-0.0
-100
-AcDbText
+87.5
+ 10
+25.5
+ 20
+87.5
+ 10
+25.5
+ 20
+152.5
+ 10
+-25.5
+ 20
+152.5
   0
 LWPOLYLINE
   5
@@ -6451,23 +6463,23 @@ AcDbPolyline
  70
 1
  10
--28.0
+-25.5
+ 20
+52.5
+ 10
+25.5
+ 20
+52.5
+ 10
+25.5
  20
 77.5
  10
-28.0
+-25.5
  20
 77.5
- 10
-28.0
- 20
-162.5
- 10
--28.0
- 20
-162.5
   0
-TEXT
+LWPOLYLINE
   5
 A3
 330
@@ -6475,27 +6487,29 @@ A3
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-23.0
+-28.0
  20
-157.5
- 30
-0.0
- 40
-4.0
-  1
-7
- 11
-23.0
- 21
-157.5
- 31
-0.0
-100
-AcDbText
+43.5
+ 10
+-8.0
+ 20
+43.5
+ 10
+-8.0
+ 20
+77.5
+ 10
+-28.0
+ 20
+77.5
   0
 LWPOLYLINE
   5
@@ -6505,7 +6519,7 @@ A4
 100
 AcDbEntity
   8
-INGOMBRI
+PIEGA
 100
 AcDbPolyline
  90
@@ -6513,23 +6527,23 @@ AcDbPolyline
  70
 1
  10
--38.25
+-44.5
  20
-128.5
+173.5
  10
--33.75
+44.5
  20
-128.5
+173.5
  10
--33.75
+44.5
  20
-171.5
+187.5
  10
--38.25
+-44.5
  20
-171.5
+187.5
   0
-TEXT
+LWPOLYLINE
   5
 A5
 330
@@ -6537,37 +6551,7 @@ A5
 100
 AcDbEntity
   8
-QUOTE
-100
-AcDbText
- 10
--38.75
- 20
-166.5
- 30
-0.0
- 40
-4.0
-  1
-8
- 11
--38.75
- 21
-166.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-A6
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
+PIEGA
 100
 AcDbPolyline
  90
@@ -6575,21 +6559,45 @@ AcDbPolyline
  70
 1
  10
--37.0
+-44.5
  20
-90.0
+226.25
  10
--35.0
+44.5
  20
-90.0
+226.25
  10
--35.0
+44.5
  20
-110.0
+234.5
  10
--37.0
+-44.5
  20
-110.0
+234.5
+  0
+LINE
+  5
+A6
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+-42.5
+ 20
+180.25
+ 30
+0.0
+ 11
+-40.25
+ 21
+184.14711431702997
+ 31
+0.0
   0
 TEXT
   5
@@ -6599,385 +6607,13 @@ A7
 100
 AcDbEntity
   8
-QUOTE
-100
-AcDbText
- 10
--40.0
- 20
-105.0
- 30
-0.0
- 40
-4.0
-  1
-9
- 11
--40.0
- 21
-105.0
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-A8
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--40.45
- 20
-126.5
- 10
--38.95
- 20
-126.5
- 10
--38.95
- 20
-173.5
- 10
--40.45
- 20
-173.5
-  0
-TEXT
-  5
-A9
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
--43.95
- 20
-168.5
- 30
-0.0
- 40
-4.0
-  1
-10
- 11
--43.95
- 21
-168.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-AA
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--38.95
- 20
-126.5
- 10
--26.950000000000003
- 20
-126.5
- 10
--26.950000000000003
- 20
-173.5
- 10
--38.95
- 20
-173.5
-  0
-TEXT
-  5
-AB
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
--31.950000000000003
- 20
-168.5
- 30
-0.0
- 40
-4.0
-  1
-11
- 11
--31.950000000000003
- 21
-168.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-AC
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--25.5
- 20
-87.5
- 10
-25.5
- 20
-87.5
- 10
-25.5
- 20
-152.5
- 10
--25.5
- 20
-152.5
-  0
-TEXT
-  5
-AD
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-20.5
- 20
-147.5
- 30
-0.0
- 40
-4.0
-  1
-12
- 11
-20.5
- 21
-147.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-AE
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--25.5
- 20
-52.5
- 10
-25.5
- 20
-52.5
- 10
-25.5
- 20
-77.5
- 10
--25.5
- 20
-77.5
-  0
-TEXT
-  5
-AF
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-20.5
- 20
-72.5
- 30
-0.0
- 40
-4.0
-  1
-13
- 11
-20.5
- 21
-72.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-B0
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--28.0
- 20
-43.5
- 10
--8.0
- 20
-43.5
- 10
--8.0
- 20
-77.5
- 10
--28.0
- 20
-77.5
-  0
-TEXT
-  5
-B1
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
--13.0
- 20
-72.5
- 30
-0.0
- 40
-4.0
-  1
-14
- 11
--13.0
- 21
-72.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-B2
-330
-17
-100
-AcDbEntity
-  8
-PIEGA
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--44.5
- 20
-173.5
- 10
-44.5
- 20
-173.5
- 10
-44.5
- 20
-187.5
- 10
--44.5
- 20
-187.5
-  0
-TEXT
-  5
-B3
-330
-17
-100
-AcDbEntity
-  8
 PIEGA
 100
 AcDbText
  10
--42.5
+-40.25
  20
-179.0
+182.89711431702997
  30
 0.0
  40
@@ -6985,49 +6621,17 @@ AcDbText
   1
 nel vano: libero 14 mm
  11
--42.5
+-40.25
  21
-179.0
+182.89711431702997
  31
 0.0
 100
 AcDbText
   0
-LWPOLYLINE
-  5
-B4
-330
-17
-100
-AcDbEntity
-  8
-PIEGA
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
--44.5
- 20
-226.25
- 10
-44.5
- 20
-226.25
- 10
-44.5
- 20
-234.5
- 10
--44.5
- 20
-234.5
-  0
 TEXT
   5
-B5
+A8
 330
 17
 100
@@ -7057,7 +6661,451 @@ AcDbText
   0
 TEXT
   5
+A9
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+25.0
+ 20
+44.0
+ 30
+0.0
+ 40
+4.0
+  1
+1
+ 11
+25.0
+ 21
+44.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AA
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+30.0
+ 20
+177.5
+ 30
+0.0
+ 40
+4.0
+  1
+2
+ 11
+30.0
+ 21
+177.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AB
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+7.5
+ 20
+206.36200000000002
+ 30
+0.0
+ 40
+4.0
+  1
+3
+ 11
+7.5
+ 21
+206.36200000000002
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AC
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+0.40000000000000036
+ 20
+202.4
+ 30
+0.0
+ 40
+4.0
+  1
+4
+ 11
+0.40000000000000036
+ 21
+202.4
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AD
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+29.75
+ 20
+221.25
+ 30
+0.0
+ 40
+4.0
+  1
+5
+ 11
+29.75
+ 21
+221.25
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AE
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-29.25
+ 20
+200.25
+ 30
+0.0
+ 40
+4.0
+  1
+6
+ 11
+-29.25
+ 21
+200.25
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+AF
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+23.0
+ 20
+157.5
+ 30
+0.0
+ 40
+4.0
+  1
+7
+ 11
+23.0
+ 21
+157.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B0
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-37.25
+ 20
+166.5
+ 30
+0.0
+ 40
+4.0
+  1
+8
+ 11
+-37.25
+ 21
+166.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B1
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-40.0
+ 20
+105.0
+ 30
+0.0
+ 40
+4.0
+  1
+9
+ 11
+-40.0
+ 21
+105.0
+ 31
+0.0
+100
+AcDbText
+  0
+LINE
+  5
+B2
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+-43.95
+ 20
+170.5
+ 30
+0.0
+ 11
+-43.95
+ 21
+176.5
+ 31
+0.0
+  0
+TEXT
+  5
+B3
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-43.95
+ 20
+174.5
+ 30
+0.0
+ 40
+4.0
+  1
+10
+ 11
+-43.95
+ 21
+174.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B4
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-31.950000000000003
+ 20
+168.5
+ 30
+0.0
+ 40
+4.0
+  1
+11
+ 11
+-31.950000000000003
+ 21
+168.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B5
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+20.5
+ 20
+147.5
+ 30
+0.0
+ 40
+4.0
+  1
+12
+ 11
+20.5
+ 21
+147.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
 B6
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+20.5
+ 20
+72.5
+ 30
+0.0
+ 40
+4.0
+  1
+13
+ 11
+20.5
+ 21
+72.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B7
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+-13.0
+ 20
+72.5
+ 30
+0.0
+ 40
+4.0
+  1
+14
+ 11
+-13.0
+ 21
+72.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+B8
 330
 17
 100
@@ -7069,7 +7117,7 @@ AcDbText
  10
 105.0
  20
-250.0
+260.5
  30
 0.0
  40
@@ -7079,7 +7127,7 @@ B - SEZIONE: profondita' da sinistra (vetro) a destra (fondo)
  11
 105.0
  21
-250.0
+260.5
  31
 0.0
 100
@@ -7087,7 +7135,7 @@ AcDbText
   0
 LWPOLYLINE
   5
-B7
+B9
 330
 17
 100
@@ -7119,7 +7167,7 @@ AcDbPolyline
   0
 LWPOLYLINE
   5
-B8
+BA
 330
 17
 100
@@ -7148,70 +7196,6 @@ AcDbPolyline
 110.0
  20
 234.5
-  0
-LWPOLYLINE
-  5
-B9
-330
-17
-100
-AcDbEntity
-  8
-SMOKE
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-110.0
- 20
-1.5
- 10
-185.0
- 20
-1.5
- 10
-185.0
- 20
-3.0
- 10
-110.0
- 20
-3.0
-  0
-LWPOLYLINE
-  5
-BA
-330
-17
-100
-AcDbEntity
-  8
-SMOKE
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-110.0
- 20
-237.0
- 10
-185.0
- 20
-237.0
- 10
-185.0
- 20
-238.5
- 10
-110.0
- 20
-238.5
   0
 LWPOLYLINE
   5
@@ -7229,7 +7213,7 @@ AcDbPolyline
  70
 1
  10
-183.5
+110.0
  20
 3.0
  10
@@ -7239,11 +7223,11 @@ AcDbPolyline
  10
 185.0
  20
-237.0
+4.5
  10
-183.5
+110.0
  20
-237.0
+4.5
   0
 LWPOLYLINE
   5
@@ -7253,7 +7237,7 @@ BC
 100
 AcDbEntity
   8
-TAGLIO
+SMOKE
 100
 AcDbPolyline
  90
@@ -7261,21 +7245,21 @@ AcDbPolyline
  70
 1
  10
-118.0
+110.0
  20
-3.0
+235.5
  10
-126.0
+185.0
  20
-3.0
+235.5
  10
-126.0
+185.0
  20
-4.5
+237.0
  10
-118.0
+110.0
  20
-4.5
+237.0
   0
 LWPOLYLINE
   5
@@ -7285,7 +7269,7 @@ BD
 100
 AcDbEntity
   8
-TAGLIO
+SMOKE
 100
 AcDbPolyline
  90
@@ -7293,23 +7277,23 @@ AcDbPolyline
  70
 1
  10
-118.0
+183.5
  20
-235.5
+3.0
  10
-126.0
+185.0
  20
-235.5
+3.0
  10
-126.0
+185.0
  20
 237.0
  10
-118.0
+183.5
  20
 237.0
   0
-TEXT
+LWPOLYLINE
   5
 BE
 330
@@ -7317,27 +7301,29 @@ BE
 100
 AcDbEntity
   8
-TAGLIO
+SMOKE
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-118.0
+105.0
  20
-241.0
- 30
-0.0
- 40
-2.5
-  1
-feritoia 80x8 a 8 dal fronte
- 11
-118.0
- 21
-241.0
- 31
-0.0
-100
-AcDbText
+-4.5
+ 10
+138.0
+ 20
+-4.5
+ 10
+138.0
+ 20
+-3.0
+ 10
+105.0
+ 20
+-3.0
   0
 LWPOLYLINE
   5
@@ -7347,7 +7333,7 @@ BF
 100
 AcDbEntity
   8
-INGOMBRI
+SMOKE
 100
 AcDbPolyline
  90
@@ -7355,23 +7341,23 @@ AcDbPolyline
  70
 1
  10
-115.0
+105.0
  20
-11.0
+243.0
  10
-120.0
+138.0
  20
-11.0
+243.0
  10
-120.0
+138.0
  20
-49.0
+244.5
  10
-115.0
+105.0
  20
-49.0
+244.5
   0
-TEXT
+LWPOLYLINE
   5
 C0
 330
@@ -7379,27 +7365,29 @@ C0
 100
 AcDbEntity
   8
-QUOTE
+SMOKE
 100
-AcDbText
- 10
-122.0
- 20
-44.0
- 30
-0.0
- 40
-4.0
-  1
+AcDbPolyline
+ 90
+4
+ 70
 1
- 11
-122.0
- 21
-44.0
- 31
-0.0
-100
-AcDbText
+ 10
+138.0
+ 20
+-14.5
+ 10
+139.5
+ 20
+-14.5
+ 10
+139.5
+ 20
+3.0
+ 10
+138.0
+ 20
+3.0
   0
 LWPOLYLINE
   5
@@ -7409,7 +7397,7 @@ C1
 100
 AcDbEntity
   8
-INGOMBRI
+SMOKE
 100
 AcDbPolyline
  90
@@ -7417,23 +7405,23 @@ AcDbPolyline
  70
 1
  10
-107.35
+138.0
  20
-57.5
+237.0
  10
-109.15
+139.5
  20
-57.5
+237.0
  10
-109.15
+139.5
  20
-182.5
+254.5
  10
-107.35
+138.0
  20
-182.5
+254.5
   0
-TEXT
+LWPOLYLINE
   5
 C2
 330
@@ -7441,27 +7429,29 @@ C2
 100
 AcDbEntity
   8
-QUOTE
+TAGLIO
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-111.15
+118.0
  20
-177.5
- 30
-0.0
- 40
-4.0
-  1
-2
- 11
-111.15
- 21
-177.5
- 31
-0.0
-100
-AcDbText
+3.0
+ 10
+133.0
+ 20
+3.0
+ 10
+133.0
+ 20
+4.5
+ 10
+118.0
+ 20
+4.5
   0
 LWPOLYLINE
   5
@@ -7471,7 +7461,7 @@ C3
 100
 AcDbEntity
   8
-INGOMBRI
+TAGLIO
 100
 AcDbPolyline
  90
@@ -7481,21 +7471,21 @@ AcDbPolyline
  10
 118.0
  20
-187.5
+192.5
  10
-121.6
+133.0
  20
-187.5
+192.5
  10
-121.6
+133.0
  20
-211.36200000000002
+232.5
  10
 118.0
  20
-211.36200000000002
+232.5
   0
-TEXT
+LWPOLYLINE
   5
 C4
 330
@@ -7503,27 +7493,29 @@ C4
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-123.6
+115.0
  20
-206.36200000000002
- 30
-0.0
- 40
-4.0
-  1
-3
- 11
-123.6
- 21
-206.36200000000002
- 31
-0.0
-100
-AcDbText
+11.0
+ 10
+120.0
+ 20
+11.0
+ 10
+120.0
+ 20
+49.0
+ 10
+115.0
+ 20
+49.0
   0
 LWPOLYLINE
   5
@@ -7541,23 +7533,23 @@ AcDbPolyline
  70
 1
  10
-115.25
+107.35
  20
-196.6
+57.5
  10
-118.0
+109.15
  20
-196.6
+57.5
  10
-118.0
+109.15
  20
-207.4
+182.5
  10
-115.25
+107.35
  20
-207.4
+182.5
   0
-TEXT
+LWPOLYLINE
   5
 C6
 330
@@ -7565,31 +7557,65 @@ C6
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
- 10
-120.0
- 20
-197.4
- 30
-0.0
- 40
-4.0
-  1
+AcDbPolyline
+ 90
 4
- 11
-120.0
- 21
-197.4
- 31
-0.0
-100
-AcDbText
+ 70
+1
+ 10
+118.0
+ 20
+187.5
+ 10
+121.6
+ 20
+187.5
+ 10
+121.6
+ 20
+211.36200000000002
+ 10
+118.0
+ 20
+211.36200000000002
   0
 LWPOLYLINE
   5
 C7
+330
+17
+100
+AcDbEntity
+  8
+INGOMBRI
+100
+AcDbPolyline
+ 90
+4
+ 70
+1
+ 10
+115.25
+ 20
+196.6
+ 10
+118.0
+ 20
+196.6
+ 10
+118.0
+ 20
+207.4
+ 10
+115.25
+ 20
+207.4
+  0
+LWPOLYLINE
+  5
+C8
 330
 17
 100
@@ -7618,36 +7644,6 @@ AcDbPolyline
 127.0
  20
 226.25
-  0
-TEXT
-  5
-C8
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-145.5
- 20
-221.25
- 30
-0.0
- 40
-4.0
-  1
-5
- 11
-145.5
- 21
-221.25
- 31
-0.0
-100
-AcDbText
   0
 LWPOLYLINE
   5
@@ -7681,7 +7677,7 @@ AcDbPolyline
  20
 205.25
   0
-TEXT
+LWPOLYLINE
   5
 CA
 330
@@ -7689,27 +7685,29 @@ CA
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-111.5
+123.0
  20
-200.25
- 30
-0.0
- 40
-4.0
-  1
-6
- 11
-111.5
- 21
-200.25
- 31
-0.0
-100
-AcDbText
+77.5
+ 10
+163.5
+ 20
+77.5
+ 10
+163.5
+ 20
+162.5
+ 10
+123.0
+ 20
+162.5
   0
 LWPOLYLINE
   5
@@ -7727,23 +7725,23 @@ AcDbPolyline
  70
 1
  10
-123.0
+115.0
  20
-77.5
+128.5
  10
-163.5
+158.0
  20
-77.5
+128.5
  10
-163.5
+158.0
  20
-162.5
+171.5
  10
-123.0
+115.0
  20
-162.5
+171.5
   0
-TEXT
+LWPOLYLINE
   5
 CC
 330
@@ -7751,27 +7749,29 @@ CC
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-165.5
+115.0
  20
-157.5
- 30
-0.0
- 40
-4.0
-  1
-7
- 11
-165.5
- 21
-157.5
- 31
-0.0
-100
-AcDbText
+90.0
+ 10
+154.0
+ 20
+90.0
+ 10
+154.0
+ 20
+110.0
+ 10
+115.0
+ 20
+110.0
   0
 LWPOLYLINE
   5
@@ -7789,23 +7789,23 @@ AcDbPolyline
  70
 1
  10
-115.0
+113.0
  20
-128.5
+126.5
  10
-158.0
+160.0
  20
-128.5
+126.5
  10
-158.0
+160.0
  20
-171.5
+173.5
  10
-115.0
+113.0
  20
-171.5
+173.5
   0
-TEXT
+LWPOLYLINE
   5
 CE
 330
@@ -7813,27 +7813,29 @@ CE
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-160.0
+113.0
  20
-166.5
- 30
-0.0
- 40
-4.0
-  1
-8
- 11
-160.0
- 21
-166.5
- 31
-0.0
-100
-AcDbText
+126.5
+ 10
+114.5
+ 20
+126.5
+ 10
+114.5
+ 20
+173.5
+ 10
+113.0
+ 20
+173.5
   0
 LWPOLYLINE
   5
@@ -7851,23 +7853,23 @@ AcDbPolyline
  70
 1
  10
-115.0
+113.0
  20
-90.0
+87.5
  10
-154.0
+123.0
  20
-90.0
+87.5
  10
-154.0
+123.0
  20
-110.0
+152.5
  10
-115.0
+113.0
  20
-110.0
+152.5
   0
-TEXT
+LWPOLYLINE
   5
 D0
 330
@@ -7875,27 +7877,29 @@ D0
 100
 AcDbEntity
   8
-QUOTE
+INGOMBRI
 100
-AcDbText
+AcDbPolyline
+ 90
+4
+ 70
+1
  10
-156.0
+113.0
  20
-105.0
- 30
-0.0
- 40
-4.0
-  1
-9
- 11
-156.0
- 21
-105.0
- 31
-0.0
-100
-AcDbText
+52.5
+ 10
+123.0
+ 20
+52.5
+ 10
+123.0
+ 20
+77.5
+ 10
+113.0
+ 20
+77.5
   0
 LWPOLYLINE
   5
@@ -7913,23 +7917,23 @@ AcDbPolyline
  70
 1
  10
-113.0
+123.0
  20
-126.5
+43.5
  10
-160.0
+137.0
  20
-126.5
+43.5
  10
-160.0
+137.0
  20
-173.5
+77.5
  10
-113.0
+123.0
  20
-173.5
+77.5
   0
-TEXT
+LWPOLYLINE
   5
 D2
 330
@@ -7937,284 +7941,6 @@ D2
 100
 AcDbEntity
   8
-QUOTE
-100
-AcDbText
- 10
-162.0
- 20
-148.5
- 30
-0.0
- 40
-4.0
-  1
-10
- 11
-162.0
- 21
-148.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-D3
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-113.0
- 20
-126.5
- 10
-114.5
- 20
-126.5
- 10
-114.5
- 20
-173.5
- 10
-113.0
- 20
-173.5
-  0
-TEXT
-  5
-D4
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-116.5
- 20
-168.5
- 30
-0.0
- 40
-4.0
-  1
-11
- 11
-116.5
- 21
-168.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-D5
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-113.0
- 20
-87.5
- 10
-123.0
- 20
-87.5
- 10
-123.0
- 20
-152.5
- 10
-113.0
- 20
-152.5
-  0
-TEXT
-  5
-D6
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-125.0
- 20
-147.5
- 30
-0.0
- 40
-4.0
-  1
-12
- 11
-125.0
- 21
-147.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-D7
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-113.0
- 20
-52.5
- 10
-123.0
- 20
-52.5
- 10
-123.0
- 20
-77.5
- 10
-113.0
- 20
-77.5
-  0
-TEXT
-  5
-D8
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-125.0
- 20
-72.5
- 30
-0.0
- 40
-4.0
-  1
-13
- 11
-125.0
- 21
-72.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-D9
-330
-17
-100
-AcDbEntity
-  8
-INGOMBRI
-100
-AcDbPolyline
- 90
-4
- 70
-1
- 10
-123.0
- 20
-43.5
- 10
-137.0
- 20
-43.5
- 10
-137.0
- 20
-77.5
- 10
-123.0
- 20
-77.5
-  0
-TEXT
-  5
-DA
-330
-17
-100
-AcDbEntity
-  8
-QUOTE
-100
-AcDbText
- 10
-139.0
- 20
-72.5
- 30
-0.0
- 40
-4.0
-  1
-14
- 11
-139.0
- 21
-72.5
- 31
-0.0
-100
-AcDbText
-  0
-LWPOLYLINE
-  5
-DB
-330
-17
-100
-AcDbEntity
-  8
 PIEGA
 100
 AcDbPolyline
@@ -8238,40 +7964,10 @@ AcDbPolyline
 163.5
  20
 237.0
-  0
-TEXT
-  5
-DC
-330
-17
-100
-AcDbEntity
-  8
-PIEGA
-100
-AcDbText
- 10
-164.5
- 20
-11.0
- 30
-0.0
- 40
-3.0
-  1
-canale d'aria 20.0 mm = 18.2 cm2
- 11
-164.5
- 21
-11.0
- 31
-0.0
-100
-AcDbText
   0
 DIMENSION
   5
-DD
+D3
 330
 17
 100
@@ -8325,7 +8021,7 @@ AcDbRotatedDimension
   0
 DIMENSION
   5
-EC
+E2
 330
 17
 100
@@ -8377,9 +8073,599 @@ AcDbAlignedDimension
 100
 AcDbRotatedDimension
   0
+LINE
+  5
+F1
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+118.0
+ 20
+3.0
+ 30
+0.0
+ 11
+102.0
+ 21
+-7.75
+ 31
+0.0
+  0
+TEXT
+  5
+F2
+330
+17
+100
+AcDbEntity
+  8
+TAGLIO
+100
+AcDbText
+ 10
+101.0
+ 20
+-9.0
+ 30
+0.0
+ 40
+2.5
+  1
+feritoia bassa 80x15
+ 72
+2
+ 11
+101.0
+ 21
+-9.0
+ 31
+0.0
+100
+AcDbText
+ 73
+1
+  0
+LINE
+  5
+F3
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+118.0
+ 20
+232.5
+ 30
+0.0
+ 11
+102.0
+ 21
+237.75
+ 31
+0.0
+  0
+TEXT
+  5
+F4
+330
+17
+100
+AcDbEntity
+  8
+TAGLIO
+100
+AcDbText
+ 10
+101.0
+ 20
+236.5
+ 30
+0.0
+ 40
+2.5
+  1
+feritoie laterali 40x15
+ 72
+2
+ 11
+101.0
+ 21
+236.5
+ 31
+0.0
+100
+AcDbText
+ 73
+1
+  0
+LINE
+  5
+F5
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbLine
+ 10
+183.5
+ 20
+23.0
+ 30
+0.0
+ 11
+189.0
+ 21
+24.5
+ 31
+0.0
+  0
+TEXT
+  5
+F6
+330
+17
+100
+AcDbEntity
+  8
+PIEGA
+100
+AcDbText
+ 10
+190.0
+ 20
+23.0
+ 30
+0.0
+ 40
+3.0
+  1
+canale d'aria 20.0 mm = 18.2 cm2
+ 11
+190.0
+ 21
+23.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+F7
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+120.25
+ 20
+45.29903810567666
+ 30
+0.0
+ 40
+4.0
+  1
+1
+ 11
+120.25
+ 21
+45.29903810567666
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+F8
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+110.15
+ 20
+177.5
+ 30
+0.0
+ 40
+4.0
+  1
+2
+ 11
+110.15
+ 21
+177.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+F9
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+122.6
+ 20
+206.36200000000002
+ 30
+0.0
+ 40
+4.0
+  1
+3
+ 11
+122.6
+ 21
+206.36200000000002
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+FA
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+119.0
+ 20
+202.4
+ 30
+0.0
+ 40
+4.0
+  1
+4
+ 11
+119.0
+ 21
+202.4
+ 31
+0.0
+100
+AcDbText
+  0
 TEXT
   5
 FB
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+144.5
+ 20
+221.25
+ 30
+0.0
+ 40
+4.0
+  1
+5
+ 11
+144.5
+ 21
+221.25
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+FC
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+110.5
+ 20
+200.25
+ 30
+0.0
+ 40
+4.0
+  1
+6
+ 11
+110.5
+ 21
+200.25
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+FD
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+164.5
+ 20
+157.5
+ 30
+0.0
+ 40
+4.0
+  1
+7
+ 11
+164.5
+ 21
+157.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+FE
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+160.5
+ 20
+166.5
+ 30
+0.0
+ 40
+4.0
+  1
+8
+ 11
+160.5
+ 21
+166.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+FF
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+155.0
+ 20
+105.0
+ 30
+0.0
+ 40
+4.0
+  1
+9
+ 11
+155.0
+ 21
+105.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+100
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+164.0
+ 20
+168.5
+ 30
+0.0
+ 40
+4.0
+  1
+10
+ 11
+164.0
+ 21
+168.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+101
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+114.75
+ 20
+167.20096189432334
+ 30
+0.0
+ 40
+4.0
+  1
+11
+ 11
+114.75
+ 21
+167.20096189432334
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+102
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+124.0
+ 20
+147.5
+ 30
+0.0
+ 40
+4.0
+  1
+12
+ 11
+124.0
+ 21
+147.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+103
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+124.0
+ 20
+72.5
+ 30
+0.0
+ 40
+4.0
+  1
+13
+ 11
+124.0
+ 21
+72.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+104
+330
+17
+100
+AcDbEntity
+  8
+QUOTE
+100
+AcDbText
+ 10
+138.0
+ 20
+72.5
+ 30
+0.0
+ 40
+4.0
+  1
+14
+ 11
+138.0
+ 21
+72.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+105
 330
 17
 100
@@ -8409,7 +8695,7 @@ AcDbText
   0
 TEXT
   5
-FC
+106
 330
 17
 100
@@ -8439,7 +8725,7 @@ AcDbText
   0
 TEXT
   5
-FD
+107
 330
 17
 100
@@ -8469,7 +8755,7 @@ AcDbText
   0
 TEXT
   5
-FE
+108
 330
 17
 100
@@ -8499,7 +8785,7 @@ AcDbText
   0
 TEXT
   5
-FF
+109
 330
 17
 100
@@ -8529,7 +8815,7 @@ AcDbText
   0
 TEXT
   5
-100
+10A
 330
 17
 100
@@ -8559,7 +8845,7 @@ AcDbText
   0
 TEXT
   5
-101
+10B
 330
 17
 100
@@ -8589,7 +8875,7 @@ AcDbText
   0
 TEXT
   5
-102
+10C
 330
 17
 100
@@ -8619,7 +8905,7 @@ AcDbText
   0
 TEXT
   5
-103
+10D
 330
 17
 100
@@ -8649,7 +8935,7 @@ AcDbText
   0
 TEXT
   5
-104
+10E
 330
 17
 100
@@ -8679,7 +8965,7 @@ AcDbText
   0
 TEXT
   5
-105
+10F
 330
 17
 100
@@ -8709,7 +8995,7 @@ AcDbText
   0
 TEXT
   5
-106
+110
 330
 17
 100
@@ -8739,7 +9025,7 @@ AcDbText
   0
 TEXT
   5
-107
+111
 330
 17
 100
@@ -8769,7 +9055,7 @@ AcDbText
   0
 TEXT
   5
-108
+112
 330
 17
 100
@@ -8799,7 +9085,7 @@ AcDbText
   0
 TEXT
   5
-109
+113
 330
 17
 100
@@ -8829,7 +9115,7 @@ AcDbText
   0
 TEXT
   5
-10A
+114
 330
 17
 100
@@ -8859,7 +9145,7 @@ AcDbText
   0
 TEXT
   5
-10B
+115
 330
 17
 100
@@ -8889,7 +9175,7 @@ AcDbText
   0
 TEXT
   5
-10C
+116
 330
 17
 100
@@ -8919,7 +9205,7 @@ AcDbText
   0
 TEXT
   5
-10D
+117
 330
 17
 100
@@ -8949,7 +9235,7 @@ AcDbText
   0
 TEXT
   5
-10E
+118
 330
 17
 100
@@ -8979,7 +9265,7 @@ AcDbText
   0
 TEXT
   5
-10F
+119
 330
 17
 100
@@ -9009,7 +9295,7 @@ AcDbText
   0
 TEXT
   5
-110
+11A
 330
 17
 100
@@ -9039,7 +9325,7 @@ AcDbText
   0
 TEXT
   5
-111
+11B
 330
 17
 100
@@ -9069,7 +9355,7 @@ AcDbText
   0
 TEXT
   5
-112
+11C
 330
 17
 100
@@ -9099,7 +9385,7 @@ AcDbText
   0
 TEXT
   5
-113
+11D
 330
 17
 100
@@ -9129,7 +9415,7 @@ AcDbText
   0
 TEXT
   5
-114
+11E
 330
 17
 100
@@ -9159,306 +9445,6 @@ AcDbText
   0
 TEXT
   5
-115
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--157.0
- 30
-0.0
- 40
-2.5
-  1
-SMOKE (blu): pareti della cassa   TAGLIO (rosso): telaio e feritoie
- 11
--50.0
- 21
--157.0
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-116
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--161.5
- 30
-0.0
- 40
-2.5
-  1
-FINESTRE (ciano): vetro
- 11
--50.0
- 21
--161.5
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-117
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--166.0
- 30
-0.0
- 40
-2.5
-  1
-
- 11
--50.0
- 21
--166.0
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-118
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--170.5
- 30
-0.0
- 40
-2.5
-  1
-La z si misura dalla faccia esterna del vetro. Il fronte della cassa sta a 5.0,
- 11
--50.0
- 21
--170.5
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-119
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--175.0
- 30
-0.0
- 40
-2.5
-  1
-il fondo interno a 78.5: sono due riferimenti diversi e vanno tenuti distinti.
- 11
--50.0
- 21
--175.0
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-11A
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--179.5
- 30
-0.0
- 40
-2.5
-  1
-
- 11
--50.0
- 21
--179.5
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-11B
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--184.0
- 30
-0.0
- 40
-2.5
-  1
-Gruppo del Pi: 50,5 mm dal telaio, di cui 10,0 di distanziali sotto la scheda.
- 11
--50.0
- 21
--184.0
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-11C
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--188.5
- 30
-0.0
- 40
-2.5
-  1
-In quei 10 mm ci sta la base NVMe, che con l'SSD montato ne misura 9,5: sono
- 11
--50.0
- 21
--188.5
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-11D
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--193.0
- 30
-0.0
- 40
-2.5
-  1
-due quote diverse e il controllo verifica che la prima contenga la seconda.
- 11
--50.0
- 21
--193.0
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
-11E
-330
-17
-100
-AcDbEntity
-  8
-NOTE
-100
-AcDbText
- 10
--50.0
- 20
--197.5
- 30
-0.0
- 40
-2.5
-  1
-Canale d'aria residuo 20.0 mm. Il controllo di interferenza protesta
- 11
--50.0
- 21
--197.5
- 31
-0.0
-100
-AcDbText
-  0
-TEXT
-  5
 11F
 330
 17
@@ -9471,17 +9457,17 @@ AcDbText
  10
 -50.0
  20
--202.0
+-157.0
  30
 0.0
  40
 2.5
   1
-quando la sua sezione scende sotto quella delle feritoie, cioe' con un
+SMOKE (blu): cassa, cornice e flangia   TAGLIO (rosso): telaio e feritoie;
  11
 -50.0
  21
--202.0
+-157.0
  31
 0.0
 100
@@ -9501,17 +9487,17 @@ AcDbText
  10
 -50.0
  20
--206.5
+-161.5
  30
 0.0
  40
 2.5
   1
-gruppo da 64 mm: quattordici in piu' di quanto misura oggi.
+  in sezione la feritoia bassa e' tagliata, le laterali stanno sui fianchi e si vedono in proiezione.
  11
 -50.0
  21
--206.5
+-161.5
  31
 0.0
 100
@@ -9531,17 +9517,17 @@ AcDbText
  10
 -50.0
  20
--211.0
+-166.0
  30
 0.0
  40
 2.5
   1
-
+FINESTRE (ciano): vetro
  11
 -50.0
  21
--211.0
+-166.0
  31
 0.0
 100
@@ -9561,17 +9547,17 @@ AcDbText
  10
 -50.0
  20
--215.5
+-170.5
  30
 0.0
  40
 2.5
   1
-Cosa questo disegno NON dice: i percorsi dei cavi. L'ansa dei fili fra
+
  11
 -50.0
  21
--215.5
+-170.5
  31
 0.0
 100
@@ -9591,17 +9577,17 @@ AcDbText
  10
 -50.0
  20
--220.0
+-175.0
  30
 0.0
  40
 2.5
   1
-la base dell'SSD e i pin in cima allo stack non e' modellata, e nei
+La z si misura dalla faccia esterna del vetro. Il fronte della cassa sta a 5.0,
  11
 -50.0
  21
--220.0
+-175.0
  31
 0.0
 100
@@ -9621,7 +9607,337 @@ AcDbText
  10
 -50.0
  20
+-179.5
+ 30
+0.0
+ 40
+2.5
+  1
+il fondo interno a 78.5: sono due riferimenti diversi e vanno tenuti distinti.
+ 11
+-50.0
+ 21
+-179.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+125
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-184.0
+ 30
+0.0
+ 40
+2.5
+  1
+
+ 11
+-50.0
+ 21
+-184.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+126
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-188.5
+ 30
+0.0
+ 40
+2.5
+  1
+Gruppo del Pi: 50,5 mm dal telaio, di cui 10,0 di distanziali sotto la scheda.
+ 11
+-50.0
+ 21
+-188.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+127
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-193.0
+ 30
+0.0
+ 40
+2.5
+  1
+In quei 10 mm ci sta la base NVMe, che con l'SSD montato ne misura 9,5: sono
+ 11
+-50.0
+ 21
+-193.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+128
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-197.5
+ 30
+0.0
+ 40
+2.5
+  1
+due quote diverse e il controllo verifica che la prima contenga la seconda.
+ 11
+-50.0
+ 21
+-197.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+129
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-202.0
+ 30
+0.0
+ 40
+2.5
+  1
+Canale d'aria residuo 20.0 mm. Il controllo di interferenza protesta
+ 11
+-50.0
+ 21
+-202.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12A
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-206.5
+ 30
+0.0
+ 40
+2.5
+  1
+quando la sua sezione scende sotto quella lorda di una feritoia, cioe' con un
+ 11
+-50.0
+ 21
+-206.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12B
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-211.0
+ 30
+0.0
+ 40
+2.5
+  1
+gruppo da 57 mm: 7 in piu' di quanto misura oggi.
+ 11
+-50.0
+ 21
+-211.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12C
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-215.5
+ 30
+0.0
+ 40
+2.5
+  1
+
+ 11
+-50.0
+ 21
+-215.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12D
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-220.0
+ 30
+0.0
+ 40
+2.5
+  1
+Cosa questo disegno NON dice: i percorsi dei cavi. L'ansa dei fili fra
+ 11
+-50.0
+ 21
+-220.0
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12E
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
 -224.5
+ 30
+0.0
+ 40
+2.5
+  1
+la base dell'SSD e i pin in cima allo stack non e' modellata, e nei
+ 11
+-50.0
+ 21
+-224.5
+ 31
+0.0
+100
+AcDbText
+  0
+TEXT
+  5
+12F
+330
+17
+100
+AcDbEntity
+  8
+NOTE
+100
+AcDbText
+ 10
+-50.0
+ 20
+-229.0
  30
 0.0
  40
@@ -9631,7 +9947,7 @@ fianchi restano 17.5 mm per lato dove passa anche il cavo di rete.
  11
 -50.0
  21
--224.5
+-229.0
  31
 0.0
 100
@@ -10727,7 +11043,7 @@ CREATED_BY_EZDXF
   3
 WRITTEN_BY_EZDXF
 350
-127
+132
   0
 DICTIONARYVAR
   5
@@ -10739,7 +11055,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:56:16.717692+00:00
+1.4.4 @ 2026-10-11T01:46:55.067871+00:00
   0
 VISUALSTYLE
   5
@@ -11443,7 +11759,7 @@ X-Ray
   0
 DICTIONARYVAR
   5
-127
+132
 330
 2D
 100
@@ -11451,7 +11767,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-10-10T23:56:16.724058+00:00
+1.4.4 @ 2026-10-11T01:46:55.089044+00:00
   0
 ENDSEC
   0

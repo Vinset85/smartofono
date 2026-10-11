@@ -231,62 +231,111 @@ module lettore_nfc() {
 
 // ---------------------------------------------------------------- cassa
 
+// Dente sul fianco esterno sopra la feritoia laterale, esteso dal fronte della
+// cassa alla flangia. La faccia superiore scende verso fuori: l'acqua che
+// cola lungo il fianco si stacca dalla punta invece di passare sulla feritoia.
+module gocciolatoio(sx) {
+    ya = FESSURA_LATO_Y1 + 1;
+    translate([0, 0, Z_TELAIO])
+        linear_extrude(height = Z_FLANGIA - Z_TELAIO + 0.1)
+            polygon([[sx * CASSA_L / 2 - sx * 0.1, ya],
+                     [sx * (CASSA_L / 2 + GOCCIOLATOIO), ya],
+                     [sx * CASSA_L / 2 - sx * 0.1, ya + GOCCIOLATOIO]]);
+}
+
+// Smusso interno all'angolo basso, fra il bordo della feritoia e il fianco,
+// lungo quanto la feritoia in profondita'.
+module smusso_scarico(sx) {
+    yb = VETRO_H / 2 - CASSA_INT_H / 2;
+    translate([0, 0, Z_TELAIO + FESSURA_ARRETRAMENTO])
+        linear_extrude(height = FESSURA_ALTEZZA)
+            polygon([[sx * FESSURA_LARGHEZZA / 2, yb - 0.1],
+                     [sx * (CASSA_INT_L / 2 + 0.1), yb - 0.1],
+                     [sx * (CASSA_INT_L / 2 + 0.1), yb + SMUSSO_SCARICO]]);
+}
+
 module cassa() {
-    // La cassa parte dietro il vetro e si sviluppa in profondita' nel muro.
+    // Il corpo parte Z_TELAIO dietro il vetro; la cornice arriva fino al
+    // piano del vetro, che e' quello dell'intonaco finito.
     z0 = Z_TELAIO;
     color("#9a9aa0")
+    union() {
     difference() {
         union() {
             // Corpo scatolato.
             translate([0, VETRO_H / 2, z0 + CASSA_PROF / 2])
                 cube([CASSA_L, CASSA_H, CASSA_PROF], center = true);
-            // Flangia di muratura, arretrata per restare sotto l'intonaco.
-            translate([0, VETRO_H / 2,
-                       z0 + FLANGIA_ARRETRAMENTO + CASSA_PARETE / 2])
+            // Flangia di muratura, dietro le feritoie: chiude in fondo il
+            // canale perimetrale fra corpo e cornice.
+            translate([0, VETRO_H / 2, Z_FLANGIA + CASSA_PARETE / 2])
                 piastra_raccordata(CASSA_L + 2 * FLANGIA,
                                    CASSA_H + 2 * FLANGIA, CASSA_PARETE, 4);
+            // Cornice d'intonaco, dal piano dell'intonaco finito alla flangia.
+            translate([0, VETRO_H / 2, (Z_FLANGIA + 0.1) / 2])
+                difference() {
+                    cube([CORNICE_L, CORNICE_H, Z_FLANGIA + 0.1],
+                         center = true);
+                    cube([LUCE_INTONACO_L, LUCE_INTONACO_H, Z_FLANGIA + 1],
+                         center = true);
+                }
+            for (sx = [-1, 1]) gocciolatoio(sx);
         }
 
-        // Vano interno: aperto sul fronte, chiuso in fondo dalla parete.
-        translate([0, VETRO_H / 2,
-                   z0 + (CASSA_PROF - CASSA_PARETE) / 2])
-            cube([CASSA_INT_L, CASSA_INT_H, CASSA_PROF - CASSA_PARETE],
-                 center = true);
+        // Il vano interno si scava in tre tratti - bocca, luce della battuta,
+        // vano pieno - e non con un unico blocco dal fronte al fondo: quello
+        // portava via l'anello di battuta e il telaio cadeva dentro.
 
-        // Feritoie nelle pareti orizzontali: ingresso in basso, uscita in alto.
-        // Guardano verso la fessura d'ombra, non verso chi sta davanti.
-        for (sy = [-1, 1])
-            translate([0, VETRO_H / 2 + sy * CASSA_H / 2,
+        // Ingresso nella parete bassa, rivolto in basso; uscite nei fianchi,
+        // in alto. Nessuna feritoia nella parete alta: guarderebbe in su,
+        // sotto la fessura d'ombra.
+        translate([0, VETRO_H / 2 - CASSA_H / 2,
+                   z0 + FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA / 2])
+            cube([FESSURA_LARGHEZZA, CASSA_PARETE * 4, FESSURA_ALTEZZA],
+                 center = true);
+        for (sx = [-1, 1])
+            translate([sx * CASSA_L / 2,
+                       (FESSURA_LATO_Y0 + FESSURA_LATO_Y1) / 2,
                        z0 + FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA / 2])
-                cube([FESSURA_LARGHEZZA, CASSA_PARETE * 4, FESSURA_ALTEZZA],
+                cube([CASSA_PARETE * 4, FESSURA_LATO_L, FESSURA_ALTEZZA],
                      center = true);
 
         // Bocca anteriore: il telaio entra fino alla battuta, quindi davanti
         // resta solo l'anello di appoggio.
-        translate([0, VETRO_H / 2, z0 + TELAIO_S / 2 - 0.1])
-            cube([CASSA_INT_L, CASSA_INT_H, TELAIO_S], center = true);
+        // Finisce esattamente sulla faccia della battuta, a z0 + TELAIO_S: e'
+        // il piano su cui appoggia il telaio e da cui si misurano le sedi.
+        translate([0, VETRO_H / 2, z0 + TELAIO_S / 2 - 0.05])
+            cube([CASSA_INT_L, CASSA_INT_H, TELAIO_S + 0.1], center = true);
         // Oltre la battuta il vano torna pieno: la battuta e' un gradino di
         // pochi millimetri, non un restringimento per tutta la profondita'.
+        // Si ferma alla parete di fondo: arrivava a CASSA_PROF e la portava
+        // via, e la cassa usciva aperta dietro.
         translate([0, VETRO_H / 2,
                    z0 + TELAIO_S + BATTUTA_PROF
-                     + (CASSA_PROF - TELAIO_S - BATTUTA_PROF) / 2])
+                     + (CASSA_PROF - CASSA_PARETE - TELAIO_S - BATTUTA_PROF) / 2])
             cube([CASSA_INT_L, CASSA_INT_H,
-                  CASSA_PROF - TELAIO_S - BATTUTA_PROF], center = true);
+                  CASSA_PROF - CASSA_PARETE - TELAIO_S - BATTUTA_PROF],
+                 center = true);
         translate([0, VETRO_H / 2, z0 + TELAIO_S + BATTUTA_PROF / 2])
             cube([CASSA_INT_L - 2 * BATTUTA, CASSA_INT_H - 2 * BATTUTA,
                   BATTUTA_PROF + 0.1], center = true);
+        // Scarico dell'anello lungo la squadretta della scheda di ingresso.
+        translate([SCARICO_STAFFA_X, SCARICO_STAFFA_Y0, z0 + TELAIO_S - 0.1])
+            cube([-(CASSA_INT_L / 2 - BATTUTA) - SCARICO_STAFFA_X + 0.1,
+                  SCARICO_STAFFA_Y1 - SCARICO_STAFFA_Y0, BATTUTA_PROF + 0.2]);
 
         // Passaggi dei corrugati sul fondo.
         for (sx = [-1, 1])
             translate([sx * CORRUGATO_PASSO / 2, 26, z0 + CASSA_PROF])
                 foro(CORRUGATO_D, CASSA_PARETE * 6);
 
-        // Fori nella flangia per l'ancoraggio.
+        // Fori nella flangia per l'ancoraggio, fuori dalla cornice.
         for (sx = [-1, 1])
-            for (i = [0 : 3])
-                translate([sx * (CASSA_L / 2 + FLANGIA / 2),
-                           20 + i * 55,
-                           z0 + FLANGIA_ARRETRAMENTO + CASSA_PARETE / 2])
+            for (i = [0 : FLANGIA_FORI_N - 1])
+                translate([sx * FLANGIA_FORI_X,
+                           VETRO_H / 2
+                             + (i - (FLANGIA_FORI_N - 1) / 2)
+                               * FLANGIA_FORI_PASSO,
+                           Z_FLANGIA + CASSA_PARETE / 2])
                     foro(FLANGIA_FORO_D, CASSA_PARETE * 4);
 
         // Sedi dei riscontri ferrosi, scavate nella faccia su cui appoggia il
@@ -297,6 +346,8 @@ module cassa() {
             translate([r[0], r[1],
                        z0 + TELAIO_S + RISCONTRO_SEDE_PROF / 2])
                 foro(RISCONTRO_SEDE_D, RISCONTRO_SEDE_PROF);
+    }
+    for (sx = [-1, 1]) smusso_scarico(sx);
     }
 
     // Perni di centraggio in alto: il telaio si aggancia qui e poi scende in

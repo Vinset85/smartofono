@@ -226,31 +226,51 @@ CASSA_H = VETRO_H - 2 * OMBRA_PERIMETRALE
 # Il muro e' in tufo, profondo 200 mm, e la nicchia puo' arrivare a 170, ma non serve
 # andare oltre: quello che conta e' il canale d'aria che resta dietro i
 # componenti, e perche' il canale non sia il collo di bottiglia basta che la
-# sua sezione superi quella delle feritoie, cioe' 7 mm. Qui ce ne sono 20,5.
-# Questa quota e' quindi quello che sta davanti piu' il canale: 58,2 mm di
-# componenti, col gruppo del Pi misurato a 50 dal telaio, piu' 16,8 di canale.
-# I 16,8 invece dei 15 che basterebbero sono il margine per l'incertezza della
-# misura: il canale diventa il collo di bottiglia solo sotto i 7 mm, cioe' con
-# un gruppo da 60, quindi ci sono dieci millimetri di margine.
+# sua sezione superi quella lorda di una feritoia, cioe' 13,2 mm su 91. Il
+# conto vero lo fanno canale_aria() e gruppo_massimo(), e il riepilogo stampa
+# quanti millimetri di gruppo del Pi restano prima che il canale diventi lui
+# il collo di bottiglia: e' il margine per l'incertezza della misura.
 CASSA_PROF = 75.0
 CASSA_PARETE = 1.5
 
 CASSA_INT_L = CASSA_L - 2 * CASSA_PARETE
 CASSA_INT_H = CASSA_H - 2 * CASSA_PARETE
 
-# Flangia di muratura: aletta perimetrale che annega nella malta. Arretrata
-# rispetto al fronte, altrimenti resterebbe in vista oltre il bordo del vetro:
-# i 10 mm sono lo spessore tipico di intonaco piu' rasante.
-FLANGIA = 12.0
-FLANGIA_FORO_D = 5.0
-FLANGIA_ARRETRAMENTO = 10.0
-
-# Luce finita dell'intonaco e scavo da eseguire nel muro.
+# Luce finita dell'intonaco: il vetro piu' la fessura d'ombra su ogni lato.
 LUCE_INTONACO_L = VETRO_L + 2 * OMBRA_PERIMETRALE
 LUCE_INTONACO_H = VETRO_H + 2 * OMBRA_PERIMETRALE
+
+# Cornice d'intonaco: un anello che fa parte della cassa, col fronte sul piano
+# dell'intonaco finito e la faccia interna sulla luce. Il vetro sta 5 mm
+# davanti al fronte della cassa (Z_TELAIO), quindi a cassa "a filo
+# dell'intonaco" il vetro sporgeva di 5 mm; e il bordo della luce, tirato a
+# mano dal rasante, decideva da solo se la fessura d'ombra veniva di 3 mm.
+# Con la cornice la posa ha un riscontro fisico - si rasa a filo della
+# cornice - e la fessura la fa il modello. Fra cornice e fianchi della cassa
+# resta un canale largo due volte l'ombra, chiuso in fondo dalla flangia: e'
+# li' che si affacciano le feritoie, e la malta non ci puo' entrare.
+CORNICE_S = CASSA_PARETE
+CORNICE_L = LUCE_INTONACO_L + 2 * CORNICE_S
+CORNICE_H = LUCE_INTONACO_H + 2 * CORNICE_S
+CANALE_PERIMETRALE = (LUCE_INTONACO_L - CASSA_L) / 2
+
+# Flangia di muratura: aletta che annega nella malta e chiude in fondo il
+# canale perimetrale. Sta dietro le feritoie (FLANGIA_ARRETRAMENTO e' piu'
+# sotto, insieme a loro) e sporge oltre la cornice quanto basta per i fori
+# d'ancoraggio, che devono stare fuori dal canale.
+FLANGIA_ALA = 10.0
+FLANGIA = CANALE_PERIMETRALE + CORNICE_S + FLANGIA_ALA
+FLANGIA_FORO_D = 5.0
+FLANGIA_FORI_X = CASSA_L / 2 + CANALE_PERIMETRALE + CORNICE_S + FLANGIA_ALA / 2
+FLANGIA_FORI_PASSO = 55.0          # quattro per fianco, centrati in altezza
+FLANGIA_FORI_N = 4
+
+# Nicchia da scavare. La profondita' si misura dal piano dell'intonaco
+# finito, che sul muro esistente e' la sua superficie: e' l'unico riferimento
+# che chi scava ha davanti, e il fondo della cassa ci sta a Z_TELAIO +
+# CASSA_PROF.
 FORO_MURO_L = CASSA_L + 2 * FLANGIA + 6.0
 FORO_MURO_H = CASSA_H + 2 * FLANGIA + 6.0
-FORO_MURO_PROF = CASSA_PROF + 6.0
 
 # Passaggi per i cavi sul fondo. Con il PoE ne serve uno, quello di rete: il
 # secondo resta come riserva con un filo pilota, perche' nel tufo murato tirare
@@ -302,13 +322,14 @@ PI_FORI_Y = 49.0
 PI_FORO_D = 2.05                   # preforo M2.5 (passo 0,45)
 PI_MARGINE_FORI = 3.5              # distanza dei fori dal bordo scheda
 # Altezza dello stack Pi 5 + adattatore NVMe + PoE HAT (F) + HAT audio
-# Pi MIC V3 + ventola. MISURATO: dal piano del telaio alla cima dei pin liberi
-# sono 40,5 mm, e 50,0 con i Dupont dell'NVMe innestati su quei pin. I 50 sono
-# la quota di progetto, perche' quei connettori non si possono togliere, e sono
-# esattamente il valore che il progetto assumeva: la cassa resta a 75.
-# Attenzione alla convenzione, perche' qui ci si sbaglia: questa quota parte da
-# **sopra il PCB del Pi**, non dal telaio, ed e' percio' la differenza fra il
-# gruppo misurato e l'altezza della base NVMe.
+# Pi MIC V3 + ventola. MISURATO dal piano del telaio (MISURE.md, sezione 2):
+# 40,5 mm alla cima dei pin liberi, 50,0 con i Dupont dell'NVMe innestati.
+# Conta la seconda, perche' quei connettori non si possono togliere.
+# Attenzione alla convenzione, perche' qui ci si sbaglia: PI_STACK_H parte dal
+# PCB del Pi, che sta sui distanziali, e il gruppo e' la loro somma. Con 10 di
+# distanziale e 40,5 qui il modello tiene 50,5, mezzo millimetro sopra la
+# misura: e' a favore di sicurezza, e prima di scavare la nicchia il gruppo si
+# rimisura comunque (ASSEMBLAGGIO.md, fase 5).
 PI_STACK_H = 40.5
 # Spazio fra il telaio e il PCB del Pi. Non e' aria: l'SSD NVMe sta su una
 # base sotto il Pi, collegata con un flat PCIe che fa un'ansa oltre il bordo
@@ -613,11 +634,17 @@ REED_H = 4.0
 # tutta la profondita': dietro serve il vano pieno.
 BATTUTA = 6.0
 BATTUTA_PROF = 4.0
+# La squadretta della scheda di ingresso sta in piedi a 5 mm dal fianco e
+# l'anello e' largo 6: la sua ala verticale ci cadeva sopra per quasi un
+# millimetro e il telaio non arrivava in appoggio. Lungo la squadretta l'anello
+# si restringe, con mezzo millimetro di gioco.
+SCARICO_STAFFA_X = STAFFA_X - STAFFA_S / 2 - 0.5
+SCARICO_STAFFA_Y0 = DRIVER_Y - STAFFA_L / 2 - 1.0
+SCARICO_STAFFA_Y1 = DRIVER_Y + STAFFA_L / 2 + 1.0
 
-# Riscontri ferrosi, che servono solo se la cassa non e' di ferro: il telaio e'
-# alluminio e i magneti hanno bisogno di qualcosa da attrarre. Con la cassa in
-# lamiera il riscontro e' la lamiera stessa, con la cassa stampata non c'e'
-# niente e vanno sei dischetti di acciaio dolce dietro ai sei magneti.
+# Riscontri ferrosi: il telaio e' alluminio, la cassa e' stampata in ASA, e i
+# magneti hanno bisogno di qualcosa da attrarre. Vanno sei dischetti di acciaio
+# dolce dietro ai sei magneti.
 #
 # Due cose che il progetto sbagliava, e che si vedono solo facendo i conti.
 # La prima: un dischetto appoggiato sulla battuta si infila fra battuta e
@@ -634,8 +661,7 @@ BATTUTA_PROF = 4.0
 # La sede va invece centrata sull'asse della battuta, non sul magnete. Un
 # dischetto O6 cosi' posizionato copre interamente il magnete O4 (che e'
 # l'unica cosa che conta, perche' serve ferro davanti al magnete) e resta tutto
-# sull'anello, senza isole e senza toccare niente. Nella versione in lamiera
-# non serve nulla di tutto questo: il riscontro e' la lamiera.
+# sull'anello, senza isole e senza toccare niente.
 RISCONTRO_D = 6.0
 RISCONTRO_S = 1.0
 RISCONTRO_GIOCO = 0.4              # la sede va scavata un po' larga
@@ -675,41 +701,62 @@ def posizioni_riscontri() -> list[tuple[float, float]]:
 # --------------------------------------------------------------------------
 # Ventilazione
 # --------------------------------------------------------------------------
-# Feritoia in basso (ingresso) e in alto (uscita). Sono ricavate nelle pareti
-# orizzontali della cassa, non sul fronte: il fronte e' coperto dal vetro e
-# l'aria non avrebbe modo di uscire. Si affacciano nella fessura d'ombra fra
-# vetro e intonaco.
-# La sezione e' il collo di bottiglia di tutto il raffreddamento, perche' il
-# muro e' in tufo e come dissipatore non esiste: tutto il calore esce da qui e
-# dal vetro. Per tenere l'aria interna dieci gradi sopra l'ambiente con i circa
-# dieci watt di Pi, display e scheda video serve mezzo litro d'aria al secondo
-# e qualcosa: su 3,2 cm2 vorrebbe dire farla correre a 2,6 m/s, troppo per un
-# tiraggio naturale. Con 6,4 cm2 si scende a 1,3 m/s.
+# L'aria entra da una feritoia nella parete bassa ed esce da due feritoie nei
+# fianchi, in alto. Nessuna sul fronte, che e' coperto dal vetro, e nessuna
+# nella parete alta: li' guarderebbe in su, proprio sotto la fessura d'ombra,
+# e l'acqua che entra dalla fessura ci cadrebbe dentro. Una feritoia rivolta in
+# basso non riceve acqua per gravita' e scarica quella che entra; una
+# verticale la riceve solo di striscio, e la rete la ferma (vedi sotto).
+# Tutte si affacciano nel canale perimetrale fra cassa e cornice, che porta
+# alla fessura d'ombra.
 # L'altezza e' misurata nella direzione della profondita', non sul fronte:
-# allargarla non si vede da fuori.
-FESSURA_ALTEZZA = 8.0
+# allargarla non si vede da fuori. Le quote sono quelle che, tolta la rete,
+# lasciano 6,4 cm2 di passaggio vero per lato (il controllo e' in verifica()).
+FESSURA_ALTEZZA = 15.0
 FESSURA_LARGHEZZA = 80.0
-# Distanza della feritoia dal fronte della cassa. Deve cadere dietro la battuta,
-# non a cavallo: quattro dei sei magneti stanno a x +-32 e cioe' dentro la
-# larghezza della feritoia, e i loro riscontri appoggiano proprio sulla battuta.
+FESSURA_LATO_L = 40.0              # lunghezza di ciascuna delle due laterali
+# Distanza delle feritoie dal fronte della cassa. Devono cadere dietro la
+# battuta, non a cavallo: quattro dei sei magneti stanno a x +-32, dentro la
+# larghezza della feritoia bassa, e i loro riscontri appoggiano sulla battuta.
 # Con la feritoia davanti, l'anello di appoggio restava tagliato dove il
-# magnete deve tirare. Dietro la battuta la sezione e' anche piena, perche'
-# l'aria sbuca nel vano invece di dover girare attorno all'anello.
-# Resta entro la profondita' che il profilo a perdere puo' tenere libera dalla
-# malta durante la rasatura.
+# magnete deve tirare.
 FESSURA_ARRETRAMENTO = TELAIO_S + BATTUTA_PROF + 1.0
-RETE_MAGLIA = 0.6                  # rete inox contro gli insetti
+# Le laterali finiscono 3 mm sotto il soffitto interno: l'aria calda si ferma
+# li', e tutto quello che sta sopra il bordo della feritoia e' aria che non esce.
+FESSURA_LATO_Y1 = VETRO_H / 2 + CASSA_INT_H / 2 - 3.0
+FESSURA_LATO_Y0 = FESSURA_LATO_Y1 - FESSURA_LATO_L
+# Gocciolatoio sopra ogni feritoia laterale: un dente sul fianco esterno, con
+# la faccia superiore inclinata verso fuori. L'acqua che scende lungo il fianco
+# ci arriva sopra e si stacca a 2,5 mm dalla parete, invece di passare
+# davanti alla feritoia.
+GOCCIOLATOIO = 2.5
+# La flangia chiude il canale perimetrale dietro le feritoie. Davanti a esse
+# chiudeva il passaggio: era a 10 mm dal fronte, con la feritoia fra 8 e 16, e
+# verso fuori ne restavano due millimetri. I 5 mm dietro la feritoia servono ai
+# canali laterali, che portano alla feritoia bassa l'aria entrata dai fianchi
+# della fessura: con meno, la bocca d'ingresso diventa piu' stretta della
+# feritoia.
+FLANGIA_ARRETRAMENTO = FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA + 5.0
+# Rete inox contro gli insetti. Il filo conta quanto la maglia: con 0,6 di luce
+# e filo da 0,2 l'area libera e' il 56%, con filo da 0,25 scende al 50%.
+RETE_MAGLIA = 0.6
+RETE_FILO = 0.2
+RETE_AREA_LIBERA = (RETE_MAGLIA / (RETE_MAGLIA + RETE_FILO)) ** 2
 # La rete va incollata dentro, sopra la feritoia, e per incollarla serve bordo
 # su cui mettere l'adesivo: non basta il margine in lunghezza, perche' sono i
-# due lati lunghi a tenerla. Il ritaglio nel foglio 07 era 85 x 8, cioe' alto
-# esattamente come la feritoia, e non aveva un decimo di appoggio sopra e sotto.
+# due lati lunghi a tenerla.
 RETE_SOVRAPPOSIZIONE = 5.0
 RETE_L = FESSURA_LARGHEZZA + RETE_SOVRAPPOSIZIONE
 RETE_H = FESSURA_ALTEZZA + RETE_SOVRAPPOSIZIONE
+RETE_LATO_L = FESSURA_LATO_L + RETE_SOVRAPPOSIZIONE
+# Smussi interni agli angoli bassi, fra la feritoia e i fianchi: l'acqua che
+# dovesse scendere lungo l'interno dei fianchi arriva sul fondo fuori dalla
+# feritoia, e senza smusso ristagnerebbe in quei 5,5 mm.
+SMUSSO_SCARICO = (CASSA_INT_L - FESSURA_LARGHEZZA) / 2
 
 # Il telaio non ha feritoie proprie: non servirebbero a niente. Davanti al
 # telaio c'e' il vetro incollato, quindi quel volume e' chiuso; l'aria circola
-# tutta nel vano dietro il telaio, dove le due feritoie della cassa si
+# tutta nel vano dietro il telaio, dove le tre feritoie della cassa si
 # affacciano direttamente.
 
 # Nessun setto acustico: chiuderebbe l'uscita dell'aria calda. Il microfono non
@@ -790,6 +837,11 @@ NFC_PCB_SOLO_S = 1.6
 # la fissa il piu' spesso fra i due incollaggi, che e' quello del telaio: e'
 # lui che tiene su il gruppo.
 Z_TELAIO = VETRO_S + max(BIADESIVO_S, BIADESIVO_DISPLAY_S + DISPLAY_MODULO_S)
+# Le quote della posa, che dipendono da Z_TELAIO: il fronte della cassa sta
+# Z_TELAIO dietro il piano dell'intonaco, e da quel piano si misurano anche la
+# flangia e la nicchia.
+Z_FLANGIA = Z_TELAIO + FLANGIA_ARRETRAMENTO
+FORO_MURO_PROF = Z_TELAIO + CASSA_PROF + 6.0
 # Aria che resta fra il retro del display e il fronte del telaio.
 DISPLAY_ARIA_TELAIO = (Z_TELAIO - VETRO_S
                        - BIADESIVO_DISPLAY_S - DISPLAY_MODULO_S)
@@ -902,6 +954,121 @@ def fondo_interno() -> float:
 def canale_aria() -> float:
     """Millimetri liberi fra il componente piu' profondo e il fondo cassa."""
     return fondo_interno() - max(c[6] for c in componenti())
+
+
+def gruppo_massimo() -> float:
+    """Altezza del gruppo del Pi oltre la quale il canale d'aria dietro i
+    componenti diventa piu' stretto della feritoia lorda.
+
+    Vale finche' il gruppo del Pi e' il componente piu' profondo, e verifica()
+    controlla che lo sia.
+    """
+    canale_min = (max(sezioni_aria()[k] for k in ("ingresso", "uscita"))
+                  * 100 / CASSA_INT_L)
+    return PI_GRUPPO_H + canale_aria() - canale_min
+
+
+def sezioni_aria() -> dict[str, float]:
+    """Le sezioni in serie sul percorso dell'aria, in cm2.
+
+    Per ciascun verso: la feritoia lorda, la stessa tolta la rete, e la bocca
+    nella fessura d'ombra. La bocca d'ingresso e' la fessura bassa piu' la
+    meta' bassa dei fianchi, che pero' arriva alla feritoia solo lungo i
+    canali laterali e ne e' limitata; quella d'uscita e' la meta' alta dei
+    fianchi, davanti alle feritoie laterali, piu' la fessura alta, che si
+    raggiunge salendo oltre i gocciolatoi.
+    """
+    ombra = OMBRA_PERIMETRALE
+    canale_lato = CANALE_PERIMETRALE * (Z_FLANGIA - VETRO_S)
+    oltre_gocciolatoio = ((CANALE_PERIMETRALE - GOCCIOLATOIO)
+                          * (Z_FLANGIA - Z_TELAIO)
+                          + CANALE_PERIMETRALE * (Z_TELAIO - VETRO_S))
+    ingresso = FESSURA_LARGHEZZA * FESSURA_ALTEZZA
+    uscita = 2 * FESSURA_LATO_L * FESSURA_ALTEZZA
+    sezioni = {
+        "ingresso": ingresso,
+        "ingresso_libera": ingresso * RETE_AREA_LIBERA,
+        "uscita": uscita,
+        "uscita_libera": uscita * RETE_AREA_LIBERA,
+        "bocca_ingresso": ombra * LUCE_INTONACO_L
+        + 2 * min(ombra * LUCE_INTONACO_H / 2, canale_lato),
+        "bocca_uscita": 2 * min(ombra * LUCE_INTONACO_H / 2, 2 * canale_lato)
+        + min(ombra * LUCE_INTONACO_L, 2 * oltre_gocciolatoio),
+    }
+    return {k: v / 100 for k, v in sezioni.items()}
+
+
+# Coefficiente d'efflusso di un'apertura a spigolo vivo.
+TIRAGGIO_CD = 0.6
+
+
+def tiraggio(delta_t: float, t_esterna: float = 35.0) -> float:
+    """Watt portati fuori dal solo tiraggio naturale.
+
+    Effetto camino fra la feritoia bassa e il centro delle laterali, con
+    l'aria interna delta_t gradi sopra quella esterna. Le sezioni in serie si
+    compongono come resistenze idrauliche, 1/A^2. Non conta la ventola, che
+    rimescola l'aria dentro la cassa ma non la cambia.
+    """
+    def serie(*aree):
+        return sum(a ** -2 for a in aree) ** -0.5
+
+    s = sezioni_aria()
+    area = serie(serie(s["ingresso_libera"], s["bocca_ingresso"]),
+                 serie(s["uscita_libera"], s["bocca_uscita"])) / 1e4
+    salto = ((FESSURA_LATO_Y0 + FESSURA_LATO_Y1) / 2
+             - (VETRO_H - CASSA_H) / 2) / 1000
+    velocita = math.sqrt(2 * 9.81 * salto * delta_t / (t_esterna + 273.15))
+    return 1.15 * 1005 * TIRAGGIO_CD * area * velocita * delta_t
+
+
+# Bilancio termico. Le feritoie da sole non bastano: a 20 gradi di salto il
+# tiraggio porta fuori meno di tre watt, e il resto deve passare per il vetro
+# e per il muro. Questi coefficienti sono stime da manuale, non misure, e
+# vanno trattati come tali: il numero che ne esce serve a sapere che cosa
+# aspettarsi dalla prova in cassa chiusa, non a sostituirla.
+POTENZA_RIPOSO = 5.0      # W in cassa: Pi a riposo, SSD, perdita PoE, display spento
+POTENZA_PICCO = 11.5      # W in cassa: in chiamata, display acceso e Pi carico
+H_ARIA_INTERNA = 5.0      # W/m2K, convezione naturale sulle pareti interne
+H_VETRO_ESTERNO = 9.0     # W/m2K, convezione e irraggiamento, vetro all'ombra
+K_TUFO = 0.3              # W/mK, tufo asciutto: 0,2-0,5 secondo la cava
+TUFO_DIETRO = 0.11        # m, quanto muro resta dietro la cassa fino all'interno
+K_VHB = 0.1               # W/mK, schiuma acrilica
+VHB_LARGHEZZA = 12.0      # mm, il nastro della cornice
+
+
+def conduttanze_pareti() -> dict[str, float]:
+    """W/K fra l'aria interna e l'esterno, attraverso vetro e muro.
+
+    Vetro: aria interna -> telaio -> VHB e intercapedine -> vetro -> fuori,
+    tutto in serie. Muro: aria interna -> pareti della cassa -> tufo, con la
+    parete di casa a fare da pozzo; e' la stima piu' incerta delle due.
+    """
+    a_telaio = TELAIO_L * TELAIO_H / 1e6
+    a_vhb = VHB_LARGHEZZA * 2 * (TELAIO_L + TELAIO_H) / 1e6
+    a_vetro = VETRO_L * VETRO_H / 1e6
+    r_vetro = (1 / (H_ARIA_INTERNA * a_telaio)
+               + 1 / (K_VHB * a_vhb / (BIADESIVO_S / 1000)
+                      + 0.026 * (a_telaio - a_vhb) / (BIADESIVO_S / 1000))
+               + 1 / (H_VETRO_ESTERNO * a_vetro))
+    prof = (fondo_interno() - Z_TELAIO - TELAIO_S) / 1000
+    a_cassa = (CASSA_INT_L * CASSA_INT_H / 1e6
+               + 2 * (CASSA_INT_L + CASSA_INT_H) / 1000 * prof)
+    r_muro = 1 / (H_ARIA_INTERNA * a_cassa) + TUFO_DIETRO / (K_TUFO * a_cassa)
+    return {"vetro": 1 / r_vetro, "muro": 1 / r_muro}
+
+
+def salto_termico(potenza: float, t_esterna: float = 35.0) -> float:
+    """Gradi dell'aria interna sopra l'esterno, a regime, con potenza watt."""
+    g = sum(conduttanze_pareti().values())
+    basso, alto = 0.0, 200.0
+    for _ in range(60):
+        dt = (basso + alto) / 2
+        if tiraggio(dt, t_esterna) + g * dt < potenza:
+            basso = dt
+        else:
+            alto = dt
+    return (basso + alto) / 2
 
 
 def verifica() -> list[str]:
@@ -1312,21 +1479,129 @@ def verifica() -> list[str]:
     # fronte, che e' arretrato di Z_TELAIO rispetto alla faccia del vetro,
     # quindi i due riferimenti non coincidono e confonderli sottostima il
     # canale di qualche millimetro.
-    sez_feritoia = FESSURA_LARGHEZZA * FESSURA_ALTEZZA / 100
+    sez = sezioni_aria()
     sez_canale = CASSA_INT_L * canale_aria() / 100
-    if sez_canale < sez_feritoia:
+    if sez_canale < sez["ingresso"]:
         problemi.append(
             f"il canale d'aria dietro i componenti vale {sez_canale:.1f} cm2,"
-            f" meno delle feritoie ({sez_feritoia:.1f} cm2): e' lui il collo"
+            f" meno della feritoia ({sez['ingresso']:.1f} cm2): e' lui il collo"
             " di bottiglia, non serve allargare le feritoie")
-    # La feritoia e' ricavata nella parete orizzontale e si apre nel canale fra
-    # fianco della cassa e nicchia, che va tenuto vuoto con un profilo a
-    # perdere: se e' troppo profonda, il profilo non la copre e la malta entra.
-    if FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA > 20.0:
+    piu_profondo = max(componenti(), key=lambda c: c[6])
+    if piu_profondo[0] != "stack del Pi":
         problemi.append(
-            f"la feritoia arriva a {FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA:.0f}"
-            " mm dal fronte: serve un profilo a perdere piu' profondo di"
-            " quanto sia pratico infilare")
+            f"il componente piu' profondo e' {piu_profondo[0]}, non lo stack del"
+            " Pi: gruppo_massimo() e la quota che ne citano i documenti non"
+            " valgono piu'")
+    # Quello che passa davvero e' la feritoia meno la rete: contare la
+    # sezione lorda era l'errore che dava 6,4 cm2 dove ne passavano 3,2.
+    for nome in ("ingresso", "uscita"):
+        if sez[nome + "_libera"] < 6.4:
+            problemi.append(
+                f"la sezione libera d'{nome}, tolta la rete, e'"
+                f" {sez[nome + '_libera']:.2f} cm2: ne servono 6,4")
+    # Le feritoie sono in serie con la fessura d'ombra, che e' la bocca vera
+    # verso l'esterno. Se la bocca e' piu' stretta, il collo di bottiglia e'
+    # lei e le feritoie sono sovradimensionate per niente.
+    for nome in ("ingresso", "uscita"):
+        if sez["bocca_" + nome] < sez[nome + "_libera"]:
+            problemi.append(
+                f"la bocca d'{nome} nella fessura d'ombra vale"
+                f" {sez['bocca_' + nome]:.2f} cm2, meno della feritoia"
+                f" ({sez[nome + '_libera']:.2f}): il collo di bottiglia e' lei")
+    # La flangia chiude il canale perimetrale e deve stare dietro le
+    # feritoie: davanti, le chiude.
+    # Si controlla Z_FLANGIA, che e' la quota esportata al modello 3D, e non
+    # l'arretramento da cui nasce.
+    if Z_FLANGIA - Z_TELAIO < FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA + 1.0:
+        problemi.append(
+            f"la flangia sta a {Z_FLANGIA - Z_TELAIO:.1f} mm dal fronte e le"
+            f" feritoie arrivano a"
+            f" {FESSURA_ARRETRAMENTO + FESSURA_ALTEZZA:.1f}: le copre")
+    # I fori d'ancoraggio della flangia devono stare fuori dalla cornice, o
+    # la malta passa dal foro nel canale delle feritoie.
+    dentro = FLANGIA_FORI_X - FLANGIA_FORO_D / 2 \
+        - (CASSA_L / 2 + CANALE_PERIMETRALE + CORNICE_S)
+    fuori = CASSA_L / 2 + FLANGIA - (FLANGIA_FORI_X + FLANGIA_FORO_D / 2)
+    if min(dentro, fuori) < 1.5:
+        problemi.append(
+            f"i fori della flangia lasciano {dentro:.1f} mm verso la cornice"
+            f" e {fuori:.1f} verso il bordo: servono 1,5 per parte")
+    # Le feritoie laterali stanno sotto il soffitto interno, e il
+    # gocciolatoio sopra di loro deve stare ancora sul fianco.
+    tetto = VETRO_H / 2 + CASSA_H / 2
+    if FESSURA_LATO_Y1 + 1.0 + GOCCIOLATOIO > tetto:
+        problemi.append(
+            f"il gocciolatoio sopra le feritoie laterali arriva a"
+            f" {FESSURA_LATO_Y1 + 1.0 + GOCCIOLATOIO:.1f}, oltre il tetto della"
+            f" cassa a {tetto:.1f}")
+    if CANALE_PERIMETRALE - GOCCIOLATOIO < 3.0:
+        problemi.append(
+            f"il gocciolatoio sporge {GOCCIOLATOIO} mm in un canale largo"
+            f" {CANALE_PERIMETRALE}: restano meno di 3 mm per l'aria")
+    # Pioggia di striscio. Un getto che entra dalla fessura d'ombra raggiunge
+    # una feritoia solo con un angolo radente sulla parete: al massimo quello
+    # che va dallo spigolo della cornice, dietro il vetro, al bordo anteriore
+    # della feritoia. Una rete tessuta e' spessa due fili, e sotto l'angolo
+    # atan(2 filo / maglia) non lascia passare niente in linea retta: la goccia
+    # trova un filo e scende lungo la rete.
+    radente = math.degrees(math.atan2(
+        CANALE_PERIMETRALE, Z_TELAIO + FESSURA_ARRETRAMENTO - VETRO_S))
+    limite = math.degrees(math.atan2(2 * RETE_FILO, RETE_MAGLIA))
+    if radente > limite - 3.0:
+        problemi.append(
+            f"un getto dalla fessura d'ombra arriva sulle feritoie a"
+            f" {radente:.1f} gradi e la rete e' cieca solo sotto i"
+            f" {limite:.1f}: non resta il margine di 3 gradi")
+    # L'anello di battuta e' dove il telaio appoggia: niente di quello che sta
+    # sul retro del telaio puo' scendere li' sopra, salvo nello scarico della
+    # squadretta. Nessun controllo lo guardava, e la squadretta ci cadeva.
+    zb0 = Z_TELAIO + TELAIO_S
+    zb1 = zb0 + BATTUTA_PROF
+    ox = CASSA_INT_L / 2 - BATTUTA
+    oy0 = VETRO_H / 2 - CASSA_INT_H / 2 + BATTUTA
+    oy1 = VETRO_H / 2 + CASSA_INT_H / 2 - BATTUTA
+    for nome, x1, y1, z1, x2, y2, z2 in componenti_lista:
+        if z2 <= zb0 or z1 >= zb1:
+            continue
+        fuori = x1 < -ox or x2 > ox or y1 < oy0 or y2 > oy1
+        nello_scarico = (x1 >= SCARICO_STAFFA_X and x2 <= ox
+                         and SCARICO_STAFFA_Y0 <= y1 and y2 <= SCARICO_STAFFA_Y1
+                         and oy0 <= y1 and y2 <= oy1)
+        if fuori and not nello_scarico:
+            problemi.append(
+                f"{nome} scende sull'anello di battuta (x {x1:.1f}..{x2:.1f},"
+                f" y {y1:.1f}..{y2:.1f}): il telaio non arriva in appoggio")
+    # Lo scarico lascia al telaio almeno 3 mm d'appoggio e sta lontano dalla
+    # sede del riscontro laterale.
+    if TELAIO_L / 2 - abs(SCARICO_STAFFA_X) < 3.0:
+        problemi.append(
+            f"lo scarico della squadretta lascia"
+            f" {TELAIO_L / 2 - abs(SCARICO_STAFFA_X):.1f} mm d'appoggio al"
+            f" telaio")
+    for rx, ry in posizioni_riscontri():
+        if rx < 0 and abs(rx) - RISCONTRO_SEDE_D / 2 < abs(SCARICO_STAFFA_X) \
+                and ry + RISCONTRO_SEDE_D / 2 > SCARICO_STAFFA_Y0 - 1.0 \
+                and ry - RISCONTRO_SEDE_D / 2 < SCARICO_STAFFA_Y1 + 1.0:
+            problemi.append(
+                f"lo scarico della squadretta tocca la sede del riscontro in"
+                f" ({rx:.1f}, {ry:.1f})")
+    # Nessun componente deve toccare l'interno dei fianchi nella fascia delle
+    # feritoie e sotto di esse: e' la parete su cui scende l'acqua che dovesse
+    # passare la rete, e un pezzo appoggiato la raccoglierebbe.
+    z_a = Z_TELAIO + FESSURA_ARRETRAMENTO
+    z_b = z_a + FESSURA_ALTEZZA
+    for nome, x1, y1, z1, x2, y2, z2 in componenti_lista:
+        if z2 <= z_a or z1 >= z_b or y1 >= FESSURA_LATO_Y1:
+            continue
+        if min(CASSA_INT_L / 2 - abs(x1), CASSA_INT_L / 2 - abs(x2)) < 2.0:
+            problemi.append(
+                f"{nome} sta a meno di 2 mm dall'interno del fianco, sotto le"
+                f" feritoie laterali")
+        # Gli smussi di scarico occupano gli angoli bassi.
+        sm_y = VETRO_H / 2 - CASSA_INT_H / 2 + SMUSSO_SCARICO
+        if y1 < sm_y and max(abs(x1), abs(x2)) > FESSURA_LARGHEZZA / 2:
+            problemi.append(
+                f"{nome} entra negli smussi di scarico agli angoli bassi")
     # La feritoia deve cadere dietro la battuta, non a cavallo: la battuta e'
     # l'anello su cui il telaio appoggia e su cui tirano i magneti, e quattro
     # dei sei cadono dentro la larghezza della feritoia.
@@ -1628,14 +1903,28 @@ def riepilogo() -> str:
         f"cassa esterna    {CASSA_L} x {CASSA_H} x {CASSA_PROF}",
         f"cassa interna    {CASSA_INT_L} x {CASSA_INT_H}",
         f"telaio           {TELAIO_L} x {TELAIO_H} x {TELAIO_S}",
-        f"profondita' usata {VETRO_S + max(BIADESIVO_S, BIADESIVO_DISPLAY_S + DISPLAY_MODULO_S) + TELAIO_S + PI_DISTANZIALI + PI_STACK_H:.1f}"
-        f" su {CASSA_PROF} disponibili",
+        f"profondita' usata {max(c[6] for c in componenti()):.1f} dalla faccia"
+        f" del vetro, su {fondo_interno():.1f} fino al fondo interno",
         f"gruppo del Pi    {PI_GRUPPO_H:.1f} dal telaio alla cima dei pin"
         f" (e' la quota da prendere col calibro)",
         f"canale d'aria    {canale_aria():.1f} mm fra il componente piu'"
         f" profondo e il fondo cassa ({CASSA_INT_L * canale_aria() / 100:.1f} cm2)",
-        f"fessure aria     {FESSURA_LARGHEZZA} x {FESSURA_ALTEZZA} mm"
-        f" = {FESSURA_LARGHEZZA * FESSURA_ALTEZZA / 100:.1f} cm2 per lato",
+        f"feritoie         bassa {FESSURA_LARGHEZZA:.0f} x {FESSURA_ALTEZZA:.0f},"
+        f" laterali 2 x {FESSURA_LATO_L:.0f} x {FESSURA_ALTEZZA:.0f}:"
+        f" {sezioni_aria()['ingresso']:.1f} cm2 per verso, tolta la rete"
+        f" {sezioni_aria()['ingresso_libera']:.2f}",
+        f"bocche           ingresso {sezioni_aria()['bocca_ingresso']:.2f} cm2,"
+        f" uscita {sezioni_aria()['bocca_uscita']:.2f}",
+        f"tiraggio         {tiraggio(20):.1f} W con l'aria interna 20 gradi"
+        f" sopra l'esterno, {tiraggio(30):.1f} W a 30",
+        f"pareti           vetro {conduttanze_pareti()['vetro']:.3f} W/K,"
+        f" muro {conduttanze_pareti()['muro']:.3f} W/K (stime)",
+        f"aria in cassa    +{salto_termico(POTENZA_RIPOSO):.0f} K a riposo"
+        f" ({POTENZA_RIPOSO:.1f} W), +{salto_termico(POTENZA_PICCO):.0f} K a"
+        f" pieno carico continuo ({POTENZA_PICCO:.1f} W)",
+        f"posa             cornice a filo dell'intonaco finito, flangia a"
+        f" {Z_FLANGIA:.0f} mm, nicchia {FORO_MURO_L:.0f} x {FORO_MURO_H:.0f}"
+        f" x {FORO_MURO_PROF:.0f}",
         f"sotto il Pi      l'ansa del flat PCIe si ferma a"
         f" {PI_Y0 - PCIE_ANSA - (NFC_Y + NFC_PCB_H / 2):.1f} mm dal lettore"
         f" NFC, il patch gli passa sopra a"

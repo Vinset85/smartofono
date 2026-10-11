@@ -28,10 +28,10 @@ STL già scritti, che sono quello che il fornitore riceve davvero.
 |---|---|---|---|---|
 | 1 | Vetro frontale stampato | `cad/01-vetro-frontale.dxf` | vetreria con serigrafia UV | 1 |
 | 2 | Telaio portante | `cad/02-telaio-portante.dxf` | taglio laser + officina | 1 |
-| 3 | Cassa da incasso | `cad/03-cassa-incasso.dxf` | lattoniere, **oppure** stampa 3D da `stl/cassa.stl` | 1 |
+| 3 | Cassa da incasso | `stl/cassa.stl`, controllo su `cad/03-cassa-incasso.dxf` | stampa 3D in ASA | 1 |
 | 4 | Squadretta della scheda di ingresso | `cad/07-staffa-e-pezzi-piani.dxf` | lattoniere, o a mano | 1 |
 
-Gli altri due DXF non si ordinano: `04-dima-muratura.dxf` si stampa in scala
+Gli altri tre DXF non si ordinano: `04-dima-muratura.dxf` si stampa in scala
 1:1 su carta e serve a fare il buco nel muro, `05-disposizione.dxf` e
 `06-gruppo-display.dxf` sono mappe di montaggio.
 
@@ -120,26 +120,35 @@ Due punti che si sbagliano facilmente, entrambi marcati sul disegno:
 
 ## 3. Cassa da incasso
 
-Due strade, entrambe valide, e la scelta cambia **una cosa sola** nel resto
-del montaggio.
+**ASA stampato in 3D**, da `stl/cassa.stl`, pareti **1,5 mm** come il
+modello. Una strada sola: la lamiera piegata, che il progetto prevedeva in
+alternativa, non fa la cornice, i gocciolatoi e gli smussi di scarico, e il
+foglio 03 non è più uno sviluppo ma un disegno di controllo, da usare col
+calibro sul pezzo stampato. Il PETG è escluso perché ammorbidisce sopra i
+70 °C, e d'estate a pieno carico l'aria in cassa ci arriva vicino; il **PLA**
+ancora di più. Le pareti non possono superare 2,0: oltre, la misura esterna è
+fissata dalla fessura d'ombra e il telaio da 89 x 229 non entra più nel vano.
 
-**Lamiera di acciaio zincato 1,5 mm**, piegata e puntata, verniciata a polvere.
-Il foglio 03 è un **disegno a quattro viste, non uno sviluppo in piano**: lo
-sviluppo lo ricava il lattoniere applicando la detrazione della sua macchina,
-perché dipende da raggio di piega e spessore e non la può decidere il disegno.
-Le quote di piega sul foglio sono nominali.
+Come stamparla:
 
-**ASA o PETG stampato in 3D**, pareti **1,5 mm** come il disegno, da
-`stl/cassa.stl`. Il massimo ammesso è 2,0: oltre, la misura esterna è fissata
-dalla fessura d'ombra e il telaio da 89 x 229 non entra più nel vano. Da
-evitare il **PLA**: rammollisce verso i 55 °C e dentro la scatola si arriva a
-70 nei picchi.
+- **sdraiata sul fondo**, con la cornice in alto: il fondo è l'unica faccia
+  piana e grande, e così battuta, flangia e cornice crescono in verticale e
+  le loro quote vengono dalla precisione in z della stampante;
+- **supporti** sotto la flangia, che sporge di 17,5 mm a 45,5 mm dal piatto e
+  porta la cornice, e sotto la battuta, che sporge di 6 mm verso l'interno a
+  68 mm dal piatto; si tolgono dalla bocca. Le feritoie si chiudono a ponte,
+  40 mm le laterali e 80 la bassa: se la stampante non regge un ponte da 80,
+  un supporto anche lì;
+- **almeno 4 perimetri e 25% di riempimento**: le pareti da 1,5 mm sono tutte
+  perimetri, ma flangia e battuta prendono carico, la prima dalla malta e la
+  seconda dai magneti;
+- dopo la stampa, misura col calibro **luce interna 91 x 231** e **cornice
+  109 x 249** sul foglio 03: sono le due quote che decidono se il telaio entra
+  e se il vetro va a filo. Un ASA che ritira più del previsto si vede qui.
 
-La cosa che cambia: **il telaio è in alluminio e i magneti hanno bisogno di
-ferro da attrarre.** Con la cassa in lamiera il riscontro è la lamiera stessa e
-non serve aggiungere niente. Con la cassa stampata non c'è niente da attrarre, e
-servono **sei dischetti di acciaio dolce Ø6 x 1**, uno per magnete. Senza quelli
-il pannello non sta su.
+**Il telaio è in alluminio e i magneti hanno bisogno di ferro da attrarre**, e
+la cassa in ASA non ne ha: servono **sei dischetti di acciaio dolce Ø6 x 1**,
+uno per magnete. Senza quelli il pannello non sta su.
 
 I dischetti vanno **annegati nelle sei sedi** che il modello 3D già prevede,
 Ø6,4 profonde 1,2 sulla faccia di battuta, non incollati sopra. Appoggiati sulla
@@ -169,12 +178,17 @@ materiale e si taglia col cutter.
 | Pezzo | Misura | Materiale |
 |---|---|---|
 | Diaframma NFC | 38 x 40 | PET nero opaco 0,2 mm |
-| Rete delle feritoie | 85 x 13, due pezzi | inox maglia 0,6 mm |
+| Rete della feritoia bassa | 85 x 20, un pezzo | inox maglia 0,6 mm, filo 0,2 |
+| Rete delle feritoie laterali | 45 x 20, due pezzi | la stessa |
 
-La rete è più grande della feritoia, che è 80 x 8, perché va incollata dentro e
-le servono 2,5 mm di bordo per l'adesivo **su tutti i quattro lati**: sono i due
-lati lunghi a tenerla, e un ritaglio alto esattamente come la feritoia non
-avrebbe dove attaccarsi.
+La rete è più grande della feritoia, 80 x 15 la bassa e 40 x 15 le laterali,
+perché va incollata dentro e le servono 2,5 mm di bordo per l'adesivo **su
+tutti i quattro lati**: un ritaglio grande esattamente come la feritoia non
+avrebbe dove attaccarsi. Il filo da 0,2 non è un dettaglio: con maglia 0,6 la
+tela lascia passare il 56% dell'aria, che è il numero su cui è calcolata la
+ventilazione, ed è cieca per le gocce che arrivano radenti, che è quello su
+cui è calcolata la protezione dall'acqua. Una rete con filo più sottile passa
+più aria e meno pioggia, una con filo più grosso il contrario.
 
 **L'adesivo ottico del display fa eccezione**, pur essendo disegnato sullo
 stesso foglio: 70 x 125 di **OCA da 0,35 mm**, e va ordinato già tagliato.
@@ -207,9 +221,10 @@ trova in ferramenta:
 2. **Ordina il vetro.** È il pezzo con i tempi più lunghi, e ora si può
    ordinare: il touch è integrato nel pannello e non esiste una lastra
    separata che possa cambiare lo spessore.
-3. **Ordina telaio e cassa**, che arrivano prima.
+3. **Ordina il telaio e stampa la cassa**, che arrivano prima.
 4. **Monta tutto a banco**, fuori dal muro, e collauda. La procedura è in
    [ASSEMBLAGGIO.md](ASSEMBLAGGIO.md), e la fase di collaudo non è facoltativa:
    due passaggi sono irreversibili — la muratura della cassa e l'incollaggio
-   del vetro — e vengono entrambi dopo.
+   del vetro — e vengono entrambi dopo. Del collaudo, la prova termica in
+   cassa chiusa è quella che decide se si mura.
 5. **Poi** scava, mura, incolla.
