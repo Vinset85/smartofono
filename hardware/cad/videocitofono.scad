@@ -156,7 +156,7 @@ module telaio() {
 
         // Apertura per l'antenna NFC: qui il telaio non deve avere metallo,
         // altrimenti la bobina non legge.
-        translate([NFC_X, NFC_Y, z0 + TELAIO_S / 2])
+        translate([NFC_APERTURA_X, NFC_Y, z0 + TELAIO_S / 2])
             cube([NFC_APERTURA_L, NFC_APERTURA_H, TELAIO_S * 3],
                  center = true);
 

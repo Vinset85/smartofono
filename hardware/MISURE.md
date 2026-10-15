@@ -373,12 +373,11 @@ l'unica quota di questo gruppo che non viene dal pezzo.
 
 Da qui quattro modifiche, tutte nei parametri e nei disegni:
 
-- **la scheda resta centrata sul pannello** e si sposta l'icona serigrafata.
-  Centrare l'antenna avrebbe portato il connettore USB-C a filo del fianco
-  della cassa, dove il cavo non entra;
-- **l'icona NFC sul vetro si sposta a x = −11,5**, cioè dove legge davvero la
-  spira. Lasciarla al centro vorrebbe dire invitare ad appoggiare il tag dove
-  la scheda ha il convertitore USB;
+- **la scheda resta centrata sul pannello**. Centrare l'antenna avrebbe
+  portato il connettore USB-C a filo del fianco della cassa, dove il cavo
+  non entra;
+- **l'icona NFC sul vetro resta al centro** (`NFC_X = 0`). L'apertura nel
+  telaio segue la spira a x = −11,5;
 - **l'apertura del telaio scende da 46 x 40 a 30 x 32** e cade dentro la spira
   invece che attorno. Coprire d'alluminio i conduttori attenua poco, mentre
   l'area interna deve restare libera, e così resta un appoggio continuo di 3 mm

@@ -37,9 +37,9 @@ cad/04-dima-muratura.dxf     sagoma 1:1 da stampare per fare il foro
 cad/05-disposizione.dxf      mappa dei componenti: pianta e sezione
 cad/06-gruppo-display.dxf    come si monta il gruppo del display
 cad/07-staffa-e-pezzi-piani.dxf  squadretta della scheda di ingresso, ritagli
-render/                      foto del pannello finito, e i filmati
-render/scala/                gli stessi fotogrammi ridisegnati al millimetro
-render/componi.py            ridisegna render/scala da parametri.py
+render/                      fotogrammi quotati da parametri.py, e i filmati
+render/scala/                la stessa serie, copia di controllo
+render/componi.py            ridisegna i fotogrammi dalle quote
 render/schermata-*.jpg       le interfacce reali, fotografate dal display
 render/monta-video.sh        rimonta i filmati dai fotogrammi
 cad/videocitofono.scad       modello 3D parametrico (OpenSCAD)
@@ -832,16 +832,16 @@ specifica del vetro**: sono loro a fare il lavoro, non i nit.
 
 ## I render e i due filmati
 
-In `render/` ci sono le foto del pannello finito e i due filmati. Le foto
-tengono le quote del progetto: vetro 100×240 mm a filo dell'intonaco, fessura
-d'ombra di 3 mm, finestra del display 69×122, obiettivo a filo da 10 mm,
-microfono da 3 mm a sinistra della lente, icona NFC sull'antenna, griglia di
-tre strisce e non una matrice di fori. Il disegno in scala, per controllare
-le proporzioni al millimetro, sta in `render/scala/` e si rigenera con
-`../.venv-cad/bin/python render/componi.py`. I filmati si rimontano con
-`render/monta-video.sh`. Le due foto `schermata-*.jpg` restano gli originali
-del display. Il fronte 3D (`anteprime/3d-fronte.png`) mostra la stessa faccia
-finita, con l'intonaco a filo.
+In `render/` i fotogrammi li disegna `render/componi.py` sulle quote di
+`parametri.py`, non a occhio: una foto generica sposta la lente, la griglia
+e la fessura. Il vetro è 100×240 mm a filo dell'intonaco, la fessura d'ombra
+è 3 mm, la finestra del display è 69×122, l'obiettivo è una finestra da
+10 mm, il microfono è il foro da 3 mm a sinistra della lente, l'icona NFC
+è al centro del vetro e la griglia è tre strisce di serigrafia. Si rigenerano con
+`../.venv-cad/bin/python render/componi.py` e poi `render/monta-video.sh`.
+La copia identica sta in `render/scala/`. Le due foto `schermata-*.jpg`
+restano gli originali del display. Il fronte 3D (`anteprime/3d-fronte.png`)
+mostra la stessa faccia finita, con l'intonaco a filo.
 
 **`installazione.mp4`**, dai cinque fotogrammi `inst-*.jpg`, segue l'ordine
 della procedura in `ASSEMBLAGGIO.md`: la nicchia scavata nel tufo con i due
@@ -920,8 +920,8 @@ sopra i componenti. Quattro conseguenze, tutte in `parametri.py`:
 
 - il PCB resta centrato (`NFC_PCB_X = 0`), perché così il cavo USB-C sta nel
   fianco del vano invece di sbattere contro la parete;
-- l'icona sul vetro si sposta a `NFC_X = -11,5`, sopra la spira, perché è lì che
-  il telefono va avvicinato;
+- l'icona sul vetro resta al centro (`NFC_X = 0`); l'apertura nel telaio segue
+  la spira a `NFC_APERTURA_X = -11,5`;
 - l'apertura nel telaio scende a 30 x 32 e cade **dentro** la spira, non attorno
   alla scheda: 3 mm di appoggio su tutti i lati, e alluminio risparmiato
   esattamente dove serve filettare;

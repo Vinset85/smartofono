@@ -207,10 +207,9 @@ GRIGLIA_N = 3
 GRIGLIA_Y = 215.0
 
 # Zona di lettura NFC: icona serigrafata semitrasparente, retroilluminata.
-# L'icona va dove legge l'antenna, e l'antenna non e' al centro della scheda:
-# NFC_X viene percio' da NFC_ANTENNA_OFFSET_X, piu' in basso. Lasciarla al
-# centro del pannello vorrebbe dire invitare ad appoggiare il tag dove la
-# scheda ha il suo PN532 e il convertitore USB, non la spira.
+# L'icona sta al centro del vetro. L'antenna e l'apertura nel telaio restano
+# a NFC_ANTENNA_OFFSET_X: la spira non e' centrata sulla scheda, e spostare
+# il PCB per inseguirla manderebbe il connettore USB-C a filo del fianco.
 NFC_D = 22.0
 NFC_Y = 30.0
 
@@ -544,9 +543,11 @@ NFC_APERTURA_H = 32.0
 # reggere il filetto: a quattro millimetri dal bordo ne restavano meno di uno.
 # Il PCB resta centrato sul pannello: spostarlo per centrare l'antenna lo
 # porterebbe col connettore USB-C a filo del fianco della cassa, e li' il cavo
-# non entra. Si sposta invece l'icona sul vetro.
+# non entra. L'icona sul vetro resta al centro; l'apertura segue la spira.
 NFC_PCB_X = 0.0
-NFC_X = NFC_PCB_X + NFC_ANTENNA_OFFSET_X
+NFC_X = 0.0
+NFC_APERTURA_X = NFC_PCB_X + NFC_ANTENNA_OFFSET_X
+NFC_ANTENNA_X = NFC_APERTURA_X
 # Dei quattro fori della scheda se ne usano due, quelli dal lato
 # dell'elettronica: gli altri due cadono a mezzo millimetro dall'apertura e
 # non lascerebbero alluminio da filettare. Dal lato dell'antenna il PCB
@@ -1279,7 +1280,7 @@ def verifica() -> list[str]:
     telaio_y0 = (VETRO_H - TELAIO_H) / 2
     PONTE_MIN = 2.0
     aperture = [
-        ("apertura NFC", NFC_X, NFC_Y, NFC_APERTURA_L, NFC_APERTURA_H),
+        ("apertura NFC", NFC_APERTURA_X, NFC_Y, NFC_APERTURA_L, NFC_APERTURA_H),
         ("luce altoparlante", SPEAKER_X, SPEAKER_LUCE_Y,
          SPEAKER_LUCE_L, SPEAKER_LUCE_H),
         ("passaggio lente", CAMERA_X, OTTICA_Y,
@@ -1877,7 +1878,7 @@ def verifica() -> list[str]:
     # L'apertura deve stare dentro il PCB, altrimenti si vede il vano dal
     # fronte e la scheda non ha dove appoggiare.
     for nome, a_c, a_dim, p_c, p_dim in (
-            ("in larghezza", NFC_X, NFC_APERTURA_L, NFC_PCB_X, NFC_PCB_L),
+            ("in larghezza", NFC_APERTURA_X, NFC_APERTURA_L, NFC_PCB_X, NFC_PCB_L),
             ("in altezza", NFC_Y, NFC_APERTURA_H, NFC_Y, NFC_PCB_H)):
         appoggio = min(a_c - a_dim / 2 - (p_c - p_dim / 2),
                        (p_c + p_dim / 2) - (a_c + a_dim / 2))
@@ -1885,12 +1886,14 @@ def verifica() -> list[str]:
             problemi.append(
                 f"{nome} fra l'apertura NFC e il bordo del lettore restano"
                 f" {appoggio:.1f} mm: la scheda non ha dove appoggiare")
-    # L'icona sul vetro deve cadere sulla spira, o si invita ad appoggiare il
-    # tag dove la scheda ha il convertitore USB.
-    if abs(NFC_X - (NFC_PCB_X + NFC_ANTENNA_OFFSET_X)) > 2.0:
+    # L'apertura e la spira coincidono: l'alluminio non deve coprire il centro
+    # della bobina. L'icona sul vetro e' invece centrata, scelta di facciata.
+    if abs(NFC_APERTURA_X - NFC_ANTENNA_X) > 0.1:
         problemi.append(
-            f"l'icona NFC e' a x={NFC_X:.1f} ma la spira e' centrata a"
-            f" x={NFC_PCB_X + NFC_ANTENNA_OFFSET_X:.1f}")
+            f"l'apertura NFC e' a x={NFC_APERTURA_X:.1f} ma la spira e'"
+            f" a x={NFC_ANTENNA_X:.1f}")
+    if abs(NFC_X) > 0.1:
+        problemi.append(f"l'icona NFC e' a x={NFC_X:.1f}, deve stare al centro")
     # Il cavo dell'USB-C del lettore esce verso il fianco della cassa.
     usb_x = NFC_PCB_X + NFC_PCB_L / 2 + NFC_USB_SPORGENZA \
         + NFC_USB_CAVO_ANGOLATO

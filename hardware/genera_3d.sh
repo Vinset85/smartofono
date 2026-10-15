@@ -32,7 +32,7 @@ render() {           # render <nome> <vista> <rot_x> <rot_z> [ortho] [-D ...]
     shift
   fi
   "$SCAD" --quiet --backend=manifold --render -D "VISTA=\"$vista\"" "$@" \
-    "${proj[@]}" \
+    ${proj[@]+"${proj[@]}"} \
     --imgsize=900,1150 --colorscheme=Tomorrow \
     --camera=0,0,0,"$rx",0,"$rz",0 --viewall --autocenter \
     -o "anteprime/3d-$nome.png" "$MODELLO"

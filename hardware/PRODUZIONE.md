@@ -1,5 +1,9 @@
 # Mandare i pezzi in produzione
 
+La sequenza da seguire, con i testi da mandare ai fornitori e la lista della
+spesa, è in [PROSSIMI-PASSI.md](PROSSIMI-PASSI.md). Questo file resta il
+riferimento di cosa ordinare e cosa controllare.
+
 Questo è l'elenco di cosa ordinare, a chi, con quale file e cosa controllare
 alla consegna. Le quote non sono ripetute a mano: stanno nei DXF, e i DXF
 nascono da `parametri.py`. Se un numero qui e un numero nel disegno non

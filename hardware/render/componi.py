@@ -60,10 +60,10 @@ def muro(w: int, h: int, base, sigma: float, seed: int, alto=None) -> Image.Imag
         t = np.linspace(0, 1, h, dtype=np.float32)[:, None]
         col = basso * (1 - t) + np.array(alto, np.float32) * t
         img[:] = col[:, None, :]
-    passo = 4
-    n = rng.normal(0, sigma, ((h // passo) + 2, (w // passo) + 2))
-    n = np.repeat(np.repeat(n, passo, 0), passo, 1)[:h, :w]
-    img += n[..., None]
+    for passo, peso in ((24, 0.65), (6, 0.35)):
+        n = rng.normal(0, sigma * peso, ((h // passo) + 2, (w // passo) + 2))
+        n = np.repeat(np.repeat(n, passo, 0), passo, 1)[:h, :w]
+        img += n[..., None]
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
 
 
@@ -77,14 +77,18 @@ def attenua(im: Image.Image, k: float) -> Image.Image:
 
 def bagliore(im: Image.Image, cx: float, cy: float, raggio: float,
              forza: float, colore=(255, 206, 150),
-             solo_sotto: float | None = None) -> Image.Image:
-    """Luce che il pannello butta sull'intonaco. Il raggio e' in pixel."""
+             solo_sopra: float | None = None) -> Image.Image:
+    """Luce che il pannello butta sull'intonaco. Il raggio e' in pixel.
+
+    solo_sopra taglia la luce sotto quella riga: il volto sta sopra lo
+    schermo e va illuminato dal basso, non il marciapiede.
+    """
     h, w = im.size[1], im.size[0]
     yy, xx = np.mgrid[0:h, 0:w]
     dist = np.hypot(xx - cx, yy - cy)
     k = np.clip(1 - dist / raggio, 0, 1) ** 1.6 * forza
-    if solo_sotto is not None:
-        k *= np.clip((yy - solo_sotto) / 80, 0, 1)
+    if solo_sopra is not None:
+        k *= np.clip((solo_sopra - yy) / 80, 0, 1)
     a = np.asarray(im).astype(np.float32)
     luce = np.array(colore, np.float32)
     a += (luce - a) * k[..., None]
@@ -291,9 +295,37 @@ def disegna_vetro(piano: Piano, modo: str, luce: float,
     lato = box_n[2] - box_n[0]
     icona(piano.draw, "nfc", box_n[0], box_n[1], lato)
 
+    # Lucentezza solo sulla serigrafia nera: non sposta nessun foro e non
+    # copre il display. Il vetro si legge come vetro, le quote restano.
+    lucida_serigrafia(piano)
     cx = (box[0] + box[2]) / 2
     cy = (box[1] + box[3]) / 2
     return cx, cy
+
+
+def lucida_serigrafia(piano: Piano) -> None:
+    im = np.asarray(piano.base).astype(np.float32)
+    h, w = im.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    s = piano.s
+    x0 = piano.ox - p.VETRO_L / 2 * s
+    x1 = piano.ox + p.VETRO_L / 2 * s
+    y_top = piano.oy - p.VETRO_H * s
+    dentro = (xx >= x0) & (xx <= x1) & (yy >= y_top) & (yy <= piano.oy)
+    nera = dentro & (im[:, :, 0] < 45) & (im[:, :, 1] < 45) & (im[:, :, 2] < 45)
+    # I fori restano del colore disegnato: la lucentezza non li schiarisce,
+    # altrimenti la finestra da 10 mm si confonde con la serigrafia.
+    for x_mm, y_mm, diam in (
+            (p.CAMERA_X, p.OTTICA_Y, p.OTTICA_D),
+            (p.MICROFONO_X, p.MICROFONO_Y, p.MICROFONO_D)):
+        cx = piano.ox + x_mm * s
+        cy = piano.oy - y_mm * s
+        nera &= (xx - cx) ** 2 + (yy - cy) ** 2 > (diam / 2 * s) ** 2
+    t = np.clip((yy - y_top) / max(p.VETRO_H * s, 1), 0, 1)
+    sheen = (1 - t) * 26
+    for c in range(3):
+        im[:, :, c] = np.where(nera, im[:, :, c] + sheen, im[:, :, c])
+    piano.base.paste(Image.fromarray(np.clip(im, 0, 255).astype(np.uint8), "RGB"))
 
 
 def porta(im: Image.Image, x0: int) -> None:
@@ -356,24 +388,27 @@ def scena_parete(w, h, s, modo, luce, notte, glow, porta_x, volto_sotto, seme) -
     ox = w / 2 if porta_x is None else min(w / 2, porta_x - (p.VETRO_L / 2 + 28) * s)
     vetro_h = p.VETRO_H * s
     if volto_sotto:
-        # Il vetro resta intero in alto; sotto ci sta la testa del visitatore.
-        oy = 70 + vetro_h
+        # Il pannello sta in basso: lo schermo illumina il volto dal basso.
+        oy = h - 36
     else:
         oy = (h + vetro_h) / 2
     if glow:
         # Quaranta centimetri di intonaco illuminato, come da specifica.
+        # Sul volto il raggio e' piu' corto: e' la luce dello schermo, non la lampada.
         cx = ox
         cy = oy - (p.FINESTRA_DISPLAY_Y + p.FINESTRA_DISPLAY_H / 2) * s
         raggio = (400 if glow == "tutto" else 180) * s
         im = bagliore(im, cx, cy, raggio, 0.72 if glow == "tutto" else 0.45,
-                      solo_sotto=(cy if glow == "volto" else None))
+                      solo_sopra=(cy if glow == "volto" else None))
     if porta_x:
         porta(im, porta_x)
-    piano = Piano(im, ox, oy, s)
-    dcx, dcy = disegna_vetro(piano, modo, luce)
     if volto_sotto:
         r = int(62 * s)
-        volto(im, int(ox), int(oy + 18 * s + r), r, da_sopra=False)
+        # Il mento resta una ventina di millimetri sopra il vetro.
+        testa = int(oy - vetro_h - 18 * s - 0.55 * r)
+        volto(im, int(ox), testa, r, da_sopra=False)
+    piano = Piano(im, ox, oy, s)
+    disegna_vetro(piano, modo, luce)
     return im
 
 
@@ -411,7 +446,7 @@ def telaio(piano: Piano, dy: float) -> None:
                p.SPEAKER_LUCE_L, p.SPEAKER_LUCE_H, fill=FORO)
     for x, y in p.posizioni_fori_speaker():
         piano.cerchio(x, y + dy, p.SPEAKER_FORO_D, fill=FORO)
-    piano.rett(p.NFC_X, p.NFC_Y - p.NFC_APERTURA_H / 2 + dy,
+    piano.rett(p.NFC_APERTURA_X, p.NFC_Y - p.NFC_APERTURA_H / 2 + dy,
                p.NFC_APERTURA_L, p.NFC_APERTURA_H, fill=FORO)
     piano.rett(p.MICROFONO_X, p.MIC_ASOLA_Y - p.MIC_ASOLA_H / 2 + dy,
                p.MIC_ASOLA_L, p.MIC_ASOLA_H, fill=FORO)
@@ -432,8 +467,10 @@ def scena_instal(w, h, s, fase: str) -> Image.Image:
     piano = Piano(im, ox, oy, s)
     if fase == "nicchia":
         yb = p.VETRO_H / 2 - p.FORO_MURO_H / 2
+        # Il rettangolo e' la nicchia quotata. Il fondo piu' scuro sta dentro,
+        # non la rimpicciolisce.
         piano.rett(0, yb, p.FORO_MURO_L, p.FORO_MURO_H, fill=TUFO)
-        piano.rett(0, yb + 10, p.FORO_MURO_L - 16, p.FORO_MURO_H - 20, fill=TUFO_FONDO)
+        piano.rett(0, yb + 6, p.FORO_MURO_L - 8, p.FORO_MURO_H - 12, fill=TUFO_FONDO)
         # I due corrugati arrivano dal fondo del foro, non a mezza altezza.
         for sx in (-1, 1):
             x = sx * p.CORRUGATO_PASSO / 2
@@ -480,12 +517,12 @@ def scorcio(im: Image.Image, x_spigolo: int) -> None:
 
 
 def salva(im: Image.Image, nome: str) -> None:
-    # I jpg con lo stesso nome, accanto a questo script, sono le foto
-    # pubblicate. Il disegno in scala non le sovrascrive.
+    # Questi jpg sono i render del progetto: le foto generiche non tenevano
+    # le quote, quindi il file pubblicato e' questo disegno.
     cartella = QUI / "scala"
     cartella.mkdir(exist_ok=True)
-    percorso = cartella / nome
-    im.save(percorso, quality=93, subsampling=0, optimize=True)
+    for percorso in (QUI / nome, cartella / nome):
+        im.save(percorso, quality=93, subsampling=0, optimize=True)
     print(f"  {nome}  {im.size[0]}x{im.size[1]}")
 
 
@@ -543,6 +580,123 @@ def main() -> None:
                        ("vetro", "inst-4-vetro.jpg"),
                        ("finito", "inst-5-finito.jpg")):
         salva(scena_instal(1440, 1080, s_i, fase), nome)
+    verifica_pixel()
+
+
+def verifica_pixel() -> None:
+    """Riapre il fronte e controlla che i pixel cadano sulle quote.
+
+    In colonna, al centro, il tratto scuro e' la luce dell'intonaco: il vetro
+    piu' la fessura da 3 mm per lato. La larghezza si misura piu' in dentro,
+    dove c'e' solo il vetro.
+    """
+    im = np.asarray(Image.open(QUI / "riposo-frontale.jpg")).astype(int)
+    w = im.shape[1]
+    scuro = im[:, :, 0] < 100
+    col = np.where(scuro[:, w // 2])[0]
+    top, bot = int(col.min()), int(col.max())
+    s = (bot - top + 1) / p.LUCE_INTONACO_H
+    # A meta' vetro la serigrafia laterale e' piu' scura della fessura, e il
+    # display in mezzo non entra nella misura: da bordo a bordo e' il vetro.
+    riga = top + int((p.OMBRA_PERIMETRALE + p.VETRO_H / 2) * s)
+    xs = np.where(im[riga, :, 0] < 30)[0]
+    left, right = int(xs.min()), int(xs.max())
+    larg = (right - left + 1) / s
+    luce_h = (bot - top + 1) / s
+    problemi = []
+    if abs(luce_h - p.LUCE_INTONACO_H) > 0.8:
+        problemi.append(f"luce alta {luce_h:.1f} mm")
+    if abs(larg - p.VETRO_L) > 0.8:
+        problemi.append(f"vetro largo {larg:.1f} mm")
+    i = 1
+    while left - i >= 0 and im[riga, left - i, 0] < 100:
+        i += 1
+    fessura = (i - 1) / s
+    if abs(fessura - p.OMBRA_PERIMETRALE) > 0.5:
+        problemi.append(f"fessura {fessura:.2f} mm")
+    y0 = bot - int((p.OMBRA_PERIMETRALE + 45) * s)
+    y1 = bot - int((p.OMBRA_PERIMETRALE + 8) * s)
+    basso = im[y0:y1, left:right]
+    chiaro = basso.sum(2) > 320
+    ys, xs2 = np.where(chiaro)
+    nfc_x = nfc_y = float("nan")
+    if len(xs2) == 0:
+        problemi.append("icona NFC assente")
+    else:
+        nfc_x = (xs2.mean() + left - (left + right) / 2) / s
+        nfc_y = (bot - p.OMBRA_PERIMETRALE * s - (ys.mean() + y0)) / s
+        if abs(nfc_y - p.NFC_Y) > 3.0:
+            problemi.append(f"NFC y {nfc_y:.1f} invece di {p.NFC_Y:.0f}")
+        if abs(nfc_x) > 4:
+            problemi.append(f"NFC x {nfc_x:.1f}, deve stare al centro")
+
+    def y_di(mm: float) -> int:
+        return int(round(bot - (p.OMBRA_PERIMETRALE + mm) * s))
+
+    def x_di(mm: float) -> int:
+        return int(round((left + right) / 2 + mm * s))
+
+    # La finestra dell'ottica e' il disco piu' scuro intorno a (0, 202).
+    # Il microfono e' l'altro disco, 32 mm a sinistra, sulla stessa quota.
+    def centro_scuro(x_mm: float, y_mm: float, meta: float) -> tuple[float, float, float]:
+        """Centro e diametro del foro: i pixel che si staccano dalla serigrafia.
+
+        La lente ha un riflesso chiaro in mezzo, quindi non basta cercare il
+        pixel piu' scuro: il foro e' tutto cio' che non e' il nero del vetro.
+        """
+        x0, x1 = x_di(x_mm - meta), x_di(x_mm + meta)
+        y_a, y_b = y_di(y_mm + meta), y_di(y_mm - meta)
+        crop = im[y_a:y_b, x0:x1, 0].astype(int)
+        seta = float(np.median(crop))
+        ys, xs = np.where(np.abs(crop - seta) > 5)
+        if len(xs) < 4:
+            return float("nan"), float("nan"), 0.0
+        cx = (xs.mean() + x0 - (left + right) / 2) / s
+        cy = (bot - p.OMBRA_PERIMETRALE * s - (ys.mean() + y_a)) / s
+        riga_f = int(round(ys.mean() + y_a))
+        tratto = np.where(np.abs(im[riga_f, x0:x1, 0].astype(int) - seta) > 5)[0]
+        if len(tratto) == 0:
+            return cx, cy, 0.0
+        # Solo il tratto che contiene il centro, non un secondo foro vicino.
+        meta_px = int(round(xs.mean()))
+        gruppi = np.split(tratto, np.where(np.diff(tratto) > 1)[0] + 1)
+        gruppo = next(g for g in gruppi if g.min() <= meta_px <= g.max())
+        return cx, cy, (gruppo.max() - gruppo.min() + 1) / s
+
+    ox, oy, od = centro_scuro(p.CAMERA_X, p.OTTICA_Y, 8)
+    if abs(ox - p.CAMERA_X) > 1.2 or abs(oy - p.OTTICA_Y) > 1.2 or abs(od - p.OTTICA_D) > 1.5:
+        problemi.append(f"ottica in ({ox:.1f}, {oy:.1f}) Ø{od:.1f}")
+    mx, my, md = centro_scuro(p.MICROFONO_X, p.MICROFONO_Y, 6)
+    if abs(mx - p.MICROFONO_X) > 1.2 or abs(my - p.MICROFONO_Y) > 1.2 or abs(md - p.MICROFONO_D) > 1.2:
+        problemi.append(f"microfono in ({mx:.1f}, {my:.1f}) Ø{md:.1f}")
+    if mx > -20:
+        problemi.append("il microfono non sta a sinistra della lente")
+
+    # Tre strisce piu' chiare della serigrafia, non un campo di fori.
+    centri = []
+    xg0, xg1 = x_di(-20), x_di(20)
+    precedente = 255.0
+    for mm in np.arange(p.GRIGLIA_Y - 2, p.GRIGLIA_Y + p.GRIGLIA_N * p.GRIGLIA_PASSO + 2, 0.25):
+        media = float(im[y_di(mm), xg0:xg1, 0].mean())
+        if media > precedente + 6 and (not centri or mm - centri[-1] > 2):
+            centri.append(mm)
+        precedente = media
+    if len(centri) != p.GRIGLIA_N:
+        problemi.append(f"griglia con {len(centri)} strisce invece di {p.GRIGLIA_N}")
+    else:
+        attesi = [p.GRIGLIA_Y + i * p.GRIGLIA_PASSO + p.GRIGLIA_SPESSORE / 2
+                  for i in range(p.GRIGLIA_N)]
+        for trovato, atteso in zip(centri, attesi):
+            if abs(trovato - atteso) > 1.2:
+                problemi.append(f"striscia a y {trovato:.1f} invece di {atteso:.1f}")
+                break
+
+    if problemi:
+        raise SystemExit("fotogramma fuori quota: " + "; ".join(problemi))
+    print(f"controllo sul file: vetro {larg:.1f} mm, luce alta {luce_h:.1f} mm,"
+          f" fessura {fessura:.2f} mm, NFC x {nfc_x:.1f} y {nfc_y:.1f},"
+          f" ottica ({ox:.1f}, {oy:.1f}) Ø{od:.1f},"
+          f" mic ({mx:.1f}, {my:.1f}) Ø{md:.1f}, griglia {len(centri)} strisce")
 
 
 if __name__ == "__main__":

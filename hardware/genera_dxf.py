@@ -448,13 +448,13 @@ def telaio_portante() -> None:
     # Lettore NFC dietro la zona bassa del pannello. Il telaio e' aperto per
     # tutta l'antenna: l'alluminio alle spalle della bobina azzererebbe la
     # portata di lettura.
-    rettangolo(msp, p.NFC_APERTURA_L, p.NFC_APERTURA_H, cx=p.NFC_X,
+    rettangolo(msp, p.NFC_APERTURA_L, p.NFC_APERTURA_H, cx=p.NFC_APERTURA_X,
                y0=p.NFC_Y - p.NFC_APERTURA_H / 2, raggio=2.0)
     rettangolo(msp, p.NFC_PCB_L, p.NFC_PCB_H, cx=p.NFC_PCB_X,
                y0=p.NFC_Y - p.NFC_PCB_H / 2, layer="INGOMBRI")
     # La spira, per far vedere che l'apertura ci cade dentro e che non e'
-    # centrata sulla scheda.
-    rettangolo(msp, p.NFC_ANTENNA_L, p.NFC_ANTENNA_H, cx=p.NFC_X,
+    # centrata sulla scheda. L'icona sul vetro e' invece a NFC_X = 0.
+    rettangolo(msp, p.NFC_ANTENNA_L, p.NFC_ANTENNA_H, cx=p.NFC_ANTENNA_X,
                y0=p.NFC_Y - p.NFC_ANTENNA_H / 2, layer="INGOMBRI")
     for fx, fy in p.posizioni_fori_nfc():
         foro(msp, fx, fy, p.NFC_FORO_D, layer="FILETTATURA")
