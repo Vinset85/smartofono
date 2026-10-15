@@ -832,16 +832,14 @@ specifica del vetro**: sono loro a fare il lavoro, non i nit.
 
 ## I render e i due filmati
 
-In `render/` i fotogrammi li disegna `render/componi.py` sulle quote di
-`parametri.py`, non a occhio: una foto generica sposta la lente, la griglia
-e la fessura. Il vetro è 100×240 mm a filo dell'intonaco, la fessura d'ombra
-è 3 mm, la finestra del display è 69×122, l'obiettivo è una finestra da
-10 mm, il microfono è il foro da 3 mm a sinistra della lente, l'icona NFC
-è al centro del vetro e la griglia è tre strisce di serigrafia. Si rigenerano con
-`../.venv-cad/bin/python render/componi.py` e poi `render/monta-video.sh`.
-La copia identica sta in `render/scala/`. Le due foto `schermata-*.jpg`
-restano gli originali del display. Il fronte 3D (`anteprime/3d-fronte.png`)
-mostra la stessa faccia finita, con l'intonaco a filo.
+In `render/` i fotogrammi sono fotografie della posa finita, non tavole.
+Il pannello tiene le quote: vetro 100×240 mm a filo dell'intonaco, fessura
+d'ombra di 3 mm, finestra del display 69×122, obiettivo a filo da 10 mm,
+microfono da 3 mm a sinistra della lente, icona NFC al centro, griglia di
+tre strisce. I filmati si rimontano con `render/monta-video.sh`. La copia
+identica sta in `render/scala/`. Le due foto `schermata-*.jpg` restano gli
+originali del display. Il fronte 3D (`anteprime/3d-fronte.png`) mostra la
+stessa faccia finita, con l'intonaco a filo.
 
 **`installazione.mp4`**, dai cinque fotogrammi `inst-*.jpg`, segue l'ordine
 della procedura in `ASSEMBLAGGIO.md`: la nicchia scavata nel tufo con i due
