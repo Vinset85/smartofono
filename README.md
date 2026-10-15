@@ -5,7 +5,27 @@ un **Raspberry Pi 5** e integrato in **Home Assistant**. Non è un prodotto
 commerciale modificato: sono il progetto meccanico, i disegni di produzione e il
 software, nati insieme per un impianto che funziona.
 
-![Il pannello a muro](hardware/render/fronte-a-muro.jpg)
+<p align="center">
+  <img src="hardware/render/riposo-frontale.jpg" alt="Pannello a filo muro" width="380">
+</p>
+
+<p align="center">
+  <img src="hardware/render/func-1-giorno-riposo.jpg" width="19%" alt="Riposo di giorno">
+  <img src="hardware/render/func-2-giorno-chiamata.jpg" width="19%" alt="Chiamata">
+  <img src="hardware/render/func-3-notte-piena.jpg" width="19%" alt="Notte a piena luce">
+  <img src="hardware/render/func-4-notte-attenuata.jpg" width="19%" alt="Notte attenuata">
+  <img src="hardware/render/func-5-notte-volto.jpg" width="19%" alt="Volto illuminato dal basso">
+</p>
+
+<p align="center">
+  <img src="hardware/render/fronte-a-muro.jpg" width="32%" alt="All'ingresso">
+  <img src="hardware/render/riposo-tre-quarti.jpg" width="32%" alt="Tre quarti">
+  <img src="hardware/render/inst-5-finito.jpg" width="32%" alt="Posa finita">
+</p>
+
+<p align="center">
+  <img src="hardware/render/installazione.gif" alt="Installazione" width="640">
+</p>
 
 Dalla parte esterna c'è un vetro nero da 100 x 240 x 2 mm, con un display OLED
 da 5,5 pollici incollato dietro, la camera, il lettore NFC e l'audio

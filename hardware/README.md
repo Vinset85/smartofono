@@ -37,9 +37,9 @@ cad/04-dima-muratura.dxf     sagoma 1:1 da stampare per fare il foro
 cad/05-disposizione.dxf      mappa dei componenti: pianta e sezione
 cad/06-gruppo-display.dxf    come si monta il gruppo del display
 cad/07-staffa-e-pezzi-piani.dxf  squadretta della scheda di ingresso, ritagli
-render/                      fotogrammi quotati da parametri.py, e i filmati
-render/scala/                la stessa serie, copia di controllo
-render/componi.py            ridisegna i fotogrammi dalle quote
+render/                      fotografie della posa finita, e i filmati
+render/scala/                la stessa serie
+render/componi.py            tavole in scala dalle quote, per controllo
 render/schermata-*.jpg       le interfacce reali, fotografate dal display
 render/monta-video.sh        rimonta i filmati dai fotogrammi
 cad/videocitofono.scad       modello 3D parametrico (OpenSCAD)
@@ -838,8 +838,22 @@ d'ombra di 3 mm, finestra del display 69×122, obiettivo a filo da 10 mm,
 microfono da 3 mm a sinistra della lente, icona NFC al centro, griglia di
 tre strisce. I filmati si rimontano con `render/monta-video.sh`. La copia
 identica sta in `render/scala/`. Le due foto `schermata-*.jpg` restano gli
-originali del display. Il fronte 3D (`anteprime/3d-fronte.png`) mostra la
-stessa faccia finita, con l'intonaco a filo.
+originali del display. Il fronte 3D (`anteprime/3d-fronte.png`) è il modello
+parametrico, per le quote; le foto sotto sono il risultato a muro.
+
+<p align="center">
+  <img src="render/riposo-frontale.jpg" alt="Pannello a filo" width="280">
+</p>
+<p align="center">
+  <img src="render/func-1-giorno-riposo.jpg" width="19%" alt="Giorno">
+  <img src="render/func-2-giorno-chiamata.jpg" width="19%" alt="Chiamata">
+  <img src="render/func-3-notte-piena.jpg" width="19%" alt="Notte piena">
+  <img src="render/func-4-notte-attenuata.jpg" width="19%" alt="Notte attenuata">
+  <img src="render/func-5-notte-volto.jpg" width="19%" alt="Volto">
+</p>
+<p align="center">
+  <img src="render/installazione.gif" alt="Installazione" width="560">
+</p>
 
 **`installazione.mp4`**, dai cinque fotogrammi `inst-*.jpg`, segue l'ordine
 della procedura in `ASSEMBLAGGIO.md`: la nicchia scavata nel tufo con i due
