@@ -13,8 +13,6 @@ software, nati insieme per un impianto che funziona.
   <img src="hardware/render/func-1-giorno-riposo.jpg?nfc=archi" width="19%" alt="Riposo di giorno">
   <img src="hardware/render/func-2-giorno-chiamata.jpg?nfc=archi" width="19%" alt="Chiamata">
   <img src="hardware/render/func-3-notte-piena.jpg?nfc=archi" width="19%" alt="Notte a piena luce">
-  <img src="hardware/render/func-4-notte-attenuata.jpg?nfc=archi" width="19%" alt="Notte attenuata">
-  <img src="hardware/render/func-5-notte-volto.jpg?nfc=archi" width="19%" alt="Volto illuminato dal basso">
 </p>
 
 <p align="center">
@@ -23,9 +21,6 @@ software, nati insieme per un impianto che funziona.
   <img src="hardware/render/inst-5-finito.jpg?nfc=archi" width="32%" alt="Posa finita">
 </p>
 
-<p align="center">
-  <img src="hardware/render/installazione.gif?nfc=archi" alt="Installazione" width="640">
-</p>
 
 Dalla parte esterna c'è un vetro nero da 100 x 240 x 2 mm, con un display OLED
 da 5,5 pollici incollato dietro, la camera, il lettore NFC e l'audio
