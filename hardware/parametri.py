@@ -206,12 +206,70 @@ GRIGLIA_N = 3
 # vano e non sul metallo forato.
 GRIGLIA_Y = 215.0
 
-# Zona di lettura NFC: icona serigrafata semitrasparente, retroilluminata.
-# L'icona sta al centro del vetro. L'antenna e l'apertura nel telaio restano
-# a NFC_ANTENNA_OFFSET_X: la spira non e' centrata sulla scheda, e spostare
-# il PCB per inseguirla manderebbe il connettore USB-C a filo del fianco.
-NFC_D = 22.0
+# Zona di lettura NFC: segno serigrafato al centro del vetro, senza cerchio.
+# Tre archi verso l'alto e un punto, come i campanelli a vetro neri: e' un
+# tratto di inchiostro SMOKE al 15-20%, non una targa e non una finestra.
+# L'antenna e l'apertura nel telaio restano a NFC_ANTENNA_OFFSET_X: la spira
+# non e' centrata sulla scheda, e spostare il PCB per inseguirla manderebbe
+# il connettore USB-C a filo del fianco.
 NFC_Y = 30.0
+NFC_ICONA_H = 7.0
+NFC_ICONA_APERTURA = 80.0           # gradi, apertura di ciascun arco
+NFC_ICONA_ARCHI = 3
+NFC_ICONA_PUNTO_D = 0.8
+NFC_ICONA_TRATTO = 0.28             # spessore del tratto, mm
+NFC_ICONA_L = round(2 * (NFC_ICONA_H - NFC_ICONA_PUNTO_D / 2) * math.sin(
+    math.radians(NFC_ICONA_APERTURA / 2)), 2)
+
+
+def icona_nfc_geometria() -> dict:
+    """Punto in basso e tre archi verso l'alto, origine al centro dell'icona.
+
+    Gli archi sono concentrici sul punto. Coordinate in millimetri, da
+    traslare di (NFC_X, NFC_Y).
+    """
+    oy = -NFC_ICONA_H / 2 + NFC_ICONA_PUNTO_D / 2
+    r_max = NFC_ICONA_H / 2 - oy
+    a0 = 90.0 - NFC_ICONA_APERTURA / 2
+    a1 = 90.0 + NFC_ICONA_APERTURA / 2
+    archi = [(r_max * i / NFC_ICONA_ARCHI, a0, a1)
+             for i in range(1, NFC_ICONA_ARCHI + 1)]
+    return {
+        "punto": (0.0, oy, NFC_ICONA_PUNTO_D),
+        "origine_archi": (0.0, oy),
+        "archi": archi,
+        "tratto": NFC_ICONA_TRATTO,
+    }
+
+
+def icona_nfc_percorsi() -> list[list[tuple[float, float]]]:
+    """Poligoni chiusi dell'icona, in mm, origine al centro (NFC_X, NFC_Y)."""
+    geo = icona_nfc_geometria()
+    percorsi: list[list[tuple[float, float]]] = []
+    px, py, d = geo["punto"]
+    r = d / 2
+    n_c = 24
+    percorsi.append([
+        (px + r * math.cos(2 * math.pi * i / n_c),
+         py + r * math.sin(2 * math.pi * i / n_c))
+        for i in range(n_c)
+    ])
+    ox, oy = geo["origine_archi"]
+    tratto = geo["tratto"]
+    n = 28
+    for r_arco, a0, a1 in geo["archi"]:
+        r_out = r_arco + tratto / 2
+        r_in = max(0.05, r_arco - tratto / 2)
+        outer = []
+        inner = []
+        for i in range(n + 1):
+            a = math.radians(a0 + (a1 - a0) * i / n)
+            outer.append((ox + r_out * math.cos(a), oy + r_out * math.sin(a)))
+        for i in range(n + 1):
+            a = math.radians(a1 + (a0 - a1) * i / n)
+            inner.append((ox + r_in * math.cos(a), oy + r_in * math.sin(a)))
+        percorsi.append(outer + inner)
+    return percorsi
 
 # --------------------------------------------------------------------------
 # Cassa da incasso
@@ -1375,9 +1433,8 @@ def verifica() -> list[str]:
                  GRIGLIA_L, GRIGLIA_SPESSORE) for i in range(GRIGLIA_N)]
     finestre.append(("finestra dell'ottica", CAMERA_X, OTTICA_Y,
                      OTTICA_D, OTTICA_D))
-    # L'icona NFC non e' una finestra piena ma inchiostro al 15-20%: non ci si
-    # vede attraverso come nel vetro nudo, pero' un foro dietro si intravede.
-    finestre.append(("icona NFC", NFC_X, NFC_Y, NFC_D, NFC_D))
+    # L'icona NFC e' un tratto sottile di inchiostro, non una finestra: il
+    # nero copre la zona e attraverso i tre archi non si legge un foro.
     for nome_f, fx, fy, fl, fh in finestre:
         for nome_o, ox, oy, od in nascosti:
             sovr_x = min(fx + fl / 2, ox + od / 2) - max(fx - fl / 2, ox - od / 2)

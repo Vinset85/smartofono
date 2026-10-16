@@ -106,6 +106,19 @@ def foro(msp, x: float, y: float, diametro: float, layer: str = "TAGLIO"):
                      dxfattribs={"layer": "QUOTE"})
 
 
+def icona_nfc(msp, cx: float, cy: float, layer: str = "SMOKE"):
+    """Tre archi verso l'alto e un punto: il segno della zona di lettura.
+
+    I poligoni sono pieni, non linee a spessore nominale: la vetreria legge
+    le campiture, non il lineweight.
+    """
+    for punti in p.icona_nfc_percorsi():
+        spostati = [(cx + x, cy + y) for x, y in punti]
+        msp.add_lwpolyline(spostati, close=True, dxfattribs={"layer": layer})
+        hatch = msp.add_hatch(color=5, dxfattribs={"layer": layer})
+        hatch.paths.add_polyline_path(spostati, is_closed=True)
+
+
 def campitura_serigrafia(msp, finestre: list[tuple]) -> None:
     """Campisce il retro del vetro lasciando vuote le finestre trasparenti.
 
@@ -308,8 +321,9 @@ def vetro_frontale() -> None:
         rettangolo(msp, p.GRIGLIA_L, p.GRIGLIA_SPESSORE, y0=y,
                    raggio=p.GRIGLIA_SPESSORE / 2, layer="FINESTRE")
 
-    # Zona NFC: cerchio semitrasparente con l'icona al centro.
-    foro(msp, p.NFC_X, p.NFC_Y, p.NFC_D, layer="SMOKE")
+    # Zona NFC: tre archi verso l'alto e un punto, senza cerchio. Layer SMOKE
+    # perche' e' inchiostro al 15-20%, non un buco nella campitura nera.
+    icona_nfc(msp, p.NFC_X, p.NFC_Y)
 
     # Battuta di incollaggio: dove va il biadesivo, niente finestre. Coincide
     # col profilo del telaio, che e' cio' a cui il vetro si incolla.
@@ -321,6 +335,8 @@ def vetro_frontale() -> None:
          "FUORI - vista dalla faccia 1", 3.0)
     richiamo(msp, (p.MICROFONO_X - p.MICROFONO_D, p.MICROFONO_Y),
              -p.VETRO_L / 2 - 4, p.MICROFONO_Y - 1.3, "microfono")
+    richiamo(msp, (p.NFC_X + p.NFC_ICONA_L / 2, p.NFC_Y),
+             p.VETRO_L / 2 + 4, p.NFC_Y - 1.3, "icona NFC")
 
     quota_oriz(msp, -p.VETRO_L / 2, p.VETRO_L / 2, p.VETRO_H, 10)
     quota_vert(msp, 0, p.VETRO_H, p.VETRO_L / 2, 14)
@@ -345,8 +361,11 @@ def vetro_frontale() -> None:
         "LAYER SERIGRAFIA: stampa nera coprente sul retro (faccia 2),",
         "  inchiostro UV industriale resistente ai raggi UV",
         "LAYER FINESTRE: aree da lasciare trasparenti nella stampa",
-        "LAYER SMOKE: stampa semitrasparente 15-20% per icona NFC,",
-        "  da ottenere con meno passate dello stesso inchiostro",
+        "LAYER SMOKE: icona NFC, tre archi verso l'alto e un punto,",
+        f"  {p.NFC_ICONA_L:.1f} x {p.NFC_ICONA_H:.1f} mm, tratto"
+        f" {p.NFC_ICONA_TRATTO:.2f} mm. Stampa semitrasparente 15-20%,",
+        "  da ottenere con meno passate dello stesso inchiostro. Non e'",
+        "  una finestra e non ha cerchio intorno.",
         "LAYER INGOMBRI: battuta di incollaggio, riferimento, non lavorare",
         "",
         "TRATTAMENTI sulla faccia esterna (faccia 1):",

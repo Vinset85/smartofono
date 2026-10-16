@@ -53,9 +53,11 @@ con la consegna più lunga.
 - **Formato**: 100 x 240 x 2, angoli raggiati 3 mm, **bordo 2.5D lucidato**.
 - **Stampa**: serigrafia a inchiostro UV **sul retro**, nera coprente su tutta
   la superficie tranne le finestre del layer `FINESTRE`. Sul layer `SMOKE` c'è
-  un solo elemento, l'**icona NFC** Ø22, che va stampata semitrasparente al
-  15-20%: serve a far intravedere il lettore sotto, e non è una finestra. I
-  campanelli non hanno icone serigrafate, perché sono pulsanti sul display.
+  un solo elemento, l'**icona NFC**: tre archi verso l'alto e un punto, senza
+  cerchio, circa 8,5 × 7 mm, tratto 0,28 mm. Va stampata semitrasparente al
+  15-20% con meno passate dello stesso inchiostro: è un segno, non una
+  finestra. I campanelli non hanno icone serigrafate, perché sono pulsanti sul
+  display.
 - **Trattamento**: antiriflesso sul fronte, più oleofobico anti-impronta. L'AR
   **non è un optional**: la leggibilità in pieno giorno dipende da quello e non
   dai nit del display. Un vetro senza AR riflette il 4% per faccia e il

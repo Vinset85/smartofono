@@ -68,14 +68,34 @@ module vetro() {
         translate([CAMERA_X, OTTICA_Y, VETRO_S / 2])
             foro(OTTICA_D, VETRO_S - 0.1);
     }
-    color("#4060a0", 0.3)
-        translate([NFC_X, NFC_Y, VETRO_S / 2]) foro(NFC_D, VETRO_S - 0.1);
+}
+
+module icona_nfc_2d() {
+    oy = -NFC_ICONA_H / 2 + NFC_ICONA_PUNTO_D / 2;
+    r_max = NFC_ICONA_H / 2 - oy;
+    a0 = 90 - NFC_ICONA_APERTURA / 2;
+    a1 = 90 + NFC_ICONA_APERTURA / 2;
+    translate([0, oy]) circle(d = NFC_ICONA_PUNTO_D, $fn = 24);
+    for (i = [1 : NFC_ICONA_ARCHI]) {
+        r = r_max * i / NFC_ICONA_ARCHI;
+        polygon(concat(
+            [for (k = [0 : 20])
+                let (a = a0 + (a1 - a0) * k / 20)
+                [(r + NFC_ICONA_TRATTO / 2) * cos(a),
+                 oy + (r + NFC_ICONA_TRATTO / 2) * sin(a)]],
+            [for (k = [0 : 20])
+                let (a = a1 + (a0 - a1) * k / 20)
+                [(r - NFC_ICONA_TRATTO / 2) * cos(a),
+                 oy + (r - NFC_ICONA_TRATTO / 2) * sin(a)]]
+        ));
+    }
 }
 
 // Lastra nera sulla faccia esterna. I vuoti sono le finestre della stampa:
-// display, obiettivo da 10 mm, foro del microfono, icona NFC e tre strisce
-// della griglia. Sta un filo davanti al vetro cosi' non litiga con la faccia
-// e non entra nel solido esportato.
+// display, obiettivo da 10 mm, foro del microfono e tre strisce della
+// griglia. L'icona NFC non e' un buco: e' un segno sopra il nero. Sta un
+// filo davanti al vetro cosi' non litiga con la faccia e non entra nel
+// solido esportato.
 module serigrafia() {
     color("#0c0c0e")
     difference() {
@@ -87,13 +107,15 @@ module serigrafia() {
             foro(OTTICA_D, 0.4);
         translate([MICROFONO_X, MICROFONO_Y, -0.04])
             foro(MICROFONO_D, 0.4);
-        translate([NFC_X, NFC_Y, -0.04])
-            foro(NFC_D, 0.4);
         for (i = [0 : GRIGLIA_N - 1])
             translate([0, GRIGLIA_Y + GRIGLIA_SPESSORE / 2 + i * GRIGLIA_PASSO,
                        -0.04])
                 cube([GRIGLIA_L, GRIGLIA_SPESSORE, 0.4], center = true);
     }
+    color("#c4c4c8")
+        translate([NFC_X, NFC_Y, -0.05])
+            linear_extrude(height = 0.08)
+                icona_nfc_2d();
     // Il foro del microfono guarda la basetta verde: senza questo tappo il
     // render sembra un led acceso a sinistra della lente.
     color("#0c0c0e")

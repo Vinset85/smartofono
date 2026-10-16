@@ -125,9 +125,9 @@ chimico eseguito dopo la lavorazione**, non prima.
 I fornitori che trattano Gorilla su misura (per esempio Gelivable o HP Cover
 Glass, entrambi a Dongguan) lavorano spessori da 0,4 a 2,0 mm con CNC, fori,
 asole, bordi, rinforzo, serigrafia fino a sei strati, AR, AF e DLC. I sei strati
-servono più di quanto sembri: la finestra semitrasparente al 15-20% dell'icona
-NFC si ottiene variando il numero di passate, invece di giocare sulla densità di
-un unico smalto. Il MOQ di produzione è di mille pezzi, ma in fase campione si
+servono più di quanto sembri: i tratti semitrasparenti al 15-20% dell'icona
+NFC si ottengono variando il numero di passate, invece di giocare sulla densità
+di un unico smalto. Il MOQ di produzione è di mille pezzi, ma in fase campione si
 parte da **dieci**, con prototipi in circa una settimana. Dieci pannelli non
 sono uno, ma per un pezzo su cui va laminato un adesivo ottico a mano, avere
 nove ricambi è più un vantaggio che uno spreco.
@@ -348,8 +348,8 @@ sollecitare il giunto.
 | 1 | grasso al silicone | velo sulla battuta, contro la risalita dell'acqua. Facoltativo |
 
 Il diaframma in PET serve perché l'apertura nel telaio lascerebbe intravedere
-il circuito del lettore attraverso la serigrafia semitrasparente dell'icona
-NFC. Il PET non è conduttivo e non disturba l'antenna, a differenza di qualsiasi
+il circuito del lettore attraverso i tratti semitrasparenti dell'icona NFC.
+Il PET non è conduttivo e non disturba l'antenna, a differenza di qualsiasi
 schermatura metallica.
 
 Il silicone deve essere **neutro ossimico**, non acetico: quello acetico
@@ -835,8 +835,9 @@ specifica del vetro**: sono loro a fare il lavoro, non i nit.
 In `render/` i fotogrammi sono fotografie della posa finita, non tavole.
 Il pannello tiene le quote: vetro 100×240 mm a filo dell'intonaco, fessura
 d'ombra di 3 mm, finestra del display 69×122, obiettivo a filo da 10 mm,
-microfono da 3 mm a sinistra della lente, icona NFC al centro, griglia di
-tre strisce. I filmati si rimontano con `render/monta-video.sh`. La copia
+microfono da 3 mm a sinistra della lente, icona NFC al centro (tre archi,
+senza cerchio), griglia di tre strisce. I filmati si rimontano con
+`render/monta-video.sh`. La copia
 identica sta in `render/scala/`. Le due foto `schermata-*.jpg` restano gli
 originali del display. Il fronte 3D (`anteprime/3d-fronte.png`) è il modello
 parametrico, per le quote; le foto sotto sono il risultato a muro.

@@ -142,20 +142,18 @@ class Piano:
         self.draw = ImageDraw.Draw(self.base)
 
 
-def _tratto(w: int) -> int:
-    return max(2, w // 18)
-
-
-def icona(d: ImageDraw.ImageDraw, tipo: str, x: int, y: int, lato: int) -> None:
-    c = (220, 220, 224)
-    t = _tratto(lato)
-    cx, cy = x + lato / 2, y + lato / 2
-    r = lato * 0.38
-    if tipo == "nfc":
-        for k, f in enumerate((0.35, 0.65, 0.95)):
-            rr = r * f
-            d.arc([int(cx - rr), int(cy - rr), int(cx + rr), int(cy + rr)],
-                  -55, 55, fill=c, width=t)
+def icona_nfc(piano: Piano, colore=(168, 168, 172)) -> None:
+    """Tre archi verso l'alto e un punto, senza cerchio."""
+    pts_px = []
+    for poly in p.icona_nfc_percorsi():
+        pts_px.append([
+            (piano.ox + (p.NFC_X + x) * piano.s,
+             piano.oy - (p.NFC_Y + y) * piano.s)
+            for x, y in poly
+        ])
+    piano.draw.polygon(pts_px[0], fill=colore)
+    for poly in pts_px[1:]:
+        piano.draw.polygon(poly, fill=colore)
 
 
 def schermo(modo: str, w: int, h: int, luce: float) -> Image.Image:
@@ -230,10 +228,7 @@ def disegna_vetro(piano: Piano, modo: str, luce: float,
     piano.cerchio(p.MICROFONO_X, p.MICROFONO_Y, p.MICROFONO_D, fill=(3, 3, 5))
     piano.cerchio(p.MICROFONO_X, p.MICROFONO_Y, p.MICROFONO_D * 0.45, fill=(8, 8, 10))
 
-    piano.cerchio(p.NFC_X, p.NFC_Y, p.NFC_D, outline=(168, 168, 172),
-                  width=max(1, round(0.35 * s)))
-    box_n = piano.box(p.NFC_X, p.NFC_Y - p.NFC_D / 2, p.NFC_D, p.NFC_D)
-    icona(piano.draw, "nfc", box_n[0], box_n[1], box_n[2] - box_n[0])
+    icona_nfc(piano)
 
     if modo == "chiamata":
         dito_sulla_card(piano, box)
@@ -505,7 +500,8 @@ def controlla() -> None:
           f"  y {p.FINESTRA_DISPLAY_Y:.2f}")
     print(f"  ottica Ø{p.OTTICA_D:.0f} in ({p.CAMERA_X:.0f}, {p.OTTICA_Y:.0f})"
           f"   mic Ø{p.MICROFONO_D:.0f} in ({p.MICROFONO_X:.0f}, {p.MICROFONO_Y:.0f})")
-    print(f"  nfc Ø{p.NFC_D:.0f} in ({p.NFC_X:.1f}, {p.NFC_Y:.0f})")
+    print(f"  nfc {p.NFC_ICONA_L:.1f} x {p.NFC_ICONA_H:.1f} in"
+          f" ({p.NFC_X:.1f}, {p.NFC_Y:.0f})")
     print(f"  griglia {p.GRIGLIA_N} x {p.GRIGLIA_L:.0f} x {p.GRIGLIA_SPESSORE}"
           f"  y {p.GRIGLIA_Y:.0f} passo {p.GRIGLIA_PASSO}")
     print(f"  fessura {p.OMBRA_PERIMETRALE:.0f}   luce {p.LUCE_INTONACO_L:.0f} x"

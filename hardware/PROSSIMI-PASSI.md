@@ -180,8 +180,8 @@ Non stampare PRIMA del rinforzo chimico.
 STAMPA
 - inchiostro UV, faccia INTERNA (lato display), non quella esterna
 - nero coprente su tutta la lastra tranne le finestre del layer FINESTRE
-- layer SMOKE: una sola icona tonda Ø22 mm, semitrasparente 15-20%
-  (icona NFC, non è una finestra)
+- layer SMOKE: icona NFC a tre archi verso l'alto e un punto, senza
+  cerchio, semitrasparente 15-20% (non è una finestra)
 - i campanelli NON si serigrafano: sono pulsanti sul display
 
 TRATTAMENTI, faccia ESTERNA
