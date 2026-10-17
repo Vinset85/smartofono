@@ -104,6 +104,7 @@ mqtt:
       # durante chiamate lunghe).
   sensor:
     - name: "Videocitofono Ultimo Campanello"
+      unique_id: vc_ultimo_campanello
       state_topic: "videocitofono/chiamata"
       availability: *vc_avail
       value_template: "{{ value_json.campanello | default('sconosciuto') if value_json is mapping else 'sconosciuto' }}"
@@ -124,6 +125,7 @@ mqtt:
     # ogni enroll/delete. Stato = numero persone, attributo `volti` =
     # lista [{nome, foto}] consumata da custom:vc-volti-card.
     - name: "Videocitofono Volti"
+      unique_id: vc_volti
       state_topic: "videocitofono/volti/library"
       availability: *vc_avail
       value_template: "{{ (value_json.volti | default([])) | length }}"
@@ -132,6 +134,7 @@ mqtt:
     # Lista tag NFC registrati. Retain su videocitofono/nfc/library.
     # Stato = numero tag, attributo items = lista tag.
     - name: "Videocitofono NFC"
+      unique_id: vc_nfc
       state_topic: "videocitofono/nfc/library"
       availability: *vc_avail
       value_template: "{{ (value_json['items'] | default([])) | length }}"
@@ -139,6 +142,7 @@ mqtt:
       icon: mdi:nfc-variant
     # Eventi RPi (iscrizione tag, errori NFC, ecc.) per feedback UI.
     - name: "Videocitofono Evento"
+      unique_id: vc_evento
       state_topic: "videocitofono/evento"
       availability: *vc_avail
       value_template: "{{ value_json.tipo | default(value) }}"
@@ -146,6 +150,7 @@ mqtt:
       icon: mdi:information-outline
     # Health RPi (telemetria + status_summary degraded/down).
     - name: "Videocitofono Health"
+      unique_id: vc_health
       state_topic: "videocitofono/health"
       availability: *vc_avail
       value_template: "{{ value_json.status_summary | default('unknown') }}"
@@ -153,12 +158,14 @@ mqtt:
       icon: mdi:heart-pulse
     # Stato lettore NFC hardware (online/offline).
     - name: "Videocitofono NFC Reader"
+      unique_id: vc_nfc_reader
       state_topic: "videocitofono/nfc/status"
       availability: *vc_avail
       value_template: "{{ value_json.state | default('offline') }}"
       json_attributes_topic: "videocitofono/nfc/status"
       icon: mdi:nfc-search-variant
     - name: "Videocitofono Anomalia"
+      unique_id: vc_anomaly
       state_topic: "videocitofono/anomaly"
       availability: *vc_avail
       value_template: "{{ value_json.reason | default('none') }}"
@@ -166,6 +173,7 @@ mqtt:
       icon: mdi:alert-octagon-outline
     # Lista PIN ospite (retain su videocitofono/guest_pins/list).
     - name: "Videocitofono Guest PINs"
+      unique_id: vc_guest_pins
       state_topic: "videocitofono/guest_pins/list"
       availability: *vc_avail
       # `value_json.items` in Jinja e' il metodo dict.items, non la lista.
@@ -227,6 +235,7 @@ sensor:
 command_line:
   - sensor:
       name: Registro Videocitofono
+      unique_id: vc_registro
       command: "cat /config/www/registro_videocitofono.json"
       value_template: "ok"
       scan_interval: 30
@@ -596,7 +605,9 @@ input_text:
   videocitofono_cmd_token:
     name: Token MQTT cmd (RPi)
     mode: password
-    initial: !secret videocitofono_cmd_secret
+    # Solo bootstrap: pyscript e gli script leggono !secret.
+    # Dopo il primo avvio questo helper puo' restare vuoto.
+    initial: ""
   videocitofono_lk_token:
     name: Token issuer LiveKit
     mode: password

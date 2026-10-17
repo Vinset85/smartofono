@@ -4,7 +4,7 @@ mqtt:
   username: videocitofono
   password: ''
   # Token condiviso HA↔RPi su videocitofono/cmd. Deve coincidere con
-  # input_text.videocitofono_cmd_token (e con !secret videocitofono_cmd_secret).
+  # !secret videocitofono_cmd_secret (pyscript lo legge da secrets.yaml).
   # Vuoto = i comandi (restart, reboot) passano senza token: solo per il banco.
   cmd_secret: ''
   cmd_rate_limit_sec: 30

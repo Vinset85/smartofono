@@ -506,12 +506,9 @@ videocitofono_riavvia_app:
   icon: mdi:restart
   mode: single
   sequence:
-  - action: mqtt.publish
+  - action: pyscript.videocitofono_mqtt_cmd
     data:
-      topic: videocitofono/cmd
-      qos: 1
-      payload: >-
-        {"action":"restart_app","token":"{{ states('input_text.videocitofono_cmd_token') | default('') }}"}
+      action: restart_app
   - action: persistent_notification.create
     data:
       title: Videocitofono
@@ -538,9 +535,7 @@ videocitofono_simulate_doorbell:
       description: ID campanello (vuoto = il primo)
       example: mario_rossi
   sequence:
-  - action: mqtt.publish
+  - action: pyscript.videocitofono_mqtt_cmd
     data:
-      topic: videocitofono/cmd
-      qos: 1
-      payload: >-
-        {"action":"simulate_doorbell","campanello":"{{ campanello | default('') }}","token":"{{ states('input_text.videocitofono_cmd_token') | default('') }}"}
+      action: simulate_doorbell
+      campanello: "{{ campanello | default('') }}"

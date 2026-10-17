@@ -51,3 +51,29 @@ def test_clear_notification_su_fine_chiamata():
     chunk = AUTO.split("Videocitofono - Stop suoneria su fine chiamata", 1)[1][:1800]
     assert "clear_notification" in chunk
     assert "tag: videocitofono_chiamata" in chunk
+
+
+def test_mqtt_unique_id_su_tutti_i_sensori():
+    for uid in (
+        "vc_online",
+        "vc_stato_chiamata",
+        "vc_stato_chiamata_raw",
+        "vc_ultimo_campanello",
+        "vc_volti",
+        "vc_nfc",
+        "vc_evento",
+        "vc_health",
+        "vc_nfc_reader",
+        "vc_anomaly",
+        "vc_guest_pins",
+        "vc_registro",
+    ):
+        assert f"unique_id: {uid}" in CFG
+
+
+def test_cmd_mqtt_non_espone_helper_negli_script():
+    scripts = (PKG / "scripts.yaml.fixed").read_text()
+    assert "states('input_text.videocitofono_cmd_token')" not in scripts
+    assert "action: pyscript.videocitofono_mqtt_cmd" in scripts
+    mqtt_cmd = (ROOT / "pyscript" / "mqtt_cmd.py").read_text()
+    assert "videocitofono_cmd_secret" in mqtt_cmd

@@ -338,6 +338,14 @@ def _rimuovi_video_orfani(data):
     return rimossi
 
 
+@time_trigger("startup")
+def _purge_orfani_all_avvio():
+    """Toglie gli MP4 che il registro non cita piu', senza toccare i recentissimi."""
+    n = _rimuovi_video_orfani(_load_registro())
+    if n:
+        log.info(f"Avvio: {n} video orfani rimossi")
+
+
 @service
 def pulisci_registro_videocitofono():
     """Svuota COMPLETAMENTE il registro ed elimina TUTTI i video."""

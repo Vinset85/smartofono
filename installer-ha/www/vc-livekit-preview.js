@@ -42,11 +42,9 @@
 
   const VC_PREV_BUILD = 'vc-livekit-preview 2026.08.18-2';
   const SDK_URL = '/local/livekit-client-2.23.0.umd.min.js';
-  const CMD_TOPIC = 'videocitofono/cmd';
-  // Entita' opzionali: token del token-issuer e segreto dei comandi MQTT.
-  // Se non esistono (o sono vuote) si procede senza, com'e' oggi sul Pi.
+  // Entita' opzionali: token del token-issuer (i comandi MQTT passano
+  // da pyscript.videocitofono_mqtt_cmd, senza esporre il secret al browser).
   const LK_TOKEN_ENTITY = 'input_text.videocitofono_lk_token';
-  const CMD_TOKEN_ENTITY = 'input_text.videocitofono_cmd_token';
   const CALL_ENTITY = 'binary_sensor.stato_chiamata_videocitofono';
   // Quanto attendere il primo fotogramma prima di dire che non arriva: il Pi
   // deve fermare rpicam-vid, riaprire il sensore e negoziare WebRTC.
@@ -223,19 +221,10 @@
 
     _comando(on) {
       if (!this._hass) return;
-      const payload = { action: 'livekit_preview', on: !!on };
-      if (on) payload.ttl = this._ttl;
-      // Se un domani mqtt.cmd_secret viene attivato sul Pi, il comando
-      // continua a funzionare senza toccare questa card.
-      const tok = statoEntita(this._hass, CMD_TOKEN_ENTITY);
-      if (tok) payload.token = tok;
+      const data = { action: 'livekit_preview', on: !!on };
+      if (on) data.ttl = this._ttl;
       try {
-        this._hass.callService('mqtt', 'publish', {
-          topic: CMD_TOPIC,
-          payload: JSON.stringify(payload),
-          qos: 1,
-          retain: false,
-        });
+        this._hass.callService('pyscript', 'videocitofono_mqtt_cmd', data);
       } catch (e) {
         console.warn('[vc-livekit-preview] comando MQTT fallito:', e);
       }

@@ -1865,8 +1865,13 @@ class VideocitofonoApp(App):
         nfc_cfg = (self.cfg.get("nfc") or {})
         nr = getattr(self, "nfc_reader", None)
         if nfc_cfg.get("enabled", False):
-            subs["nfc_status"] = (
-                "ok" if (nr and nr.is_reader_ready()) else "down")
+            if nr and nr.is_reader_ready():
+                subs["nfc_status"] = "ok"
+            else:
+                subs["nfc_status"] = "down"
+                err = nr.last_error() if nr is not None else "no_reader"
+                if err:
+                    subs["nfc_error"] = str(err)[:160]
         else:
             subs["nfc_status"] = "off"
         try:
