@@ -37,12 +37,9 @@
   triggers:
   - trigger: mqtt
     topic: videocitofono/chiamata
-    value_template: >-
-      {% if value is string and value.startswith('{') %}
-        {{ (value | from_json).get('stato', '') }}
-      {% else %}
-        {{ value }}
-      {% endif %}
+    # Una riga sola: la template piegata metteva spazi/a capo intorno a
+    # stato, e "chiamata_in_corso" non combaciava col payload.
+    value_template: "{{ (value_json.stato if value_json is mapping else value) | default(value) | trim }}"
     payload: 'chiamata_in_corso'
   conditions: []
   variables:
@@ -58,13 +55,7 @@
     # firing dell'automation, quindi spesso si leggeva il valore della
     # chiamata precedente (o "sconosciuto" se primo evento).
     # trigger.payload e' la stringa raw ricevuta su videocitofono/chiamata.
-    campanello: >-
-      {% set p = trigger.payload %}
-      {% if p is string and p.startswith('{') %}
-        {{ (p | from_json).get('campanello', 'sconosciuto') }}
-      {% else %}
-        {{ states('sensor.videocitofono_ultimo_campanello') | default('sconosciuto') }}
-      {% endif %}
+    campanello: "{{ (trigger.payload_json.campanello if trigger.payload_json is mapping else none) | default(states('sensor.videocitofono_ultimo_campanello'), true) | default('sconosciuto') }}"
   actions:
   - parallel:
     # ARCHITETTURA POST-EDGE-LIVEKIT (2026-04-26): sostituito
@@ -159,21 +150,9 @@
     entity_id: binary_sensor.stato_chiamata_videocitofono
     state: 'on'
   - condition: template
-    value_template: >-
-      {% set p = trigger.payload %}
-      {% if p is string and p.startswith('{') %}
-        {{ (p | from_json).get('tipo', '') == 'visitatore_riconosciuto' }}
-      {% else %}
-        false
-      {% endif %}
+    value_template: "{{ trigger.payload_json is mapping and trigger.payload_json.tipo | default('') == 'visitatore_riconosciuto' }}"
   variables:
-    nome_visitatore: >-
-      {% set p = trigger.payload %}
-      {% if p is string and p.startswith('{') %}
-        {{ (p | from_json).get('dati', {}).get('nome', 'sconosciuto') }}
-      {% else %}
-        sconosciuto
-      {% endif %}
+    nome_visitatore: "{{ (trigger.payload_json.dati | default({})).get('nome', 'sconosciuto') if trigger.payload_json is mapping else 'sconosciuto' }}"
   actions:
   - action: browser_mod.javascript
     data:
@@ -217,13 +196,9 @@
     value_template: "{{ stato_raw.startswith('risposto') }}"
   variables:
     # Il Pi pubblica JSON ({"stato": ...}), la card stringhe semplici.
-    stato_raw: >-
-      {% set p = trigger.payload %}
-      {% if p is string and p.startswith('{') %}
-        {{ (p | from_json).get('stato', '') }}
-      {% else %}
-        {{ p | default('') | trim }}
-      {% endif %}
+    # Senza il guard `is mapping`, un payload non-JSON lascia payload_json
+    # undefined e l'automation logga errore invece di registrare la risposta.
+    stato_raw: "{{ (trigger.payload_json.stato if trigger.payload_json is mapping else trigger.payload) | default(trigger.payload, true) | trim }}"
   actions:
   - action: pyscript.update_registro_videocitofono
     # continue_on_error: nel primo minuto dopo un riavvio di HA pyscript non
@@ -251,6 +226,12 @@
   conditions: []
   actions:
   - action: script.videocitofono_stop_ringtone
+  - action: notify.videocitofono
+    continue_on_error: true
+    data:
+      message: clear_notification
+      data:
+        tag: videocitofono_chiamata
   # Chiude la registrazione LiveKit Egress: finche' l'egress e' attivo l'MP4
   # non ha il moov atom e non e' riproducibile. Va fatto subito, cosi' il file
   # si finalizza mentre eseguiamo il resto del cleanup; la retention (ultima
@@ -640,7 +621,7 @@
     topic: videocitofono/anomaly
   conditions:
   - condition: template
-    value_template: "{{ trigger.payload_json.is_anomaly | default(false) }}"
+    value_template: "{{ trigger.payload_json is mapping and trigger.payload_json.is_anomaly | default(false) }}"
   - condition: numeric_state
     entity_id: zone.home
     below: 1
@@ -649,9 +630,9 @@
     data:
       title: Videocitofono — apertura insolita
       message: >-
-        Utente {{ trigger.payload_json.user | default('?') }} alle
-        {{ trigger.payload_json.hour | default('?') }}:00
-        (probabilita {{ trigger.payload_json.prob_window | default('?') }})
+        Utente {{ trigger.payload_json.user | default('?') if trigger.payload_json is mapping else '?' }} alle
+        {{ trigger.payload_json.hour | default('?') if trigger.payload_json is mapping else '?' }}:00
+        (probabilita {{ trigger.payload_json.prob_window | default('?') if trigger.payload_json is mapping else '?' }})
       notification_id: videocitofono_anomaly
   mode: queued
   max: 5
@@ -664,25 +645,14 @@
   triggers:
   - trigger: mqtt
     topic: videocitofono/chiamata
-    value_template: >-
-      {% if value is string and value.startswith('{') %}
-        {{ (value | from_json).get('stato', '') }}
-      {% else %}
-        {{ value }}
-      {% endif %}
+    value_template: "{{ (value_json.stato if value_json is mapping else value) | default(value) | trim }}"
     payload: 'chiamata_in_corso'
   conditions:
   - condition: state
     entity_id: input_boolean.videocitofono_dnd
     state: 'off'
   variables:
-    campanello_id: >-
-      {% set p = trigger.payload %}
-      {% if p is string and p.startswith('{') %}
-        {{ (p | from_json).get('campanello', '') | trim }}
-      {% else %}
-        {{ states('sensor.videocitofono_ultimo_campanello') | default('') | trim }}
-      {% endif %}
+    campanello_id: "{{ (trigger.payload_json.campanello if trigger.payload_json is mapping else none) | default(states('sensor.videocitofono_ultimo_campanello'), true) | trim }}"
     nome_ricercato: >-
       {% set cid = campanello_id %}
       {% set ns = namespace(nome='') %}
@@ -695,54 +665,34 @@
       {% endfor %}
       {{ ns.nome or cid or 'qualcuno' }}
     nav_path: /lovelace/conversazione
-    nav_url: https://casa-esempio.duckdns.org:8191/lovelace/conversazione
-    nav_deep: homeassistant://navigate/lovelace/conversazione
   actions:
-  - parallel:
-    - action: notify.mobile_app_vinset_iphone
+  - action: notify.videocitofono
+    data:
+      title: Videocitofono
+      message: Suonano alla porta. Cercano {{ nome_ricercato }}
       data:
-        title: Videocitofono
-        message: Suonano alla porta. Cercano {{ nome_ricercato }}
-        data:
-          url: '{{ nav_url }}'
-          clickAction: '{{ nav_url }}'
-          tag: videocitofono_chiamata
-          group: videocitofono
-          channel: Videocitofono
-          importance: high
-          priority: high
-          ttl: 0
-          notification_icon: mdi:doorbell-video
-          actions:
-          - action: VC_APRI_PORTA
-            title: Apri porta
-          - action: URI
-            title: Apri conversazione
-            uri: '{{ nav_path }}'
-          push:
-            interruption-level: time-sensitive
-    - action: notify.mobile_app_iphone_stefania
-      data:
-        title: Videocitofono
-        message: Suonano alla porta. Cercano {{ nome_ricercato }}
-        data:
-          url: '{{ nav_url }}'
-          clickAction: '{{ nav_url }}'
-          tag: videocitofono_chiamata
-          group: videocitofono
-          channel: Videocitofono
-          importance: high
-          priority: high
-          ttl: 0
-          notification_icon: mdi:doorbell-video
-          actions:
-          - action: VC_APRI_PORTA
-            title: Apri porta
-          - action: URI
-            title: Apri conversazione
-            uri: '{{ nav_path }}'
-          push:
-            interruption-level: time-sensitive
+        url: '{{ nav_path }}'
+        clickAction: '{{ nav_path }}'
+        tag: videocitofono_chiamata
+        group: videocitofono
+        channel: Videocitofono
+        importance: high
+        priority: high
+        ttl: 0
+        notification_icon: mdi:doorbell-video
+        actions:
+        - action: VC_APRI_PORTA
+          title: Apri porta
+        - action: URI
+          title: Apri conversazione
+          uri: '{{ nav_path }}'
+        push:
+          sound: default
+          interruption-level: time-sensitive
+        presentation_options:
+          - alert
+          - sound
+          - badge
   mode: restart
 - id: '1761000000024'
   alias: Videocitofono - Companion azione Apri porta
@@ -770,13 +720,9 @@
     topic: videocitofono/apertura
   conditions:
   - condition: template
-    value_template: >-
-      {% set p = trigger.payload %}
-      {{ p is string and p.startswith("{") and (p | from_json).get("scope") in ["porta", "cancello"] }}
+    value_template: "{{ trigger.payload_json is mapping and trigger.payload_json.scope in ['porta', 'cancello'] }}"
   variables:
-    scope: >-
-      {% set p = trigger.payload %}
-      {{ (p | from_json).get("scope", "porta") }}
+    scope: "{{ trigger.payload_json.scope | default('porta') if trigger.payload_json is mapping else 'porta' }}"
   actions:
   - choose:
     - conditions:

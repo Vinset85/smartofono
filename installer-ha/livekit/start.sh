@@ -13,11 +13,13 @@
 #     il bind-mount /ssl da questo script.
 #   - Port-forward sul router. Il router casa NON supporta intervalli di porte
 #     e accetta solo porte <= 8191. Configurazione LiveKit single-port-mux:
-#     bastano 4 regole singole (1 porta ciascuna), nessun range.
+#     regole singole (1 porta ciascuna), nessun range:
 #         WAN 443  tcp -> 192.168.1.160:443    (HTTPS / Caddy: HA + signaling LK + token)
 #         WAN 80   tcp -> 192.168.1.160:80     (redirect HTTP->HTTPS, opzionale)
 #         WAN 8100 udp -> 192.168.1.160:8100   (LiveKit RTP/RTCP, single-port mux)
 #         WAN 7881 tcp -> 192.168.1.160:7881   (LiveKit ICE/TLS fallback per reti senza UDP)
+#         WAN 3478 udp -> 192.168.1.160:3478   (TURN UDP, client 4G/hotel)
+#         WAN 5349 tcp -> 192.168.1.160:5349   (TURN TLS)
 #   - DNS pubblico casa-esempio.duckdns.org -> IP WAN del router (gia' attivo).
 #   - Hairpin NAT abilitato sul router (i tablet in LAN risolvono il dominio
 #     pubblico e il router rimanda al miniPC HA).
@@ -34,11 +36,11 @@ LIVEKIT_DIR_LOCAL="${LIVEKIT_DIR_LOCAL:-$LIVEKIT_DIR}"
 if [ ! -f "$LIVEKIT_DIR_LOCAL/livekit.yaml" ] && [ -f "/addons/livekit/livekit.yaml" ]; then
     LIVEKIT_DIR_LOCAL="/addons/livekit"
 fi
-LIVEKIT_IMAGE="livekit/livekit-server:v1.12.0"
-PYTHON_IMAGE="python:3.13-slim"
+LIVEKIT_IMAGE="livekit/livekit-server:v1.13.10"
+ISSUER_IMAGE="videocitofono-token-issuer:1"
 CADDY_IMAGE="caddy:2.11-alpine"
 REDIS_IMAGE="redis:7-alpine"
-EGRESS_IMAGE="livekit/egress:v1.14.1"
+EGRESS_IMAGE="livekit/egress:v1.15.0"
 
 LIVEKIT_API_KEY="videocitofono"
 LIVEKIT_API_SECRET="SOSTITUISCI_CON_IL_TUO_LIVEKIT_API_SECRET"
@@ -84,16 +86,17 @@ docker rm -f livekit-redis 2>/dev/null || true
 
 echo "==> pull immagini"
 docker pull "$LIVEKIT_IMAGE"
-docker pull "$PYTHON_IMAGE"
 docker pull "$CADDY_IMAGE"
 docker pull "$REDIS_IMAGE"
 docker pull "$EGRESS_IMAGE"
 
-TOKEN_VOL="livekit_token_app"
-echo "==> sync token_issuer -> volume docker ($TOKEN_VOL)"
-docker volume create "$TOKEN_VOL" 2>/dev/null || true
-tar -C "$LIVEKIT_DIR_LOCAL/token_issuer" -cf - . \
-  | docker run --rm -i -v "${TOKEN_VOL}:/out" alpine sh -c "rm -rf /out/* /out/.[!.]* 2>/dev/null; tar -xf - -C /out"
+echo "==> build token-issuer (pip pinato nell'immagine, niente install a ogni avvio)"
+if [ ! -f "$LIVEKIT_DIR_LOCAL/token_issuer/Dockerfile" ]; then
+    echo "ERRORE: $LIVEKIT_DIR_LOCAL/token_issuer/Dockerfile mancante" >&2
+    exit 1
+fi
+tar -C "$LIVEKIT_DIR_LOCAL/token_issuer" -cf - Dockerfile requirements.txt issuer.py \
+  | docker build -t "$ISSUER_IMAGE" -
 
 # Redis PRIMA di livekit-server: con `redis:` in livekit.yaml il server esce
 # all'avvio se la coda non risponde. bind 127.0.0.1 -> non esposto in LAN;
@@ -131,6 +134,7 @@ docker run -d \
   --restart unless-stopped \
   --network host \
   -v "$LIVEKIT_DIR/livekit.yaml:/etc/livekit.yaml:ro" \
+  -v /mnt/data/supervisor/ssl:/ssl:ro \
   "$LIVEKIT_IMAGE" \
   --config /etc/livekit.yaml
 
@@ -169,8 +173,6 @@ docker run -d \
   --name livekit-token-issuer \
   --restart unless-stopped \
   --network host \
-  -w /app \
-  -v "${TOKEN_VOL}:/app:ro" \
   -e LIVEKIT_API_KEY="$LIVEKIT_API_KEY" \
   -e LIVEKIT_API_SECRET="$LIVEKIT_API_SECRET" \
   -e LIVEKIT_HOST="$LIVEKIT_HOST_PUBLIC" \
@@ -179,8 +181,7 @@ docker run -d \
   -e EGRESS_SECRET="$EGRESS_SECRET" \
   -e LIVEKIT_API_URL="http://127.0.0.1:7880" \
   -e EGRESS_OUTPUT_DIR="/out" \
-  "$PYTHON_IMAGE" \
-  sh -c "pip install --no-cache-dir -r /app/requirements.txt && uvicorn issuer:app --host 0.0.0.0 --port 8081"
+  "$ISSUER_IMAGE"
 
 echo "==> start caddy edge"
 docker run -d \

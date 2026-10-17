@@ -47,7 +47,8 @@ installer-ha/
 ├── packages/                   *.fixed: entità, automazioni e script di HA
 ├── pyscript/                   la logica: registro chiamate, NFC, volti,
 │                               PIN ospiti, audit, voce notturna, icone
-├── www/                        le card custom e gli asset serviti da /local
+├── www/                        le card custom, SDK LiveKit 2.23.0, minion.mp3
+├── tests/                      template MQTT/notify e health LiveKit (stdlib)
 ├── lovelace/                   le viste: dashboard, PIN ospiti, salute
 ├── themes/                     glass e vc-minimal
 ├── config/                     go2rtc e i default del pannello

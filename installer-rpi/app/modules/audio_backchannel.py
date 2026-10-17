@@ -37,6 +37,8 @@ import subprocess
 import threading
 from typing import Any, Dict, Optional
 
+import numpy as np
+
 LOG = logging.getLogger(__name__)
 
 
@@ -103,7 +105,11 @@ class AudioBackchannel:
         # video. 60ms = buffer corto ma sufficiente per Opus 20ms a
         # ritmo regolare. Underrun coperti dal catch-up policy del
         # writer (vedi _writer_loop).
-        self._pulse_buffer_ms = int(cfg.get("talkback_pulse_buffer_ms", 200))
+        # 60ms: sotto la finestra tipica dell'AEC webrtc (~128ms con
+        # extended_filter). 200ms spingeva il ritardo eco fuori dal
+        # filtro e la voce HA tornava indietro nel mic.
+        self._pulse_buffer_ms = int(cfg.get("talkback_pulse_buffer_ms", 60))
+        self._playback_rms = 0.0
         # Sink PulseAudio destinazione: DEVE essere ec_sink (loopback
         # del module-echo-cancel) altrimenti l'audio HA esce diretto
         # sull'hardware bypassando l'AEC -> forte echo Larsen al mic.
@@ -117,6 +123,23 @@ class AudioBackchannel:
         self._pcm_q_catchup_threshold = int(
             cfg.get("talkback_q_catchup_threshold", 15)
         )
+
+    @property
+    def playback_rms(self) -> float:
+        """RMS smoothed del PCM HA in arrivo (prima di ffmpeg). 0 = silenzio."""
+        return float(self._playback_rms)
+
+    def _update_playback_rms(self, pcm: bytes) -> None:
+        n = len(pcm) // 2
+        if n <= 0:
+            self._playback_rms *= 0.8
+            return
+        try:
+            s = np.frombuffer(pcm, dtype=np.int16, count=n)
+            rms = float(np.sqrt(np.mean(np.square(s.astype(np.float32)))))
+        except Exception:
+            rms = 0.0
+        self._playback_rms = 0.6 * self._playback_rms + 0.4 * rms
 
     def start(self) -> None:
         """No-op nel path WebRTC: la sorgente PCM e' iniettata da
@@ -346,6 +369,8 @@ class AudioBackchannel:
         di usare il duck "soft" (default 100%, no attenuazione mic).
         """
         self._webrtc_active = True
+        if pcm:
+            self._update_playback_rms(pcm)
         if not self.enabled or not self._has_ffmpeg or not pcm:
             return
         if rate != self.rate or channels != self.channels:
@@ -383,4 +408,5 @@ class AudioBackchannel:
         """
         LOG.info("WebRTC audio stream chiuso, kill player")
         self._webrtc_active = False
+        self._playback_rms = 0.0
         self._kill_player()

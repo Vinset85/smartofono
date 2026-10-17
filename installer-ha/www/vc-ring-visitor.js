@@ -55,6 +55,39 @@
     });
   }
 
+  var audioCtx = null;
+
+  function playBeep() {
+    return new Promise(function (resolve) {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) {
+          resolve();
+          return;
+        }
+        if (!audioCtx) audioCtx = new Ctx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        var t = audioCtx.currentTime;
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.5);
+        osc.onended = function () {
+          resolve();
+        };
+      } catch (_) {
+        resolve();
+      }
+    });
+  }
+
   function playOnce() {
     return new Promise(function (resolve) {
       stopAudio();
@@ -65,10 +98,10 @@
         resolve();
       };
       audio.onerror = function () {
-        resolve();
+        playBeep().then(resolve);
       };
       audio.play().catch(function () {
-        resolve();
+        playBeep().then(resolve);
       });
     });
   }

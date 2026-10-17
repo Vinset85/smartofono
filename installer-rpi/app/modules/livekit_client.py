@@ -172,6 +172,9 @@ class LiveKitSubscribeClient:
         self._cam_task: Any = None       # asyncio.Task del feed video
         self._audio_source: Any = None   # rtc.AudioSource
         self._video_source: Any = None   # rtc.VideoSource
+        # Guadagno uplink: 4x a riposo (MEMS VoiceHat debole). Mentre HA
+        # parla scende per non rimandare l'eco residua dell'AEC.
+        self._mic_gain = 4.0
         self._stats_lock = threading.Lock()
         self._call_stats: dict[str, Any] = {
             "connection_quality": "unknown",
@@ -519,34 +522,33 @@ class LiveKitSubscribeClient:
         """Cattura PCM dal mic via arecord e alimenta AudioSource a 20ms.
 
         arecord legge da PulseAudio ec_source (output del module-echo-cancel)
-        gia' filtrato AEC. Output: PCM s16 STEREO 48kHz raw su stdout, poi
-        teniamo solo il canale destro (RaspiAudio MIC+ V3 / VoiceHat MEMS
-        mic e' cablato su SELECT=VCC -> dato solo su slot R; il mixaggio
-        stereo->mono fatto da pulse divide per 2 facendo perdere 6dB).
-        Ogni 20ms = 960 samples mono = 1920 bytes mono = 3840 bytes stereo.
+        gia' filtrato AEC. Preferisce mono (AEC caricato a 1 canale). Fallback
+        stereo: sul VoiceHat il MEMS e' sul canale destro.
+        Ogni 20ms = 960 samples @ 48kHz.
         """
         import subprocess
         chunk_samples = 48000 // 50  # 960
-        chunk_bytes_mono = chunk_samples * 2  # mono s16
-        chunk_bytes_stereo = chunk_samples * 4  # stereo s16
-        chunk_bytes = chunk_bytes_stereo
+        chunk_bytes_mono = chunk_samples * 2
+        chunk_bytes_stereo = chunk_samples * 4
         # period 480 frame (10ms) e buffer 1920 frame (40ms) = latenza
         # intrinseca arecord 40ms invece dei 200-500ms di default ALSA.
-        # Senza questi parametri il browser HA percepisce un ritardo
-        # netto sull'audio del Pi (parla con ~300ms di delay).
-        cmd = [
-            "arecord", "-q",
-            "-D", self._mic_device,
-            "-f", "S16_LE",
-            "-r", "48000",
-            "-c", "2",
-            "-t", "raw",
-            "--period-size=480",
-            "--buffer-size=1920",
-        ]
+        def _cmd(channels: int) -> list[str]:
+            return [
+                "arecord", "-q",
+                "-D", self._mic_device,
+                "-f", "S16_LE",
+                "-r", "48000",
+                "-c", str(channels),
+                "-t", "raw",
+                "--period-size=480",
+                "--buffer-size=1920",
+            ]
+
+        channels = 1
+        chunk_bytes = chunk_bytes_mono
         try:
             self._mic_proc = subprocess.Popen(
-                cmd,
+                _cmd(1),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
                 bufsize=0,
@@ -557,11 +559,35 @@ class LiveKitSubscribeClient:
         except Exception as e:
             LOG.warning("arecord spawn err: %s", e)
             return
-        LOG.info("mic capture loop avviato (device=%s 48k mono)", self._mic_device)
+        # Se ec_source e' ancora stereo, arecord -c 1 muore subito.
+        await asyncio.sleep(0.15)
+        if self._mic_proc.poll() is not None:
+            LOG.info("arecord mono fallito, fallback stereo (canale R)")
+            try:
+                self._mic_proc = subprocess.Popen(
+                    _cmd(2),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    bufsize=0,
+                )
+                channels = 2
+                chunk_bytes = chunk_bytes_stereo
+            except Exception as e:
+                LOG.warning("arecord stereo spawn err: %s", e)
+                return
+        LOG.info(
+            "mic capture loop avviato (device=%s 48k %s)",
+            self._mic_device, "mono" if channels == 1 else "stereo-R",
+        )
         loop = asyncio.get_event_loop()
         n_read = 0
         n_sent = 0
         last_log = time.monotonic()
+        mono = np.zeros(chunk_samples, dtype=np.int16)
+        # Soglia RMS del PCM HA: sotto = silenzio/rumore, sopra = sta parlando.
+        far_end_rms_th = 500.0
+        gain_idle = 4.0
+        gain_echo = 0.25
         try:
             while not self._stop_event.is_set():
                 data = await loop.run_in_executor(
@@ -572,17 +598,18 @@ class LiveKitSubscribeClient:
                     break
                 n_read += 1
                 if len(data) < chunk_bytes:
-                    # ultimo blocco parziale - pad a zero per evitare frame storto
                     data = data + b"\x00" * (chunk_bytes - len(data))
                 try:
-                    # Stereo interleavato L,R,L,R... -> teniamo solo R
-                    # (slot 1) per evitare il dimezzamento da mono mix con
-                    # canale L muto. Boost software finale (~+12dB = x4)
-                    # perche' il MEMS della voiceHat ha sensibilita' bassa
-                    # e l'AEC sopprime aggressivamente; senza boost il
-                    # browser HA sente quasi silenzio.
-                    stereo = np.frombuffer(data, dtype=np.int16)
-                    mono = stereo[1::2].astype(np.int32) * 4
+                    samples = np.frombuffer(data, dtype=np.int16)
+                    if channels == 2:
+                        samples = samples[1::2]
+                    pb = 0.0
+                    if self._ab is not None:
+                        pb = float(getattr(self._ab, "playback_rms", 0.0) or 0.0)
+                    target = gain_echo if pb >= far_end_rms_th else gain_idle
+                    alpha = 0.45 if target < self._mic_gain else 0.06
+                    self._mic_gain += (target - self._mic_gain) * alpha
+                    mono = samples.astype(np.int32) * self._mic_gain
                     np.clip(mono, -32768, 32767, out=mono)
                     mono = mono.astype(np.int16)
                     frame = rtc.AudioFrame.create(48000, 1, chunk_samples)
@@ -602,7 +629,11 @@ class LiveKitSubscribeClient:
                             rms = int(np.sqrt(np.mean(mono.astype(np.int32) ** 2)))
                     except Exception:
                         pass
-                    LOG.info("mic publish stats: read=%d sent=%d rms=%d", n_read, n_sent, rms)
+                    LOG.info(
+                        "mic publish stats: read=%d sent=%d rms=%d gain=%.2f far_rms=%.0f",
+                        n_read, n_sent, rms, self._mic_gain,
+                        float(getattr(self._ab, "playback_rms", 0.0) or 0.0) if self._ab else 0.0,
+                    )
                     last_log = now
         except asyncio.CancelledError:
             pass

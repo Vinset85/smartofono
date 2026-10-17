@@ -29,7 +29,17 @@ http:
     trusted_proxies:
       - 127.0.0.1
       - ::1
-    
+
+# Gruppo push Companion: un solo target per tutti i telefoni della casa.
+# Aggiungere qui un nuovo `mobile_app_*` quando si registra un dispositivo.
+notify:
+  - platform: group
+    name: videocitofono
+    services:
+      - service: mobile_app_vinset_iphone
+      - service: mobile_app_vinset_iphone_vecchio
+      - service: mobile_app_iphone_stefania
+
 media_player:
   - platform: xiaomi_tv
     host: 192.168.1.27
@@ -66,6 +76,7 @@ mqtt:
       device_class: connectivity
       icon: mdi:doorbell-video
     - name: "Stato Chiamata Videocitofono"
+      unique_id: vc_stato_chiamata
       state_topic: "videocitofono/chiamata"
       # Availability condivisa (anchor &vc_avail) riusata da tutte le entita'
       # MQTT del videocitofono: quando il RPi e' offline diventano
@@ -77,19 +88,11 @@ mqtt:
       # L'app Kivy del RPi pubblica sia stringhe ("chiamata_in_corso",
       # "annullata", "porta_aperta", "terminata") sia JSON
       # ({"stato":"chiamata_in_corso","campanello":"famiglia_x"}).
-      # Normalizziamo in ON/OFF: il sensor passa OFF su QUALUNQUE payload
-      # diverso da "chiamata_in_corso" (annullata, porta_aperta, terminata,
-      # ecc.) cosi' il binary_sensor non aspetta off_delay quando HA
-      # pubblica un nuovo stato che richiede chiusura immediata della
-      # chiamata (es. "porta_aperta" e "terminata" usati per overlay UI
-      # sul RPi prima del torna-a-home).
-      value_template: >-
-        {% if value is string and value.startswith('{') %}
-          {% set s = (value | from_json).get('stato', '') %}
-        {% else %}
-          {% set s = value %}
-        {% endif %}
-        {% if s in ['chiamata_in_corso', 'risposto', 'risposto_audio', 'risposto_video'] %}ON{% else %}OFF{% endif %}
+      # Stesso guard del sensor raw (`value_json is mapping`): senza,
+      # un payload JSON poteva far fallire il template e HA ignorava
+      # il messaggio, lasciando il binary_sensor ON e il bottone
+      # "Rispondi alla chiamata" visibile a chiamata finita.
+      value_template: "{{ 'ON' if ((value_json.stato if value_json is mapping else value) | default(value, true) | string | trim) in ['chiamata_in_corso', 'risposto', 'risposto_audio', 'risposto_video'] else 'OFF' }}"
       payload_on: "ON"
       payload_off: "OFF"
       # NIENTE off_delay: il binary_sensor passa OFF solo quando arriva
@@ -103,12 +106,7 @@ mqtt:
     - name: "Videocitofono Ultimo Campanello"
       state_topic: "videocitofono/chiamata"
       availability: *vc_avail
-      value_template: >-
-        {% if value is string and value.startswith('{') %}
-          {{ (value | from_json).get('campanello', 'sconosciuto') }}
-        {% else %}
-          sconosciuto
-        {% endif %}
+      value_template: "{{ value_json.campanello | default('sconosciuto') if value_json is mapping else 'sconosciuto' }}"
       icon: mdi:doorbell
     # Stato grezzo della chiamata (chiamata_in_corso / risposto_audio /
     # risposto_video / annullata / terminata / porta_aperta). Consumato
@@ -119,12 +117,7 @@ mqtt:
       unique_id: vc_stato_chiamata_raw
       state_topic: "videocitofono/chiamata"
       availability: *vc_avail
-      value_template: >-
-        {% if value is string and value.startswith('{') %}
-          {{ (value | from_json).get('stato', '') }}
-        {% else %}
-          {{ value }}
-        {% endif %}
+      value_template: "{{ value_json.stato | default(value) if value_json is mapping else value }}"
       icon: mdi:phone-log
     # Lista volti registrati per riconoscimento facciale. Pubblicato
     # con retain dal RPi su videocitofono/volti/library al boot e dopo
@@ -175,7 +168,8 @@ mqtt:
     - name: "Videocitofono Guest PINs"
       state_topic: "videocitofono/guest_pins/list"
       availability: *vc_avail
-      value_template: "{{ (value_json.items | default([])) | length }}"
+      # `value_json.items` in Jinja e' il metodo dict.items, non la lista.
+      value_template: "{{ (value_json.get('items', []) if value_json is mapping else []) | length }}"
       json_attributes_topic: "videocitofono/guest_pins/list"
       icon: mdi:key-variant
 

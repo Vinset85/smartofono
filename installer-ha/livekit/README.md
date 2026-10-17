@@ -8,7 +8,8 @@ Stack media-server SFU + reverse proxy TLS unificato.
                  (WAN - internet pubblico)
                           |
                           | TCP 443 / TCP 80 / UDP 8100 / TCP 7881
-                          | (4 porte SINGOLE, nessun range)
+                          | UDP 3478 / TCP 5349 (TURN, client WAN)
+                          | (porte SINGOLE, nessun range)
                           v
               +--------------------------+
               |  Router casa (port-fwd)  |
@@ -26,6 +27,8 @@ Stack media-server SFU + reverse proxy TLS unificato.
               | :7881 LiveKit ICE/TLS    |
               | :8081 Token issuer       |
               | :8100 UDP RTP/RTCP mux   | (single-port mode)
+              | :3478 UDP TURN           |
+              | :5349 TLS TURN           |
               +--------------------------+
 ```
 
@@ -45,9 +48,10 @@ videocitofono) parlano un solo origin pubblico:
 | File | Ruolo |
 |------|-------|
 | `Caddyfile` | Reverse proxy edge: HA + LiveKit + token issuer su 1 origin |
-| `docker-compose.yml` | Stack 3 container: livekit, token-issuer, caddy |
-| `livekit.yaml` | Config LiveKit Server (porte, key/secret, room policy, RTC) |
+| `docker-compose.yml` | Stack: redis, livekit 1.13.10, egress 1.15.0, token-issuer, caddy |
+| `livekit.yaml` | Config LiveKit Server (porte, TURN, key/secret, room policy, RTC) |
 | `start.sh` | Deploy idempotente via `docker run` (HAOS non ha docker-compose) |
+| `token_issuer/Dockerfile` | Immagine `videocitofono-token-issuer:1` (pip al build, non all'avvio) |
 | `token_issuer/issuer.py` | FastAPI: firma JWT LiveKit con prefer_lan toggle |
 
 ## Pre-requisiti host HA OS
@@ -57,9 +61,9 @@ videocitofono) parlano un solo origin pubblico:
    Se non li hai, decommenta la sezione `TLS-MANAGED-BY-CADDY` nel `Caddyfile`
    per delegare a Caddy il rinnovo via Let's Encrypt http-01.
 
-2. **Port-forward sul router** (verso `192.168.1.160`): solo **4 porte
-   singole**, nessun intervallo. Il router casa non supporta range e accetta
-   solo porte ≤ 8191; questa configurazione rispetta entrambi i vincoli.
+2. **Port-forward sul router** (verso `192.168.1.160`): **porte singole**,
+   nessun intervallo. Il router casa non supporta range e accetta solo porte
+   ≤ 8191; questa configurazione rispetta entrambi i vincoli.
 
    | WAN | LAN | Protocollo | Uso |
    |---|---|---|---|
@@ -67,6 +71,13 @@ videocitofono) parlano un solo origin pubblico:
    | 80   | 80   | TCP | redirect → 443 (opzionale) |
    | 8100 | 8100 | UDP | LiveKit RTP/RTCP **single-port mux** (tutti i partecipanti) |
    | 7881 | 7881 | TCP | LiveKit ICE/TLS fallback (reti che bloccano UDP) |
+   | 3478 | 3478 | UDP | TURN UDP (telefono 4G / Wi‑Fi da hotel) |
+   | 5349 | 5349 | TCP | TURN TLS |
+
+   Senza 3478/5349 i client LAN restano sul candidate host. I client WAN
+   tentano TURN e, se irraggiungibile, tornano a ICE TCP 7881. I media
+   relay TURN usano internamente anche 30000–40000: senza quel range il
+   allocate può riuscire e i media no.
 
    > **Single-port mux**: LiveKit Server (≥ v1.x) sa multiplexare TUTTO il
    > traffico media RTP/RTCP di tutti i partecipanti su una sola porta UDP

@@ -76,6 +76,24 @@ def test_cmd_auth_senza_secret_accetta():
     assert g.verify({"action": "reboot"})
 
 
+def test_guest_pin_ciclo():
+    import os
+    import tempfile
+
+    from modules.guest_pin import GuestPinManager
+
+    path = os.path.join(tempfile.mkdtemp(), "guest_pins.json")
+    m = GuestPinManager(path=path, length=6)
+    rid, pin = m.create(label="smoke", valid_hours=1, max_uses=1, scope="porta")
+    assert len(pin) == 6
+    listed = m.list()
+    assert listed and listed[0]["id"] == rid
+    assert listed[0]["label"] == "smoke"
+    hit = m.try_match(pin)
+    assert hit is not None and hit["scope"] == "porta"
+    assert m.try_match(pin) is None
+
+
 def test_brightness_off_on(monkeypatch=None):
     from modules.brightness import BrightnessController
 

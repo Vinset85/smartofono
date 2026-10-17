@@ -9,7 +9,8 @@ Applicazione GUI Kivy per il pannello esterno del videocitofono. Gestisce:
 - Schermata **impronta digitale** pronta, lettore non ancora collegato
 - **Gestione luminosità adattiva**: schermo a luminosità ridotta a riposo, piena luminosità su tocco o **rilevamento movimento** dalla camera
 - **Screensaver** con orologio dopo inattività (risvegliato anche dal movimento)
-- Pubblicazione eventi MQTT verso Home Assistant
+- Pubblicazione eventi MQTT verso Home Assistant (`cmd_secret` sui comandi)
+- Videochiamata **LiveKit** (camera + mic, AEC PipeWire)
 - Chiamata diretta script HA via REST API
 
 ## Struttura
@@ -25,6 +26,9 @@ installer-rpi/
 │   ├── modules/
 │   │   ├── config.py                 # caricamento YAML
 │   │   ├── mqtt_client.py            # paho-mqtt publisher
+│   │   ├── livekit_client.py         # sessione WebRTC verso HA
+│   │   ├── audio_backchannel.py      # talkback + AEC
+│   │   ├── cmd_auth.py               # token sui comandi MQTT
 │   │   ├── ha_client.py              # REST -> Home Assistant
 │   │   ├── pin_manager.py            # bcrypt + lockout
 │   │   ├── face_recognition_stub.py  # recognizer dlib (il nome e' storico)
@@ -37,6 +41,8 @@ installer-rpi/
 │   │   ├── face.py
 │   │   └── placeholders.py           # finger, nfc, result, screensaver
 │   └── assets/                       # icone, avatar, placeholder camera
+├── tests/
+│   └── test_smoke.py                 # auth, PIN ospite, face, backup
 ├── systemd/
 │   └── videocitofono.service         # autostart su graphical.target
 ├── scripts/

@@ -229,7 +229,9 @@ class MqttPublisher:
             audit(LOG, "chiamata", stato=payload, campanello=campanello or "")
         except Exception:
             pass
-        self._publish(topic, msg)
+        # Retain: dopo un restart HA il binary_sensor non resta
+        # unavailable fino al prossimo campanello.
+        self._publish(topic, msg, retain=True)
 
     def publish_apertura(self, metodo: str, utente: str = "", scope: str = "porta") -> None:
         topic = self.cfg["topic_apertura"]
@@ -251,9 +253,9 @@ class MqttPublisher:
         except Exception as e:
             LOG.error("MQTT publish error: %s", e)
 
-    def _publish(self, topic: str, msg: str) -> None:
+    def _publish(self, topic: str, msg: str, retain: bool = False) -> None:
         try:
-            r = self._client.publish(topic, msg, qos=1)
-            LOG.info("MQTT pub %s = %s (rc=%s)", topic, msg, r.rc)
+            r = self._client.publish(topic, msg, qos=1, retain=retain)
+            LOG.info("MQTT pub %s = %s (retain=%s rc=%s)", topic, msg, retain, r.rc)
         except Exception as e:
             LOG.error("MQTT publish error: %s", e)

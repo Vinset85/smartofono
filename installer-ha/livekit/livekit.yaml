@@ -127,4 +127,20 @@ logging:
   level: info
   pion_level: warn
 
+# TURN built-in per client WAN (telefono 4G/hotel) quando UDP 8100 non
+# passa. Non usa la 443 (occupata da Caddy). Sul router servono due
+# forward singoli, porte <= 8191:
+#   WAN 3478 udp -> 192.168.1.160:3478
+#   WAN 5349 tcp -> 192.168.1.160:5349
+# Senza questi forward i client LAN restano sul candidate host 192.168.1.160
+# (path attuale). I client WAN provano TURN e, se irraggiungibile, tornano
+# a ICE host/tcp 7881.
+turn:
+  enabled: true
+  domain: casa-esempio.duckdns.org
+  cert_file: /ssl/fullchain.pem
+  key_file: /ssl/privkey.pem
+  udp_port: 3478
+  tls_port: 5349
+
 development: false

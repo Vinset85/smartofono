@@ -71,7 +71,7 @@
     {
       tokenUrl: defaultTokenUrl(),
       wsUrl: defaultWsUrl(),
-      sdkUrl: '/local/livekit-client-2.19.1.umd.min.js',
+      sdkUrl: '/local/livekit-client-2.23.0.umd.min.js',
       roomName: 'videocitofono',
     },
     window.vcLKConfig || {}

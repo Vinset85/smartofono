@@ -41,7 +41,7 @@
   'use strict';
 
   const VC_PREV_BUILD = 'vc-livekit-preview 2026.08.18-2';
-  const SDK_URL = '/local/livekit-client-2.19.1.umd.min.js';
+  const SDK_URL = '/local/livekit-client-2.23.0.umd.min.js';
   const CMD_TOPIC = 'videocitofono/cmd';
   // Entita' opzionali: token del token-issuer e segreto dei comandi MQTT.
   // Se non esistono (o sono vuote) si procede senza, com'e' oggi sul Pi.

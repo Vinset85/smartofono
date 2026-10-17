@@ -39,8 +39,10 @@ ExecStart=/bin/sh -c '\
     sink_master="$SINK" \
     source_master="$SRC" \
     aec_method=webrtc \
-    use_master_format=true \
-    aec_args="\"analog_gain_control=0 digital_gain_control=1 noise_suppression=1 voice_detection=1 high_pass_filter=1 extended_filter=1\""; \
+    use_master_format=false \
+    channels=1 \
+    rate=48000 \
+    aec_args="\"analog_gain_control=0 digital_gain_control=1 noise_suppression=1 voice_detection=1 high_pass_filter=1 extended_filter=1 delay_agnostic=1\""; \
   for i in 1 2 3; do \
     pactl set-default-source ec_source; \
     pactl set-default-sink   ec_sink; \

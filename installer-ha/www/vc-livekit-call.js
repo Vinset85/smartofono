@@ -128,9 +128,9 @@
 
   // SDK self-hosted in /config/www/ (HA /local/): niente dipendenza da
   // internet/CDN per far partire le videochiamate (critico per un
-  // citofono). Aggiornato a livekit-client 2.19.1 (nessun breaking change
+  // citofono). Aggiornato a livekit-client 2.23.0 (nessun breaking change)
   // dal 2.5.10, solo fix riconnessione/ICE/memory-leak Room).
-  const SDK_URL = '/local/livekit-client-2.19.1.umd.min.js';
+  const SDK_URL = '/local/livekit-client-2.23.0.umd.min.js';
 
   let sdkLoadPromise = null;
   function loadSdk() {
@@ -1114,7 +1114,13 @@
       const v = this._renderRoot.getElementById('self-video');
       if (v && this._localStream) {
         try {
-          v.srcObject = this._localStream;
+          // Solo video: attaccare anche l'audio locale al <video> fa
+          // sentire la propria voce in cuffia/speaker (sidetone), anche
+          // se l'elemento e' muted su alcuni browser.
+          const vids = this._localStream.getVideoTracks();
+          v.srcObject = vids.length ? new MediaStream(vids) : null;
+          v.muted = true;
+          v.volume = 0;
           v.play().catch(() => {});
         } catch (_) {}
       }
@@ -1279,6 +1285,6 @@
     });
   }
 
-  const VC_BUILD = '2026-06-04.dismiss-state2';
+  const VC_BUILD = '2026-10-17.lk-2.23';
   console.log('[vc-livekit-call-v3] custom card registrata, build=' + VC_BUILD);
 })();
