@@ -68,6 +68,8 @@ recover_touch_port() {
 # resetta il PN532 — l'unico reset hardware certo resta lo scollegamento fisico.
 # Best-effort: mai fatale, e tocca solo la porta del CH340 (non il touch).
 uhubctl_power_cycle_ch340() {
+  # Su Pi5 uhubctl non taglia VBUS: ri-enumera il CH340 e lascia il PN532 muto.
+  return 1
   command -v uhubctl >/dev/null 2>&1 || return 1
   local id bus hubpath loc port
   id=$(find_ch340_usb_id) || return 1
@@ -128,8 +130,8 @@ usb_reset_ch340() {
 }
 
 libnfc_wake() {
-  # Non usare libnfc: lascia il PN532 in stato incoerente per nfcpy.
-  # Wake solo via sequenza UART (stesso protocollo GetFirmwareVersion).
+  # Non usare libnfc (stato incoerente per nfcpy). Wake HSU: preamble +
+  # GetFirmwareVersion, poi nfcpy apre la seriale.
   log "wake UART PN532 (no libnfc)"
   /opt/videocitofono/venv/bin/python3 - <<'PY' || true
 import time
@@ -140,6 +142,10 @@ except ImportError:
 dev = "/dev/ttyUSB0"
 if not __import__("os").path.exists(dev):
     raise SystemExit(0)
+body = bytes([0xD4, 0x02])
+ln = len(body) + 1
+frame = (bytes([0x00, 0x00, 0xFF, ln, (-ln) & 0xFF])
+         + body + bytes([(-sum(body)) & 0xFF, 0x00]))
 for _ in range(4):
     try:
         with serial.Serial(dev, baudrate=115200, timeout=0.5) as ser:
@@ -149,12 +155,8 @@ for _ in range(4):
             ser.dtr = True
             time.sleep(0.15)
             ser.reset_input_buffer()
-            ser.write(b"\x55" * 10)
+            ser.write(b"\x55" * 16)
             time.sleep(0.05)
-            body = bytes([0xD4, 0x02])
-            ln = len(body) + 1
-            frame = (bytes([0x00, 0x00, 0xFF, ln, (-ln) & 0xFF])
-                     + body + bytes([(-sum(body)) & 0xFF, 0x00]))
             ser.write(frame)
             time.sleep(0.25)
             rx = ser.read(32)

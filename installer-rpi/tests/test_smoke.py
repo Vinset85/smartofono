@@ -30,8 +30,12 @@ def test_mqtt_on_connected_cb():
 def test_nfc_usb_recover_max():
     from modules import nfc_reader as nr
 
-    assert nr.USB_RECOVER_MAX == 2
-    assert nr.NFC_GIVE_UP_BACKOFF_SEC >= 60
+    assert nr.USB_RECOVER_MAX == 1
+    assert 5 <= nr.NFC_GIVE_UP_BACKOFF_SEC <= 30
+    src = Path(nr.__file__).read_text(encoding="utf-8")
+    assert "esce solo su stop() esplicito" in src
+    assert "riapertura ascolto" in src
+    assert "recupero USB per ascolto" in src
 
 
 def test_cmd_auth():

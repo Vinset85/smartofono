@@ -42,6 +42,7 @@ class NfcScreen(BgScreen):
         super().__init__(bg_source=bg_source, **kw)
         self.app_ctx = app_ctx
         self._auto_back = None
+        self._listen_poll = None
         self._busy = False
 
     def refresh_icon(self) -> None:
@@ -82,16 +83,26 @@ class NfcScreen(BgScreen):
             self.icon_px_h = side
             self._set_listening()
         self._cancel_auto_back()
+        self._cancel_listen_poll()
+        self._listen_poll = Clock.schedule_interval(self._set_listening, 0.5)
 
     def on_leave(self, *_):
         self._cancel_auto_back()
+        self._cancel_listen_poll()
 
     def _cancel_auto_back(self) -> None:
         if self._auto_back is not None:
             self._auto_back.cancel()
             self._auto_back = None
 
-    def _set_listening(self) -> None:
+    def _cancel_listen_poll(self) -> None:
+        if self._listen_poll is not None:
+            self._listen_poll.cancel()
+            self._listen_poll = None
+
+    def _set_listening(self, *_):
+        if self._busy:
+            return
         self.errore = False
         self.scanning = True
         self.dettaglio = ""

@@ -43,7 +43,8 @@ Environment=VC_LK_TOKEN_URL=http://192.168.1.160:8081/token
 Environment=VC_LK_WS_URL=ws://192.168.1.160:7880
 Environment=VC_LK_PUBLISH=1
 ExecStartPre=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/scripts/restore_config_defaults.py
-ExecStartPre=+/opt/videocitofono/scripts/nfc-usb-reset.sh recover
+# Il reset USB a ogni avvio lascia il PN532 acceso ma muto (HSU).
+# Il thread NFC prova nfcpy e, se serve, fa al massimo 2 recover.
 ExecStart=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/app/main.py
 Restart=always
 RestartSec=5

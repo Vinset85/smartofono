@@ -432,9 +432,9 @@ class VideocitofonoApp(App):
         self.nfc_lib = None
         self.nfc_reader = None
         self._nfc_cfg_active = None
-        # Avvio NFC ritardato: su cold boot il prep USB e' gia' in stamp;
-        # su restart servizio _init_nfc_from_cfg fa recover prima del thread.
-        Clock.schedule_once(lambda *_: self._init_nfc_from_cfg(), 8.0)
+        self._nfc_init_attempted = False
+        # Ritardo breve: USB gia' enumerato, niente ExecStartPre recover.
+        Clock.schedule_once(lambda *_: self._init_nfc_from_cfg(), 3.0)
 
         # ---- Backup automatico ----
         try:
@@ -682,6 +682,7 @@ class VideocitofonoApp(App):
         _ClkNfc.schedule_once(lambda *a: self._publish_nfc_status(), 3.0)
         nfc_iv = float((self.cfg.get("eco") or {}).get("nfc_status_sec", 30 if self._eco_enabled() else 15))
         _ClkNfc.schedule_interval(lambda *a: self._publish_nfc_status(), nfc_iv)
+        _ClkNfc.schedule_interval(self._nfc_ensure_listening, 5.0)
         # Retry icone se HA non era raggiungibile al boot (applica_config ~14s).
         _ClkNfc.schedule_once(lambda *a: self._sync_icons_from_config(), 5.0)
         _ClkNfc.schedule_once(lambda *a: self._sync_icons_from_config(), 20.0)
@@ -1658,23 +1659,25 @@ class VideocitofonoApp(App):
         snap = self._nfc_cfg_snapshot()
         if not snap["enabled"]:
             self._nfc_cfg_active = None
+            self._nfc_init_attempted = True
+            return
+        self._nfc_init_attempted = True
+        nr = getattr(self, "nfc_reader", None)
+        if nr is not None:
+            thr = getattr(nr, "_thread", None)
+            if thr is not None and thr.is_alive():
+                self._nfc_cfg_active = snap
+                return
+            try:
+                nr.start()
+                self._nfc_cfg_active = snap
+                LOG.info("NFC reader riavviato (device=%s)", nr.device)
+            except Exception as e:
+                LOG.warning("NFC restart err: %s", e)
             return
         try:
-            from modules.nfc_reader import (
-                prepare_nfc_hardware, nfc_prep_mode, USB_REOPEN_SETTLE_SEC,
-                ensure_pn532_ready, disable_ch340_autosuspend,
-            )
-            prep_mode = nfc_prep_mode()
-            if prep_mode != "skip":
-                LOG.info("NFC prep pre-start (%s)", prep_mode)
-                prepare_nfc_hardware(prep_mode)
-            else:
-                LOG.info("NFC prep: skip reset USB (ExecStartPre recente), wake UART")
-                disable_ch340_autosuspend()
-                if not ensure_pn532_ready(snap["device"], attempts=4):
-                    LOG.warning("NFC: wake UART fallito, reset USB completo")
-                    prepare_nfc_hardware("recover")
-            time.sleep(USB_REOPEN_SETTLE_SEC)
+            from modules.nfc_reader import disable_ch340_autosuspend
+            disable_ch340_autosuspend()
             self.nfc_lib = NfcLibrary(path=snap["library_path"])
             self.nfc_reader = NfcReader(
                 device=snap["device"],
@@ -1713,6 +1716,28 @@ class VideocitofonoApp(App):
         except OSError:
             pass
 
+    def _nfc_ensure_listening(self, *_):
+        """Se NFC e' abilitato, il thread di ascolto deve restare vivo."""
+        nfc_cfg = self.cfg.get("nfc") or {}
+        if not nfc_cfg.get("enabled", False):
+            return
+        nr = getattr(self, "nfc_reader", None)
+        if nr is None:
+            if not getattr(self, "_nfc_init_attempted", False):
+                return
+            LOG.warning("NFC watchdog: lettore assente, avvio")
+            self._init_nfc_from_cfg()
+            return
+        thr = getattr(nr, "_thread", None)
+        if thr is not None and thr.is_alive():
+            return
+        LOG.warning("NFC watchdog: thread morto, riparto ascolto")
+        try:
+            nr.start()
+        except Exception as e:
+            LOG.warning("NFC watchdog start err: %s", e)
+            self._init_nfc_from_cfg()
+
     def _apply_nfc_live(self) -> None:
         """Riavvia il lettore NFC solo se la config hardware e' cambiata."""
         snap = self._nfc_cfg_snapshot()
@@ -1732,6 +1757,12 @@ class VideocitofonoApp(App):
                     except Exception as e:
                         LOG.warning("NFC lib reload err: %s", e)
                 return
+            LOG.warning("NFC live: thread non vivo, riparto ascolto")
+            try:
+                self.nfc_reader.start()
+            except Exception as e:
+                LOG.warning("NFC live start err: %s", e)
+            return
 
         def _restart() -> None:
             self._stop_nfc()
