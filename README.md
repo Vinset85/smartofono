@@ -57,6 +57,7 @@ camera e una squadretta che finiva sotto il disco NVMe.
 | [hardware/README.md](hardware/README.md) | il progetto e il perché di ogni scelta |
 | [hardware/PRODUZIONE.md](hardware/PRODUZIONE.md) | cosa ordinare, a chi, cosa controllare |
 | [hardware/ASSEMBLAGGIO.md](hardware/ASSEMBLAGGIO.md) | il montaggio, passo per passo |
+| [hardware/COMPONENTI.md](hardware/COMPONENTI.md) | distinta elettronica: datasheet, link, prezzi indicativi |
 | [hardware/SCHEMA-SERRATURA.md](hardware/SCHEMA-SERRATURA.md) | 12 V della serratura dall'HAT PoE, specifiche e schema |
 | [hardware/MISURE.md](hardware/MISURE.md) | il rilievo col calibro dei pezzi reali |
 
@@ -108,15 +109,19 @@ già giù.
 
 ## Hardware
 
-| Componente | Modello | Note |
-|---|---|---|
-| Single board computer | Raspberry Pi 5 8 GB | Raspberry Pi OS Bookworm 64 bit, avvio da NVMe |
-| Alimentazione e rete | PoE HAT (F) Waveshare | un cavo solo fino al pannello |
-| Display | OLED 5,5" 1080x1920, HDMI + touch USB | emissivo: il nero è spento, e si attenua in software |
-| Camera | Raspberry Pi Camera Module 3 (IMX708) | variante standard, non wide |
-| NFC | PN532 su USB | l'antenna non è centrata sul PCB: conta per il montaggio |
-| Audio | HAT I2S + microfono su basetta separata | cancellazione d'eco in PipeWire |
-| Unità interna | Home Assistant OS | MQTT, LiveKit per le videochiamate |
+La distinta completa (specifiche dai datasheet, link di acquisto, prezzi
+indicativi) è in [hardware/COMPONENTI.md](hardware/COMPONENTI.md).
+
+| Componente | Modello | Note | Indicativo |
+|---|---|---|---|
+| Single board computer | Raspberry Pi 5 8 GB | Bookworm 64 bit, avvio da NVMe | € 97 |
+| Alimentazione e rete | PoE HAT (F) Waveshare | un cavo solo fino al pannello | € 20 |
+| Display | AMOLED 5,5" 1080×1920, HDMI + touch USB | emissivo: il nero è spento | € 93 |
+| Camera | Raspberry Pi Camera Module 3 (IMX708) | variante standard, non wide | € 30 |
+| NFC | PN532 su USB | l'antenna non è centrata sul PCB | € 16 |
+| Audio | Raspiaudio Mic+ V3 + cassa 3 W 8 Ω | cancellazione d'eco in PipeWire | € 36 |
+| Scheda NVMe | GeeekPi N05 M.2 2230/2242 | SSD a parte | € 14 |
+| Unità interna | Home Assistant OS | MQTT, LiveKit | — |
 
 Il display è **OLED e non IPS**, nonostante la scheda prodotto dica entrambe le
 cose. Lo dimostrano due prove indipendenti, raccontate in

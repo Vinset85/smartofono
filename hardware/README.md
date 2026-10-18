@@ -46,6 +46,7 @@ cad/videocitofono.scad       modello 3D parametrico (OpenSCAD)
 stl/                         cassa, telaio e vetro per stampa o verifica
 anteprime/                   PNG di controllo di tutte le tavole
 PRODUZIONE.md                cosa ordinare, a chi, e cosa controllare
+COMPONENTI.md                distinta elettronica, datasheet, link, prezzi
 ASSEMBLAGGIO.md              procedura di montaggio passo per passo
 MISURE.md                    scheda di rilievo delle quote da verificare
 ```

@@ -7,7 +7,9 @@ riferimento di cosa ordinare e cosa controllare.
 Questo è l'elenco di cosa ordinare, a chi, con quale file e cosa controllare
 alla consegna. Le quote non sono ripetute a mano: stanno nei DXF, e i DXF
 nascono da `parametri.py`. Se un numero qui e un numero nel disegno non
-coincidono, ha ragione il disegno.
+coincidono, ha ragione il disegno. L'elettronica del pannello — Pi, camera,
+display, audio, NFC, PoE, adattatore NVMe — con datasheet, link e prezzi
+indicativi è in [COMPONENTI.md](COMPONENTI.md).
 
 Prima di ordinare, rigenera tutto e leggi l'ultima riga di entrambi:
 
