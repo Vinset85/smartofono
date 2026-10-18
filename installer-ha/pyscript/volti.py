@@ -82,7 +82,7 @@ def videocitofono_enroll_volto(nome=None, content_b64=None, ext=None, genere=Non
     if g:
         payload["genere"] = g
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"enroll volto richiesto: {nome_safe} ({len(raw)} bytes, g={g or '-'})")
     except Exception as e:
         log.error(f"enroll volto MQTT publish fallito: {e}")
@@ -98,7 +98,7 @@ def videocitofono_update_volto(nome=None, genere=None):
     g = _normalize_genere(genere)
     payload = {"action": "update_face", "nome": nome_safe, "genere": g}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"update volto richiesto: {nome_safe} g={g or '-'}")
     except Exception as e:
         log.error(f"update volto MQTT publish fallito: {e}")
@@ -123,7 +123,7 @@ def videocitofono_set_volto_pin(nome=None, pin=None):
         return
     payload = {"action": "set_face_pin", "nome": nome_safe, "pin": pin_clean}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"set volto pin richiesto: {nome_safe} pin={'set' if pin_clean else 'cleared'}")
     except Exception as e:
         log.error(f"set volto pin MQTT publish fallito: {e}")
@@ -142,7 +142,7 @@ def videocitofono_rename_volto(nome=None, nuovo_nome=None):
         return
     payload = {"action": "rename_face", "nome": old_safe, "nuovo_nome": new_safe}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"rename volto richiesto: {old_safe} -> {new_safe}")
     except Exception as e:
         log.error(f"rename volto MQTT publish fallito: {e}")
@@ -157,7 +157,7 @@ def videocitofono_delete_volto(nome=None):
         return
     payload = {"action": "delete_face", "nome": nome_safe}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"delete volto richiesto: {nome_safe}")
     except Exception as e:
         log.error(f"delete volto MQTT publish fallito: {e}")
@@ -168,7 +168,7 @@ def videocitofono_refresh_volti():
     """Forza il RPi a ripubblicare la lista volti su videocitofono/volti/library."""
     payload = {"action": "list_faces"}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
     except Exception as e:
         log.error(f"refresh volti MQTT publish fallito: {e}")
 
@@ -182,7 +182,7 @@ def videocitofono_list_auto_faces(nome=None):
         return
     payload = {"action": "list_auto_faces", "nome": nome_safe}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
     except Exception as e:
         log.error(f"list auto faces MQTT publish fallito: {e}")
 
@@ -197,7 +197,7 @@ def videocitofono_delete_auto_face(nome=None, filename=None):
         return
     payload = {"action": "delete_auto_face", "nome": nome_safe, "filename": fn}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
     except Exception as e:
         log.error(f"delete auto face MQTT publish fallito: {e}")
 
@@ -211,7 +211,7 @@ def videocitofono_purge_auto_faces(nome=None):
         return
     payload = {"action": "purge_auto_faces", "nome": nome_safe}
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
     except Exception as e:
         log.error(f"purge auto faces MQTT publish fallito: {e}")
 

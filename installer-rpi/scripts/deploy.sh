@@ -4,6 +4,7 @@
 #
 #   ./scripts/deploy.sh
 #   DEPLOY_HOST=192.168.1.80 DEPLOY_USER=vinset ./scripts/deploy.sh
+#   UPGRADE_DEPS=1 ./scripts/deploy.sh   # pip upgrade (numpy 2 rompe picamera2)
 #
 # Se il Mac non raggiunge il Pi (SSH timeout) ma HA sì:
 #   HA_PASS='...' PI_PASS='...' ./scripts/deploy-via-ha.sh
@@ -33,11 +34,19 @@ echo "==> Install dipendenze + copia in /opt, merge NFC se assente, restart"
 set -euo pipefail
 chmod +x '${REMOTE_DIR}/scripts/install.sh' '${REMOTE_DIR}/scripts/upgrade-deps.sh' || true
 cd '${REMOTE_DIR}'
-./scripts/install.sh
-./scripts/upgrade-deps.sh || true
+SKIP_APT=1 SKIP_PIP_UPGRADE=1 ./scripts/install.sh
+if [[ '${UPGRADE_DEPS:-0}' == '1' ]]; then
+  ./scripts/upgrade-deps.sh || true
+else
+  echo 'skip upgrade-deps (UPGRADE_DEPS=1 per forzare; numpy 2 rompe picamera2)'
+fi
 /opt/videocitofono/venv/bin/python3 '${REMOTE_DIR}/scripts/merge_nfc_config.py' || true
 chmod +x '${REMOTE_DIR}/scripts/configure-static-ip.sh' || true
-'${REMOTE_DIR}/scripts/configure-static-ip.sh' || true
+if [[ '${FORCE_STATIC_IP:-0}' == '1' ]]; then
+  '${REMOTE_DIR}/scripts/configure-static-ip.sh' || true
+else
+  echo 'skip configure-static-ip (FORCE_STATIC_IP=1 per forzare; evita blip NM)'
+fi
 /opt/videocitofono/venv/bin/python3 '${REMOTE_DIR}/scripts/set_nfc_override.py'
 sudo systemctl restart videocitofono.service
 systemctl is-active videocitofono.service

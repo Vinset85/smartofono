@@ -63,7 +63,7 @@ def videocitofono_nfc_enroll(nome=None, scope=None, label=None,
         "timeout_sec": max(5.0, min(120.0, timeout_val)),
     }
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"nfc_enroll richiesto: {nome_safe} "
                  f"({payload['scope']}, t={payload['timeout_sec']}s)")
     except Exception as e:
@@ -85,7 +85,7 @@ def videocitofono_nfc_delete(uid=None, nome=None):
     if nome_safe:
         payload["nome"] = nome_safe
     try:
-        videocitofono_mqtt_cmd(**payload)
+        pyscript.videocitofono_mqtt_cmd(**payload)
         log.info(f"nfc_delete richiesto: uid={uid_safe!r} "
                  f"nome={nome_safe!r}")
     except Exception as e:
@@ -96,6 +96,6 @@ def videocitofono_nfc_delete(uid=None, nome=None):
 def videocitofono_nfc_refresh():
     """Forza il RPi a ripubblicare la lista tag NFC."""
     try:
-        videocitofono_mqtt_cmd(action="nfc_list")
+        pyscript.videocitofono_mqtt_cmd(action="nfc_list")
     except Exception as e:
         log.error(f"nfc_refresh MQTT publish fallito: {e}")

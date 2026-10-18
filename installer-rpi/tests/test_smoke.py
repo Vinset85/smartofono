@@ -10,10 +10,7 @@ sys.path.insert(0, str(ROOT))
 
 
 def test_mqtt_cmd_retain_ignorato():
-    try:
-        from modules.mqtt_client import MqttPublisher
-    except ModuleNotFoundError:
-        return
+    from modules.mqtt_client import MqttPublisher
 
     class _Msg:
         def __init__(self, retain):
@@ -32,13 +29,19 @@ def test_mqtt_cmd_retain_ignorato():
     assert seen == []
     p._on_message(p._client, None, _Msg(False))
     assert seen and seen[0].get("action") == "set_config"
+    n = len(seen)
+
+    class _Empty:
+        topic = "videocitofono/cmd"
+        payload = b""
+        retain = False
+
+    p._on_message(p._client, None, _Empty())
+    assert len(seen) == n
 
 
 def test_mqtt_on_connected_cb():
-    try:
-        from modules.mqtt_client import MqttPublisher
-    except ModuleNotFoundError:
-        return
+    from modules.mqtt_client import MqttPublisher
 
     p = MqttPublisher(
         {"broker": "127.0.0.1", "port": 1883, "topic_chiamata": "t",
@@ -55,10 +58,9 @@ def test_mqtt_on_connected_cb():
 def test_nfc_usb_recover_max():
     from modules import nfc_reader as nr
 
-    assert nr.USB_RECOVER_MAX == 1
+    assert nr.USB_RECOVER_MAX == 0
     assert nr.NFC_OPEN_FAILS_BEFORE_USB >= 6
-    assert nr.nfc_recover_mode(0) == "hard"
-    assert nr.nfc_recover_mode(1) == "hard"
+    assert "ensure_pn532_ready" in Path(nr.__file__).read_text(encoding="utf-8")
     assert 5 <= nr.NFC_GIVE_UP_BACKOFF_SEC <= 30
     src = Path(nr.__file__).read_text(encoding="utf-8")
     assert "esce solo su stop() esplicito" in src
@@ -225,3 +227,93 @@ def test_brightness_off_on(monkeypatch=None):
         assert any(cmd[:2] == ["wlr-randr", "--output"] for cmd in calls if isinstance(cmd, list))
     finally:
         br.subprocess.run = orig
+
+
+def test_version_unica():
+    from modules.version import get_version
+
+    v = get_version()
+    assert v == (ROOT / "version.txt").read_text(encoding="utf-8").strip()
+    assert v == "1.5.1"
+    main = (ROOT / "main.py").read_text(encoding="utf-8")
+    assert "from modules.version import get_version" in main
+    assert '"0.1.0"' not in main
+    health = (ROOT / "modules" / "health.py").read_text(encoding="utf-8")
+    assert "1.4.0" not in health
+
+
+def test_reed_disabilitato_di_default():
+    from modules.reed import ReedSwitch
+
+    r = ReedSwitch({})
+    assert r.enabled is False
+    assert r.status() == "off"
+    cfg = (ROOT / "config" / "config.example.yaml").read_text(encoding="utf-8")
+    assert "tamper:" in cfg
+    assert "enabled: false" in cfg
+    assert "gpio: 27" in cfg
+
+
+def test_backup_restore_roundtrip():
+    import os
+    import tarfile
+    import tempfile
+
+    from modules.backup import BackupRunner
+
+    src = tempfile.mkdtemp()
+    dest = os.path.join(src, "opt")
+    os.makedirs(os.path.join(dest, "data"), exist_ok=True)
+    marker = os.path.join(dest, "data", "users.json")
+    Path(marker).write_text('{"ok": 1}', encoding="utf-8")
+    archive = os.path.join(src, "vc-backup-test.tar.gz")
+    with tarfile.open(archive, "w:gz") as tf:
+        tf.add(marker, arcname="data/users.json")
+    out = os.path.join(src, "restored")
+    b = BackupRunner({}, root=dest)
+    assert b.restore(archive, dest_root=out) is True
+    restored = Path(out) / "data" / "users.json"
+    assert restored.read_text(encoding="utf-8") == '{"ok": 1}'
+    evil = os.path.join(src, "evil.tar.gz")
+    with tarfile.open(evil, "w:gz") as tf:
+        info = tarfile.TarInfo(name="../escape.txt")
+        data = b"nope"
+        info.size = len(data)
+        tf.addfile(info, fileobj=__import__("io").BytesIO(data))
+    assert b.restore(evil, dest_root=out) is True
+    assert not (Path(out).parent / "escape.txt").exists()
+
+
+def test_kivy_fit_mode_e_watchdog_clock():
+    kv = (ROOT / "videocitofono.kv").read_text(encoding="utf-8")
+    assert "keep_ratio" not in kv
+    assert "allow_stretch" not in kv
+    assert "fit_mode:" in kv
+    assert "<AdminScreen>:" in kv
+    wd = (ROOT / "modules" / "watchdog_systemd.py").read_text(encoding="utf-8")
+    assert "Clock.schedule_interval" in wd
+    assert "threading.Thread" not in wd
+    deploy = Path(__file__).resolve().parents[1] / "scripts" / "deploy.sh"
+    sh = deploy.read_text(encoding="utf-8")
+    assert "UPGRADE_DEPS" in sh
+    assert "skip upgrade-deps" in sh
+    assert "SKIP_APT=1" in sh
+    assert "skip configure-static-ip" in sh
+    inst = (Path(__file__).resolve().parents[1] / "scripts" / "install.sh").read_text()
+    assert "rpi-connect" in inst
+    assert "SKIP_APT" in inst
+    main = (ROOT / "main.py").read_text(encoding="utf-8")
+    assert "AdminScreen" in main
+    assert "ReedSwitch" in main
+    lk = (ROOT / "modules" / "livekit_client.py").read_text(encoding="utf-8")
+    assert "asyncio.all_tasks" in lk
+    health = (ROOT / "modules" / "health.py").read_text(encoding="utf-8")
+    assert "usb_overcurrent" in health
+    assert "window_sec" in health
+    assert '"192.168.1.1"' not in health
+    assert "out[\"gw\"]" in health or "out['gw']" in health
+    assert "nfc_recovering" in main
+    home = (ROOT / "screens" / "home.py").read_text(encoding="utf-8")
+    assert "pending_admin" in home
+    pin = (ROOT / "screens" / "pin.py").read_text(encoding="utf-8")
+    assert 'ruolo != "admin"' in pin or "ruolo != 'admin'" in pin

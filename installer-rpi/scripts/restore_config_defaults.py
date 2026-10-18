@@ -92,8 +92,8 @@ def main() -> int:
     added = sorted(set(defaults.keys()) - set(existing.keys()))
     print(
         f"restore_config_defaults: {TARGET} merge-only "
-        f"({len(added)} sezioni top-level aggiunte: {', '.join(added) or '—'}), "
-        f"override={'sì' if override else 'no'}"
+        f"({len(added)} sezioni top-level aggiunte: {', '.join(added) or '-'}), "
+        f"override={'si' if override else 'no'}"
     )
     return 0
 

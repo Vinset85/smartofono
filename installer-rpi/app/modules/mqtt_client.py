@@ -138,9 +138,12 @@ class MqttPublisher:
         self._connected.clear()
 
     def _on_message(self, client, userdata, msg):
-        LOG.info("MQTT msg %s = %s", msg.topic, msg.payload[:200])
         topic_wake = self.cfg.get("topic_wake", "videocitofono/wake")
         topic_cmd = self.cfg.get("topic_cmd", "videocitofono/cmd")
+        if msg.topic == topic_cmd and not (msg.payload or b"").strip():
+            LOG.debug("MQTT cmd vuoto ignorato")
+            return
+        LOG.info("MQTT msg %s = %s", msg.topic, msg.payload[:200])
         topic_responder_video = self.cfg.get(
             "topic_responder_video", "videocitofono/responder/video"
         )

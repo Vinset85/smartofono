@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime
 import logging
 import os
+import time
 from pathlib import Path
 
 from kivy.clock import Clock
@@ -218,4 +219,18 @@ class HomeScreen(BgScreen):
 
     def on_touch_down(self, touch):
         self.app_ctx.activity_touch()
+        if self.collide_point(*touch.pos) and touch.y > self.y + self.height * 0.88:
+            now = time.time()
+            if now - getattr(self, "_admin_t0", 0.0) > 3.0:
+                self._admin_n = 0
+            self._admin_t0 = now
+            self._admin_n = getattr(self, "_admin_n", 0) + 1
+            if self._admin_n >= 5:
+                self._admin_n = 0
+                try:
+                    self.app_ctx.app.pending_admin = True
+                except Exception:
+                    pass
+                self.go("pin")
+                return True
         return super().on_touch_down(touch)

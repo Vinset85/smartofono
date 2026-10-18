@@ -76,8 +76,7 @@
         width: '150dp'
         Image:
             source: root.icona if root.icona else ''
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: 'contain'
             size_hint: None, None
             size: self.parent.width * 0.95, self.parent.width * 0.95
             pos_hint: {'center_x': 0.5, 'center_y': 0.5}
@@ -130,8 +129,7 @@
         # 2) Fallback PNG (retro-compat) - usato solo se manca icon_type
         Image:
             source: root.icona if (not root.icon_type and root.icona) else ''
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: 'contain'
             mipmap: True
             color: 1, 1, 1, 1
             size_hint: None, None
@@ -315,8 +313,7 @@
             size_hint: 1, 1
             Image:
                 id: video
-                allow_stretch: True
-                keep_ratio: True
+                fit_mode: 'contain'
                 size_hint: 1, 1
             RoundButton:
                 text: 'Chiudi chiamata'
@@ -337,8 +334,7 @@
             size_hint: None, None
             size: '160dp', '120dp'
             pos_hint: {'right': 0.97, 'top': 0.97}
-            allow_stretch: True
-            keep_ratio: True
+            fit_mode: 'contain'
             opacity: 0
             canvas.before:
                 Color:
@@ -656,8 +652,7 @@
                     Image:
                         id: cam_preview
                         source: 'assets/placeholder_camera.png'
-                        allow_stretch: True
-                        keep_ratio: True
+                        fit_mode: 'contain'
                         size_hint: None, None
                         # cover-fit (object-fit: cover): per coprire un
                         # container WxH con una sorgente 4:3 (640x480) basta
@@ -797,8 +792,7 @@
                     opacity: 1 if root.icon_type and root.icon_px_w else 0
                 Image:
                     source: root.icona if (not root.icon_type and root.icona) else ''
-                    allow_stretch: False
-                    keep_ratio: True
+                    fit_mode: 'scale-down'
                     mipmap: True
                     color: 1, 1, 1, 1
                     size_hint: None, None
@@ -861,6 +855,128 @@
                 Line:
                     rounded_rectangle: (self.x, self.y, self.width, self.height, 28)
                     width: 1.4
+
+
+<AdminScreen>:
+    canvas.before:
+        Color:
+            rgba: 0.04, 0.05, 0.08, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: root.bg_source if root.bg_source else 'assets/bg.png'
+        Color:
+            rgba: 0, 0, 0, 0.55
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '24dp', '36dp', '24dp', '28dp'
+        spacing: '12dp'
+        Label:
+            text: 'Admin'
+            font_size: '42sp'
+            bold: True
+            color: TEXT
+            size_hint_y: None
+            height: '56dp'
+        TextInput:
+            id: nome
+            hint_text: 'Nome utente'
+            multiline: False
+            font_size: '26sp'
+            size_hint_y: None
+            height: '60dp'
+            foreground_color: 1, 1, 1, 1
+            background_color: 0.13, 0.15, 0.20, 0.9
+            cursor_color: 1, 1, 1, 1
+        TextInput:
+            id: pin
+            hint_text: 'PIN 4-8 cifre'
+            multiline: False
+            input_filter: 'int'
+            font_size: '26sp'
+            size_hint_y: None
+            height: '60dp'
+            foreground_color: 1, 1, 1, 1
+            background_color: 0.13, 0.15, 0.20, 0.9
+            cursor_color: 1, 1, 1, 1
+        GridLayout:
+            cols: 2
+            spacing: '10dp'
+            size_hint_y: None
+            height: '280dp'
+            RoundButton:
+                text: 'Aggiungi PIN'
+                font_size: '22sp'
+                bg_color: ACCENT_DK
+                radius: [18]
+                on_release: root.add_pin()
+            RoundButton:
+                text: 'Revoca PIN'
+                font_size: '22sp'
+                bg_color: (0.50, 0.22, 0.22, 1)
+                radius: [18]
+                on_release: root.del_pin()
+            RoundButton:
+                text: 'Iscrivi NFC'
+                font_size: '22sp'
+                bg_color: ACCENT_DK
+                radius: [18]
+                on_release: root.nfc_enroll()
+            RoundButton:
+                text: 'Revoca NFC'
+                font_size: '22sp'
+                bg_color: (0.50, 0.22, 0.22, 1)
+                radius: [18]
+                on_release: root.nfc_delete()
+            RoundButton:
+                text: 'Iscrivi volto'
+                font_size: '22sp'
+                bg_color: ACCENT_DK
+                radius: [18]
+                on_release: root.face_enroll()
+            RoundButton:
+                text: 'Revoca volto'
+                font_size: '22sp'
+                bg_color: (0.50, 0.22, 0.22, 1)
+                radius: [18]
+                on_release: root.face_delete()
+        Label:
+            text: root.messaggio
+            font_size: '22sp'
+            color: 0.85, 0.88, 0.92, 1
+            size_hint_y: None
+            height: '48dp'
+            text_size: self.size
+            halign: 'center'
+            valign: 'middle'
+        ScrollView:
+            Label:
+                text: root.elenco
+                font_size: '18sp'
+                color: MUTED
+                size_hint_y: None
+                height: self.texture_size[1]
+                text_size: self.width, None
+                halign: 'left'
+                valign: 'top'
+                padding: '8dp', '8dp'
+        RoundButton:
+            text: 'Indietro'
+            font_size: '26sp'
+            bold: True
+            bg_color: (0.40, 0.42, 0.46, 1)
+            size_hint_y: None
+            height: '90dp'
+            radius: [22]
+            on_release: root.go_home()
 
 
 <PlaceholderScreenBase>:
@@ -978,8 +1094,7 @@
                 anchor_y: 'center'
                 Image:
                     source: root.image_source
-                    allow_stretch: True
-                    keep_ratio: True
+                    fit_mode: 'contain'
                     opacity: 1 if root.image_source else 0
                     size_hint: (root.image_scale, root.image_scale) if root.image_source else (None, None)
                     size: (0, 0) if not root.image_source else self.size
@@ -1023,8 +1138,7 @@
     Image:
         id: bg_image
         source: root.bg_source if root.bg_source else ''
-        allow_stretch: True
-        keep_ratio: False
+        fit_mode: 'fill'
         nocache: True
         size_hint: 1, 1
         pos_hint: {'x': 0, 'y': 0}

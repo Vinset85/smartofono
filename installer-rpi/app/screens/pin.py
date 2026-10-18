@@ -133,6 +133,26 @@ class PinScreen(BgScreen):
             self.messaggio = ""
 
     def _apri(self, utente: dict) -> None:
+        pending = bool(getattr(self.app_ctx.app, "pending_admin", False))
+        if pending:
+            try:
+                self.app_ctx.app.pending_admin = False
+            except Exception:
+                pass
+            ruolo = (utente.get("ruolo") or "").lower()
+            if utente.get("_guest_id") or ruolo != "admin":
+                self.errore = True
+                self.messaggio = "Serve PIN admin"
+                self._submitting = False
+                self._pin = ""
+                self._refresh()
+                try:
+                    self.app_ctx.sound.play("error")
+                except Exception:
+                    pass
+                return
+            self.app_ctx.go_screen("admin", instant=True)
+            return
         scope = utente.get("apre", "porta")
         is_guest = bool(utente.get("_guest_id"))
         method = "guest" if is_guest else "pin"
@@ -204,8 +224,20 @@ class PinScreen(BgScreen):
         except Exception:
             pass
 
+    def on_leave(self, *_):
+        cur = getattr(self.manager, "current", "")
+        if cur != "admin":
+            try:
+                self.app_ctx.app.pending_admin = False
+            except Exception:
+                pass
+
     def go_home(self) -> None:
         self.app_ctx.activity_touch()
+        try:
+            self.app_ctx.app.pending_admin = False
+        except Exception:
+            pass
         self.manager.current = "home"
 
     def on_touch_down(self, touch):

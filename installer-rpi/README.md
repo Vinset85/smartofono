@@ -142,7 +142,7 @@ e specifiche della serratura in
 | `videocitofono/chiamata`     | `{"stato":"chiamata_in_corso","campanello":"famiglia_rossi"}`         |
 | `videocitofono/chiamata`     | `{"stato":"annullata","campanello":"famiglia_rossi"}`                 |
 | `videocitofono/apertura`     | `{"metodo":"pin","utente":"Admin","scope":"porta"}`                      |
-| `videocitofono/evento`       | `{"tipo":"boot","dati":{"versione":"0.1.0"}}`                            |
+| `videocitofono/evento`       | `{"tipo":"boot","dati":{"versione":"1.5.1"}}`                            |
 
 > Sul lato HA li raccoglie `automation.chiamata_videocitofono`, nel package `installer-ha/packages/automations.yaml.fixed`.
 
@@ -161,7 +161,7 @@ e specifiche della serratura in
 - [x] Motion detector da camera per wake-up automatico
 - [x] Recognizer facciale reale (ArcFace, con dlib come alternativa)
 - [x] Driver NFC (PN532, su USB e non su I2C)
-- [ ] Schermata Admin (gestione utenti, enrollment)
+- [x] Schermata Admin (gestione utenti, enrollment)
 - [x] Audio bidirezionale (LiveKit)
 
 ## Comportamento luminosità / risveglio
@@ -199,6 +199,17 @@ motion:
 > permettendo la scrittura di `/sys/class/backlight/<dev>/brightness` senza sudo.
 > Su display HDMI senza interfaccia backlight standard, il modulo cade su `vcgencmd display_power`
 > (solo on/off) o no-op (solo log).
+
+## Schermata Admin
+
+Dalla Home, 5 tocchi in 3 secondi sulla fascia alta (~12%) aprono il PIN.
+Solo un utente con `ruolo: admin` entra in Admin (iscrizione/revoca PIN, NFC, volto). Un PIN ospite o utente normale non apre la porta in questo percorso.
+
+Reed antimanomissione GPIO27: `tamper.enabled` resta `false` finché il contatto non è montato.
+
+## Soak 48 h dopo ciclo PoE
+
+Dopo un distacco/riattacco PoE, lasciare l'impianto 48 h e verificare: servizio `videocitofono` attivo, NFC in ascolto, temperatura < 70 °C, nessun `over-current` USB ripetuto, backup giornaliero presente, HA health `status_summary=ok`.
 
 ## Note tecniche
 

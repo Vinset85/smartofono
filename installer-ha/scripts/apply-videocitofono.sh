@@ -37,6 +37,7 @@ COPYFILE_DISABLE=1 tar -C "$ROOT" --exclude='._*' -cf - \
   www/vc-livekit-call.js \
   www/vc-livekit.js \
   www/vc-ring-visitor.js \
+  lovelace/videocitofono-health.json \
 | ssh_ha 'cat > /tmp/vc_apply.tar'
 
 ssh_ha 'sudo python3 -' <<'PY'
@@ -84,11 +85,28 @@ if auto_dst.exists():
             "  - action: pyscript.videocitofono_mqtt_cmd\n    data:\n      action: set_config\n      persist_default: true\n      config: '{\"campanelli\": {{ campanelli | tojson }}}'",
             1,
         )
-    for aid in ("1761000000026", "1761000000027"):
-        if aid not in live:
-            blk = _auto_block(auto_src, aid)
-            if blk:
-                live = live.rstrip() + "\n" + blk
+    def _replace_or_append(live_txt, aid):
+        blk = _auto_block(auto_src, aid)
+        if not blk:
+            return live_txt
+        for marker in ("- id: '%s'" % aid, '- id: "%s"' % aid):
+            i = live_txt.find(marker)
+            if i >= 0:
+                j = live_txt.find("\n- id:", i + len(marker))
+                return live_txt[:i] + blk + (live_txt[j + 1:] if j >= 0 else "")
+        return live_txt.rstrip() + "\n" + blk
+
+    for aid in ("1761000000023", "1761000000026", "1761000000027",
+                "1761000000028", "1761000000029",
+                "1761000000031", "1761000000032"):
+        live = _replace_or_append(live, aid)
+    import re as _re
+    live = _re.sub(
+        r"^  alias: Videocitofono[^\n]*(?:finger|impronta)[^\n]*$",
+        "  alias: Videocitofono - Apertura via MQTT",
+        live,
+        flags=_re.I | _re.M,
+    )
     blk5 = _auto_block(auto_src, "1761000000005")
     if blk5:
         marker = "- id: '1761000000005'"
@@ -208,6 +226,12 @@ def strip_finger(obj):
         return [x for x in (strip_finger(i) for i in obj) if x is not None]
     return obj
 
+health_card = None
+try:
+    health_card = json.loads(tf.extractfile("lovelace/videocitofono-health.json").read().decode())
+except Exception as e:
+    print("health_json_err", type(e).__name__)
+
 lov = Path("/config/.storage/lovelace.lovelace")
 if lov.exists():
     try:
@@ -217,14 +241,38 @@ if lov.exists():
         else:
             data = json.loads(raw)
             stripped = strip_finger(data)
-            views = ((stripped or {}).get("data") or {}).get("config") or {}
-            if not (views.get("views") if isinstance(views, dict) else None):
+            cfg = ((stripped or {}).get("data") or {}).get("config") or {}
+            views = cfg.get("views") if isinstance(cfg, dict) else None
+            if not views:
                 print("lovelace_strip_refused")
-            elif json.dumps(stripped) != json.dumps(data):
-                shutil.copy2(lov, Path(str(lov) + ".bak-apply-" + ts))
-                lov.write_text(json.dumps(stripped, ensure_ascii=False, separators=(",", ":")) + "\n")
-                need_ha_restart = True
-                print("lovelace_fingerprint_removed")
+            else:
+                changed = json.dumps(stripped) != json.dumps(data)
+                if health_card:
+                    view = {
+                        "title": "Salute Videocitofono",
+                        "path": "videocitofono-salute",
+                        "icon": "mdi:heart-pulse",
+                        "cards": [health_card],
+                    }
+                    found = False
+                    for i, v in enumerate(views):
+                        if not isinstance(v, dict):
+                            continue
+                        if v.get("path") == "videocitofono-salute" or v.get("title") == "Salute Videocitofono":
+                            views[i] = view
+                            found = True
+                            break
+                    if not found:
+                        views.append(view)
+                    cfg["views"] = views
+                    stripped.setdefault("data", {})["config"] = cfg
+                    changed = True
+                    print("lovelace_health_upsert")
+                if changed:
+                    shutil.copy2(lov, Path(str(lov) + ".bak-apply-" + ts))
+                    lov.write_text(json.dumps(stripped, ensure_ascii=False, separators=(",", ":")) + "\n")
+                    need_ha_restart = True
+                    print("lovelace_updated")
     except Exception as e:
         print("lovelace_finger_err", type(e).__name__)
 

@@ -10,17 +10,21 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 echo "==> Installazione Videocitofono in $APP_ROOT (utente $APP_USER)"
 
 echo "--> Pacchetti di sistema"
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends \
-    python3 python3-venv python3-pip python3-dev \
-    build-essential pkg-config \
-    libmtdev-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-    libgl1 libgles2 libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-    fonts-dejavu fonts-noto-color-emoji fonts-symbola \
-    python3-picamera2 python3-opencv python3-numpy python3-lgpio \
-    libusb-1.0-0 \
-    xwayland grim wlr-randr \
-    git rsync
+if [[ "${SKIP_APT:-0}" == "1" ]]; then
+    echo "    skip apt-get (SKIP_APT=1)"
+else
+    sudo apt-get update
+    sudo apt-get install -y --no-install-recommends \
+        python3 python3-venv python3-pip python3-dev \
+        build-essential pkg-config \
+        libmtdev-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+        libgl1 libgles2 libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+        fonts-dejavu fonts-noto-color-emoji fonts-symbola \
+        python3-picamera2 python3-opencv python3-numpy python3-lgpio \
+        libusb-1.0-0 \
+        xwayland grim wlr-randr \
+        git rsync
+fi
 
 echo "--> Creazione cartelle"
 sudo mkdir -p "$APP_ROOT"
@@ -41,7 +45,9 @@ echo "--> Virtualenv (con accesso ai pacchetti di sistema per picamera2)"
 if [ ! -d "$APP_ROOT/venv" ]; then
     python3 -m venv --system-site-packages "$APP_ROOT/venv"
 fi
-"$APP_ROOT/venv/bin/pip" install --upgrade pip wheel setuptools
+if [[ "${SKIP_PIP_UPGRADE:-0}" != "1" ]]; then
+    "$APP_ROOT/venv/bin/pip" install --upgrade pip wheel setuptools
+fi
 "$APP_ROOT/venv/bin/pip" install -r "$APP_ROOT/app/requirements.txt"
 
 echo "--> Generazione asset placeholder"
@@ -183,7 +189,8 @@ sudo "$APP_ROOT/scripts/tune-system-thermal.sh" || true
 echo "--> Face recognition deps (ArcFace + liveness)"
 sudo install -m 0755 "$REPO_ROOT/scripts/install-face-deps.sh" \
     "$APP_ROOT/scripts/install-face-deps.sh"
-sudo "$APP_ROOT/scripts/install-face-deps.sh" || echo "    WARN: face deps parziali"
+sudo env SKIP_APT="${SKIP_APT:-0}" FACE_UPGRADE="${FACE_UPGRADE:-0}" \
+    "$APP_ROOT/scripts/install-face-deps.sh" || echo "    WARN: face deps parziali"
 
 echo "--> Config Mosquitto e go2rtc (per setup-mqtt-auth e motion snapshot)"
 sudo mkdir -p "$APP_ROOT/config"
@@ -211,6 +218,9 @@ sudo systemctl daemon-reload
 sudo systemctl disable videocitofono-nfc-prep.service 2>/dev/null || true
 sudo systemctl enable videocitofono.service
 sudo systemctl enable videocitofono-kiosk-guard.service
+# Raspberry Pi Connect/WayVNC non serve in kiosk e al boot fallisce.
+sudo systemctl disable --now rpi-connect.service rpi-connect-wayvnc.service \
+    rpi-connect-signin.service 2>/dev/null || true
 
 cat <<EOF
 

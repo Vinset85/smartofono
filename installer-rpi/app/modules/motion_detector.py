@@ -229,7 +229,7 @@ class MotionPicameraDetector:
                         total = gray.size
                         pct = (changed / total) * 100 if total else 0
                         if self.debug_log_every and (self._tick_n % self.debug_log_every == 0):
-                            LOG.info(
+                            LOG.debug(
                                 "motion picam debug: tick=%d avg_diff=%.2f changed=%.2f%% (thr=%d, area=%.2f%%)",
                                 self._tick_n, float(diff.mean()), pct,
                                 self.pixel_thresh, self.area_thresh_pct,
@@ -376,7 +376,7 @@ class MotionSnapshotDetector:
                         self._prev = gray
                         continue
                     if self.debug_log_every and (self._tick_n % self.debug_log_every == 0):
-                        LOG.info(
+                        LOG.debug(
                             "motion debug: tick=%d avg_diff=%.2f changed=%.2f%% (thr=%d, area=%.2f%%)",
                             self._tick_n, float(diff.mean()), pct,
                             self.pixel_thresh, self.area_thresh_pct,

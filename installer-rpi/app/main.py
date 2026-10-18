@@ -88,6 +88,8 @@ from modules.voice_id import VoiceId
 from modules.cloud_storage import CloudUploader
 from modules.nfc_reader import NfcReader, NfcLibrary
 from modules.door_gpio import DoorRelay
+from modules.reed import ReedSwitch
+from modules.version import get_version
 from modules.go2rtc_control import pause_for_camera, resume_after_camera, set_idle_go2rtc_allowed
 
 # Widget riutilizzabili (registrati prima del KV)
@@ -104,6 +106,7 @@ from screens.conversation import ConversationScreen
 from screens.pin import PinScreen
 from screens.face import FaceScreen, FaceMeshOverlay  # noqa: F401  registrato per uso in KV
 from screens.nfc import NfcScreen
+from screens.admin import AdminScreen
 from screens.placeholders import (
     ResultScreen,
     ScreensaverScreen,
@@ -325,6 +328,11 @@ class VideocitofonoApp(App):
         self.mqtt.start()
         self.ha = HaClient(self.cfg["home_assistant"])
         self.door_relay = DoorRelay(self.cfg.get("relay") or {})
+        self.pending_admin = False
+        self.reed = ReedSwitch(
+            self.cfg.get("tamper") or {},
+            on_change=self._on_tamper,
+        )
         bootstrap_users(self.cfg["pin"])
         self.pin_manager = PinManager(self.cfg["pin"])
         # Engine facciale: facade che sceglie tra ArcFace e dlib in base
@@ -628,6 +636,7 @@ class VideocitofonoApp(App):
         sm.add_widget(PinScreen(name="pin", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(FaceScreen(name="face", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(NfcScreen(name="nfc", app_ctx=ctx, bg_source=bg_init))
+        sm.add_widget(AdminScreen(name="admin", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(ResultScreen(name="result", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(ScreensaverScreen(
             name="screensaver", app_ctx=ctx,
@@ -709,7 +718,7 @@ class VideocitofonoApp(App):
             tick_hz = max(1, mcfg.get("tick_hz", 5))
             Clock.schedule_interval(lambda *_: self.motion.tick(), 1.0 / tick_hz)
 
-        self.mqtt.publish_evento("boot", {"versione": "0.1.0",
+        self.mqtt.publish_evento("boot", {"versione": get_version(),
                                           "brightness_backend": self.brightness.backend,
                                           "motion": bool(self.motion)})
 
@@ -763,8 +772,7 @@ class VideocitofonoApp(App):
             interval = float(health_cfg.get("interval_sec", 30))
             if eco_cfg.get("enabled", True):
                 interval = float(eco_cfg.get("health_interval_sec", interval))
-            ver_path = ROOT / "version.txt"
-            version = ver_path.read_text().strip() if ver_path.exists() else "dev"
+            version = get_version()
             self.health = HealthReporter(
                 mqtt_publish=lambda t, p, r=False: self.mqtt.publish(t, p, retain=r),
                 topic=str(health_cfg.get("topic", "videocitofono/health")),
@@ -1924,6 +1932,15 @@ class VideocitofonoApp(App):
             except Exception as e:
                 LOG.warning("flush pending call err: %s", e)
 
+    def _on_tamper(self, state: str) -> None:
+        def _pub(*_):
+            try:
+                gpio = getattr(self.reed, "gpio", 27)
+                self.mqtt.publish_evento("tamper", {"stato": state, "gpio": gpio})
+            except Exception as e:
+                LOG.warning("tamper evento err: %s", e)
+        Clock.schedule_once(_pub, 0)
+
     def _health_camera_status(self) -> str:
         cur = getattr(self.sm, "current", "") if getattr(self, "sm", None) else ""
         if cur in ("calling", "conversation", "face"):
@@ -1944,6 +1961,12 @@ class VideocitofonoApp(App):
         nfc_cfg = (self.cfg.get("nfc") or {})
         nr = getattr(self, "nfc_reader", None)
         if nfc_cfg.get("enabled", False):
+            thr = getattr(nr, "_thread", None) if nr is not None else None
+            recovering = bool(
+                thr is not None and thr.is_alive()
+                and not (nr and nr.is_reader_ready())
+            )
+            subs["nfc_recovering"] = recovering
             if nr and nr.is_reader_ready():
                 subs["nfc_status"] = "ok"
             else:
@@ -1953,6 +1976,7 @@ class VideocitofonoApp(App):
                     subs["nfc_error"] = str(err)[:160]
         else:
             subs["nfc_status"] = "off"
+            subs["nfc_recovering"] = False
         try:
             from modules.go2rtc_control import (
                 _service_active, _rpicam_running, is_paused,
@@ -1992,6 +2016,11 @@ class VideocitofonoApp(App):
             subs["livekit_status"] = "preview"
         else:
             subs["livekit_status"] = "idle"
+        reed = getattr(self, "reed", None)
+        if reed is None or not getattr(reed, "enabled", False):
+            subs["tamper_status"] = "off"
+        else:
+            subs["tamper_status"] = reed.status()
         subs["mqtt_connected"] = bool(self.mqtt.is_connected())
         conn = getattr(self, "connectivity", None)
         if conn is not None:
@@ -2012,7 +2041,7 @@ class VideocitofonoApp(App):
             except Exception:
                 pass
         down = [k for k, v in subs.items()
-                if k.endswith("_status") and v == "down"]
+                if k.endswith("_status") and v in ("down", "open")]
         if down:
             subs["status_summary"] = (
                 "down" if len(down) >= 2 else "degraded")
@@ -3097,6 +3126,38 @@ class VideocitofonoApp(App):
         try:
             if self.camera:
                 self.camera.stop()
+        except Exception:
+            pass
+        try:
+            lk = getattr(getattr(self, "ctx", None), "lk_session", None)
+            if lk is not None:
+                lk.stop()
+                self.ctx.lk_session = None
+        except Exception:
+            pass
+        try:
+            if getattr(self, "health", None):
+                self.health.stop()
+        except Exception:
+            pass
+        try:
+            if getattr(self, "watchdog", None):
+                self.watchdog.stop()
+        except Exception:
+            pass
+        try:
+            if getattr(self, "backup_runner", None):
+                self.backup_runner.stop()
+        except Exception:
+            pass
+        try:
+            if getattr(self, "reed", None):
+                self.reed.stop()
+        except Exception:
+            pass
+        try:
+            if getattr(self, "connectivity", None):
+                self.connectivity.stop()
         except Exception:
             pass
         try:

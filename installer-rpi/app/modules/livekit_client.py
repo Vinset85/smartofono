@@ -985,12 +985,14 @@ class LiveKitSubscribeClient:
         return rgb
 
     async def _cleanup(self) -> None:
-        # Il disconnect sblocca l'attesa in _connect_and_consume, il cui
-        # finally chiude publishers/stats/room; poi _main() vede stop_event
-        # e ritorna, chiudendo il loop da _run_loop. Non fermare il loop qui:
-        # con loop.stop() mentre run_until_complete(_main()) e' in corso si
-        # ottiene "Event loop stopped before Future completed" e il cleanup
-        # resta a metà.
+        # Cancella i task pendenti prima del disconnect, altrimenti al
+        # close del loop resta "Task was destroyed but it is pending".
+        current = asyncio.current_task()
+        pending = [t for t in asyncio.all_tasks() if t is not current and not t.done()]
+        for t in pending:
+            t.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
         try:
             if self._room:
                 await self._room.disconnect()

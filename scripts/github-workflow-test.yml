@@ -14,4 +14,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Template MQTT, notify, smoke RPi
-        run: python3 scripts/run-tests.py
+        run: |
+          python3 -m pip install --quiet "paho-mqtt>=2.1.0,<3.0"
+          python3 scripts/run-tests.py

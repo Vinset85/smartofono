@@ -43,10 +43,11 @@ LOG = logging.getLogger(__name__)
 # qui aspettiamo almeno 3 s tra close e reopen.
 USB_REOPEN_SETTLE_SEC = 3.0
 USB_RECOVER_SETTLE_SEC = 8.0
-# DWC3 del CH340 fa blip anche al VBUS condiviso col touch: rarissimo.
+# DWC3 del CH340 fa over-current e stacca anche il touch (1a86:e5e3).
+# Il recover automatico è solo UART (DTR/RTS). USB_RECOVER_MAX=0: mai hard.
 USB_RECOVER_COOLDOWN_SEC = 180.0
 USB_RECOVER_RETRY_SEC = 180.0
-USB_RECOVER_MAX = 1
+USB_RECOVER_MAX = 0
 USB_RECOVER_MODES = ("hard",)
 # Dopo cold-power il PN532 e' gia' a posto: troppi reset USB fanno
 # cadere il touch. nfcpy va ritentato molte volte prima di un DWC3.
@@ -412,6 +413,10 @@ class NfcReader:
             return True
         self._stop.clear()
         self._ready.clear()
+        try:
+            ensure_pn532_ready(self.device, attempts=4)
+        except Exception as e:
+            LOG.debug("nfc uart wake start: %s", e)
         self._thread = threading.Thread(
             target=self._loop, name="nfc-reader", daemon=True)
         self._thread.start()
@@ -604,6 +609,11 @@ class NfcReader:
                 LOG.warning("NFC loop err: %s (riapertura ascolto in %.1fs)",
                             e, backoff)
                 self._close_clf()
+                if not self._listen_ok:
+                    try:
+                        ensure_pn532_ready(self.device, attempts=2)
+                    except Exception:
+                        pass
                 self._stop.wait(backoff)
                 continue
             self._close_clf()

@@ -40,7 +40,12 @@
       "title": "Sottosistemi",
       "entities": [
         {"entity": "sensor.videocitofono_health", "name": "Riepilogo", "attribute": "status_summary"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "version", "name": "Versione"},
         {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "nfc_status", "name": "NFC"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "nfc_recovering", "name": "NFC recover"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "tamper_status", "name": "Antimanomissione"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "usb_overcurrent_status", "name": "USB over-current"},
+        {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "usb_overcurrent", "name": "USB OC count"},
         {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "mqtt_connected", "name": "MQTT"},
         {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "motion_status", "name": "Motion"},
         {"type": "attribute", "entity": "sensor.videocitofono_health", "attribute": "go2rtc_status", "name": "go2rtc"},

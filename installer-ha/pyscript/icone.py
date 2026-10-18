@@ -82,7 +82,7 @@ def _set_options(options):
 
 def _publish_library(files):
     try:
-        videocitofono_mqtt_cmd(
+        pyscript.videocitofono_mqtt_cmd(
             action="set_icone_library",
             base_url="/local/vc-icone/",
             files=files,

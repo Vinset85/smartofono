@@ -21,7 +21,7 @@ def videocitofono_create_guest_pin(label="", valid_hours=24,
                                     max_uses=1, scope="porta"):
     """Crea un PIN ospite. Il PIN generato viene esposto come
     persistent_notification sulla dashboard (titolo: "PIN ospite")."""
-    videocitofono_mqtt_cmd(
+    pyscript.videocitofono_mqtt_cmd(
         action="guest_pin_create",
         label=str(label or ""),
         valid_hours=float(valid_hours or 24),
@@ -34,12 +34,12 @@ def videocitofono_create_guest_pin(label="", valid_hours=24,
 def videocitofono_revoke_guest_pin(id_=""):
     if not id_:
         return
-    videocitofono_mqtt_cmd(action="guest_pin_revoke", id=str(id_))
+    pyscript.videocitofono_mqtt_cmd(action="guest_pin_revoke", id=str(id_))
 
 
 @service
 def videocitofono_list_guest_pins():
-    videocitofono_mqtt_cmd(action="guest_pin_list")
+    pyscript.videocitofono_mqtt_cmd(action="guest_pin_list")
 
 
 @mqtt_trigger("videocitofono/guest_pins/created")

@@ -9,15 +9,22 @@ PRED="${DATA}/shape_predictor_68_face_landmarks.dat"
 PRED_URL="https://github.com/davisking/dlib-models/raw/master/shape_predictor_68_face_landmarks.dat.bz2"
 
 echo "==> Face deps"
-apt-get install -y --no-install-recommends \
-  libopenblas-dev liblapack-dev cmake libjpeg-dev zlib1g-dev \
-  libatlas-base-dev libdlib-dev 2>/dev/null || true
+if [[ "${SKIP_APT:-0}" != "1" ]]; then
+  apt-get install -y --no-install-recommends \
+    libopenblas-dev liblapack-dev cmake libjpeg-dev zlib1g-dev \
+    libatlas-base-dev libdlib-dev 2>/dev/null || true
+fi
 
-"${VENV}" install --upgrade pip wheel setuptools
-# ARM64 wheels disponibili su Bookworm
-"${VENV}" install --upgrade -r "${APP_ROOT}/app/requirements-face.txt" || {
-  echo "WARN: insightface/onnxruntime non installati (arch non supportata?)"
-}
+if [[ "${FACE_UPGRADE:-0}" == "1" ]]; then
+  "${VENV}" install --upgrade pip wheel setuptools
+  "${VENV}" install --upgrade -r "${APP_ROOT}/app/requirements-face.txt" || {
+    echo "WARN: insightface/onnxruntime non installati (arch non supportata?)"
+  }
+else
+  "${VENV}" install -r "${APP_ROOT}/app/requirements-face.txt" || {
+    echo "WARN: insightface/onnxruntime non installati (arch non supportata?)"
+  }
+fi
 
 if [[ ! -f "${PRED}" ]]; then
   mkdir -p "${DATA}"

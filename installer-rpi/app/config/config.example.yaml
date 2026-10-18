@@ -33,6 +33,12 @@ relay:
   cancello_gpio: 13
   pulse_ms: 1000
   active_high: true
+# Reed antimanomissione GPIO27 (pin 13). NC verso massa. Tenere false
+# finché il contatto non è montato: GPIO floating = falsi allarmi.
+tamper:
+  enabled: false
+  gpio: 27
+  nc: true
 ui:
   fullscreen: true
   cursor: false

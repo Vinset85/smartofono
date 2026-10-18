@@ -82,14 +82,25 @@ def test_cmd_mqtt_non_espone_helper_negli_script():
     assert 'payload=""' in mqtt_cmd.replace(" ", "") or 'payload=""' in mqtt_cmd
     assert "retain=True" in mqtt_cmd
     icone = (ROOT / "pyscript" / "icone.py").read_text()
-    assert "videocitofono_mqtt_cmd" in icone
+    assert "pyscript.videocitofono_mqtt_cmd" in icone
     assert AUTO.count("pyscript.videocitofono_mqtt_cmd") >= 1
     assert "Videocitofono - Alert NFC non in ascolto" in AUTO
     assert "notification_id: videocitofono_nfc_down" in AUTO
     assert "Videocitofono - NFC ascolto ripristinato" in AUTO
     assert "- id: '1761000000026'" in AUTO
     assert "- id: '1761000000027'" in AUTO
+    assert "- id: '1761000000028'" in AUTO
+    assert "- id: '1761000000029'" in AUTO
+    assert "- id: '1761000000031'" in AUTO
+    assert "- id: '1761000000032'" in AUTO
+    assert "nfc_recovering" in AUTO
+    assert "minutes: 12" in AUTO
     assert AUTO.count("- id: '1761000000024'") == 1
+    for name in ("icone.py", "sfondi.py", "volti.py", "nfc.py", "guest_pin.py"):
+        src = (ROOT / "pyscript" / name).read_text()
+        assert "pyscript.videocitofono_mqtt_cmd" in src
+        assert "    videocitofono_mqtt_cmd(" not in src
+        assert "\nvideocitofono_mqtt_cmd(" not in src
 
 
 def test_fingerprint_rimosso():

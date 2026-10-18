@@ -10,7 +10,7 @@ Payload JSON:
         "disk_pct": 41.2,
         "temp_c": 52.1,
         "load1": 0.8,
-        "version": "1.4.0",
+        "version": "1.5.1",
         "screen": "home",
         "last_face_match_ts": 1746543010,
         "last_open_ts": 1746542880,
@@ -108,6 +108,39 @@ def _load1() -> float:
         return 0.0
 
 
+def usb_overcurrent_count(window_sec: float = 600.0) -> int:
+    """Quanti 'over-current' nel dmesg degli ultimi `window_sec` (default 10 min).
+
+    Il dmesg del boot intero resta pieno di eventi da enumerazione USB e
+    da un eventuale recover NFC: non devono tenere l'alert acceso per ore.
+    """
+    try:
+        import re
+        import subprocess
+        r = subprocess.run(
+            ["dmesg"], capture_output=True, text=True, timeout=2, check=False,
+        )
+        txt = r.stdout or ""
+        uptime = 1e12
+        try:
+            with open("/proc/uptime", encoding="ascii") as f:
+                uptime = float(f.read().split()[0])
+        except Exception:
+            pass
+        cutoff = max(0.0, uptime - float(window_sec))
+        n = 0
+        for line in txt.splitlines():
+            if "over-current" not in line.lower():
+                continue
+            m = re.match(r"^\s*\[\s*(\d+(?:\.\d+)?)\s*\]", line)
+            ts = float(m.group(1)) if m else uptime
+            if ts >= cutoff:
+                n += 1
+        return n
+    except Exception:
+        return 0
+
+
 def _network_info() -> Dict[str, Any]:
     """Interfaccia attiva e latenza verso gateway (ms)."""
     out: Dict[str, Any] = {"iface": "", "link": "unknown", "gw_ms": None}
@@ -117,6 +150,13 @@ def _network_info() -> Dict[str, Any]:
                 parts = line.split()
                 if len(parts) >= 3 and parts[1] == "00000000":
                     out["iface"] = parts[0]
+                    h = parts[2]
+                    if len(h) == 8:
+                        try:
+                            out["gw"] = ".".join(
+                                str(int(h[i:i + 2], 16)) for i in (6, 4, 2, 0))
+                        except Exception:
+                            pass
                     break
     except Exception:
         pass
@@ -130,8 +170,11 @@ def _network_info() -> Dict[str, Any]:
             pass
     try:
         import subprocess
+        gw = str(out.get("gw") or "")
+        if not gw:
+            return out
         r = subprocess.run(
-            ["ping", "-c", "1", "-W", "1", "192.168.1.1"],
+            ["ping", "-c", "1", "-W", "1", gw],
             capture_output=True, timeout=3, check=False,
         )
         if r.returncode == 0:
@@ -228,6 +271,9 @@ class HealthReporter:
             payload["net_gw_ms"] = net["gw_ms"]
         if isinstance(subs, dict):
             payload.update(subs)
+        oc = usb_overcurrent_count()
+        payload["usb_overcurrent"] = oc
+        payload["usb_overcurrent_status"] = "warn" if oc else "ok"
         return payload
 
     def _loop(self) -> None:

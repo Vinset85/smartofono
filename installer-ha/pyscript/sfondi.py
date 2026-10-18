@@ -72,7 +72,7 @@ def _set_options(options):
 
 def _publish_library(files):
     try:
-        videocitofono_mqtt_cmd(
+        pyscript.videocitofono_mqtt_cmd(
             action="set_sfondi_library",
             base_url="/local/vc-sfondi/",
             files=files,

@@ -86,6 +86,27 @@ class BackupRunner:
         LOG.info("BackupRunner attivo: dest=%s interval=%.1fh keep=%d",
                  self.dest_dir, self.interval_hours, self.keep)
 
+    def restore(self, archive: str, dest_root: Optional[str] = None) -> bool:
+        """Estrae uno snapshot in dest_root (default: self.root)."""
+        dest = dest_root or self.root
+        if not archive or not os.path.isfile(archive):
+            LOG.error("restore: archivio assente %s", archive)
+            return False
+        try:
+            os.makedirs(dest, exist_ok=True)
+            with tarfile.open(archive, "r:gz") as tf:
+                for m in tf.getmembers():
+                    name = m.name.replace("\\", "/")
+                    if name.startswith("/") or ".." in name.split("/"):
+                        LOG.warning("restore skip path non sicuro: %s", m.name)
+                        continue
+                    tf.extract(m, path=dest)
+            LOG.info("Backup ripristinato da %s -> %s", archive, dest)
+            return True
+        except Exception as e:
+            LOG.error("restore fallito: %s", e)
+            return False
+
     def stop(self) -> None:
         self._stop.set()
 

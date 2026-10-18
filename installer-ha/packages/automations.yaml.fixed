@@ -589,7 +589,8 @@
 - id: '1761000000023'
   alias: Videocitofono - Riavvio NFC down
   description: >-
-    Se NFC risulta down per 2+ minuti (e NFC abilitato), riavvia l'app RPi.
+    Se NFC resta down 12+ minuti senza recover in corso, riavvia l'app RPi.
+    Non sparare durante il wake UART post-restart (nfc_recovering).
     Cooldown massimo una volta all'ora.
   triggers:
   - trigger: state
@@ -597,11 +598,14 @@
     attribute: nfc_status
     to: down
     for:
-      minutes: 2
+      minutes: 12
   conditions:
   - condition: state
     entity_id: input_boolean.videocitofono_nfc_enabled
     state: 'on'
+  - condition: template
+    value_template: >-
+      {{ not state_attr('sensor.videocitofono_health', 'nfc_recovering') }}
   - condition: template
     value_template: >-
       {% set last = state_attr('automation.videocitofono_riavvio_nfc_down', 'last_triggered') %}
@@ -666,6 +670,107 @@
       message: clear_notification
       data:
         tag: videocitofono_nfc_down
+  mode: single
+- id: '1761000000028'
+  alias: Videocitofono - Alert antimanomissione
+  description: >-
+    Reed GPIO27 aperto (cassa aperta o filo tagliato). Resta disabilitato
+    sul RPi finché tamper.enabled=false (reed non montato).
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: tamper_status
+    to: open
+  conditions: []
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono — antimanomissione
+      message: >-
+        Reed aperto ({{ state_attr('sensor.videocitofono_health', 'tamper_status') }}).
+        Verificare la cassa del citofono.
+      notification_id: videocitofono_tamper
+  - action: notify.videocitofono
+    data:
+      title: Videocitofono
+      message: Allarme antimanomissione. Cassa aperta o filo tagliato.
+      data:
+        tag: videocitofono_tamper
+        group: videocitofono
+        channel: Videocitofono
+        importance: high
+        priority: high
+  mode: single
+- id: '1761000000029'
+  alias: Videocitofono - Antimanomissione ripristinata
+  description: Toglie l'alert quando il reed torna chiuso o è spento.
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: tamper_status
+    to: ok
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: tamper_status
+    to: off
+  conditions: []
+  actions:
+  - action: persistent_notification.dismiss
+    data:
+      notification_id: videocitofono_tamper
+  - action: notify.videocitofono
+    data:
+      message: clear_notification
+      data:
+        tag: videocitofono_tamper
+  mode: single
+- id: '1761000000031'
+  alias: Videocitofono - Alert USB over-current
+  description: >-
+    Over-current USB negli ultimi 10 minuti (non il dmesg storico del boot).
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: usb_overcurrent_status
+    to: warn
+    for:
+      minutes: 2
+  conditions: []
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono — USB over-current
+      message: >-
+        Eventi over-current: {{ state_attr('sensor.videocitofono_health', 'usb_overcurrent') | default('?') }}.
+        Controllare alimentazione USB/PN532.
+      notification_id: videocitofono_usb_oc
+  - action: notify.videocitofono
+    data:
+      title: Videocitofono
+      message: Over-current USB sul Raspberry. Controllare il lettore NFC.
+      data:
+        tag: videocitofono_usb_oc
+        group: videocitofono
+        channel: Videocitofono
+  mode: single
+- id: '1761000000032'
+  alias: Videocitofono - USB over-current rientrato
+  description: Toglie l'alert quando il contatore over-current torna a zero (reboot).
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: usb_overcurrent_status
+    to: ok
+  conditions: []
+  actions:
+  - action: persistent_notification.dismiss
+    data:
+      notification_id: videocitofono_usb_oc
+  - action: notify.videocitofono
+    data:
+      message: clear_notification
+      data:
+        tag: videocitofono_usb_oc
   mode: single
 - id: '1761000000022'
   alias: Videocitofono - Alert apertura anomala
