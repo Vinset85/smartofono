@@ -19,9 +19,9 @@ Endpoints:
         HA via rest_command allo squillo e alla fine chiamata. Richiedono
         l'header X-VC-Egress con EGRESS_SECRET.
 
-Sicurezza: il servizio gira su LAN privata 192.168.1.0/24 e su WAN solo
-attraverso Caddy in HTTPS. Per produzione in scenari piu' aperti aggiungere
-auth (es. token shared secret HA) sul path POST /token.
+Sicurezza: POST /token richiede TOKEN_ISSUER_SECRET (header X-VC-Token).
+Senza secret l'issuer risponde 503, salvo ALLOW_INSECURE_TOKEN_ISSUER=1
+(solo lab). WAN passa da Caddy in HTTPS.
 
 Gli endpoint /egress/* invece sono sempre autenticati con EGRESS_SECRET e
 bloccati da Caddy sulla WAN: avviano scritture su disco, quindi non possono
@@ -44,6 +44,9 @@ from livekit import api
 LIVEKIT_API_KEY = os.environ["LIVEKIT_API_KEY"]
 LIVEKIT_API_SECRET = os.environ["LIVEKIT_API_SECRET"]
 TOKEN_ISSUER_SECRET = os.environ.get("TOKEN_ISSUER_SECRET", "").strip()
+ALLOW_INSECURE_TOKEN_ISSUER = os.environ.get(
+    "ALLOW_INSECURE_TOKEN_ISSUER", ""
+).strip().lower() in ("1", "true", "yes")
 # URL pubblico (passa da Caddy edge :443, wss same-origin con HA frontend).
 ## NB: il path NON deve includere `/rtc` finale. Il client SDK livekit-client
 ## 2.x appende `/rtc` da solo a wsUrl quando apre la signaling websocket
@@ -143,9 +146,11 @@ def issue_token(
     req: TokenRequest,
     x_vc_token: Optional[str] = Header(default=None, alias="X-VC-Token"),
 ) -> TokenResponse:
-    if TOKEN_ISSUER_SECRET:
-        if not x_vc_token or x_vc_token != TOKEN_ISSUER_SECRET:
-            raise HTTPException(401, "token issuer non autorizzato")
+    if not TOKEN_ISSUER_SECRET:
+        if not ALLOW_INSECURE_TOKEN_ISSUER:
+            raise HTTPException(503, "TOKEN_ISSUER_SECRET non configurato")
+    elif not x_vc_token or x_vc_token != TOKEN_ISSUER_SECRET:
+        raise HTTPException(401, "token issuer non autorizzato")
     if not req.identity or not req.room:
         raise HTTPException(400, "identity e room obbligatori")
     grants = api.VideoGrants(

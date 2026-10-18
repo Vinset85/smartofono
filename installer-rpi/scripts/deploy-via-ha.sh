@@ -66,8 +66,8 @@ else
         '${TMP_HA}/' '${PI_USER}@${PI_HOST}:${REMOTE_INSTALLER}/'"
 fi
 
-echo "==> [3/4] install.sh + merge NFC + restart su Pi"
-RUN_INSTALL="cd '${REMOTE_INSTALLER}' && chmod +x scripts/install.sh && ./scripts/install.sh"
+echo "==> [3/3] install.sh (no apt/pip) + merge NFC + restart su Pi"
+RUN_INSTALL="cd '${REMOTE_INSTALLER}' && chmod +x scripts/install.sh && SKIP_APT=1 SKIP_PIP_UPGRADE=1 ./scripts/install.sh"
 RUN_MERGE="/opt/videocitofono/venv/bin/python3 '${REMOTE_INSTALLER}/scripts/merge_nfc_config.py' || true"
 RUN_RESTART="sudo systemctl restart videocitofono.service && systemctl is-active videocitofono.service"
 
@@ -76,18 +76,7 @@ if [ -n "$PI_PASS" ] && command -v sshpass >/dev/null 2>&1; then
         '${PI_USER}@${PI_HOST}' \"${RUN_INSTALL} && ${RUN_MERGE} && ${RUN_RESTART}\""
 else
     ssh_ha "ssh -o StrictHostKeyChecking=no '${PI_USER}@${PI_HOST}' \
-        \"${RUN_INSTALL} && ${RUN_MERGE} && ${RUN_RESTART}\"\""
+        \"${RUN_INSTALL} && ${RUN_MERGE} && ${RUN_RESTART}\""
 fi
 
-echo "==> [4/4] Pubblica config NFC via MQTT (HA → broker Pi)"
-# Richiede mosquitto_pub sull'host HA o token REST; fallback manuale da dashboard.
-PAYLOAD='{"action":"set_config","config":{"nfc":{"enabled":true,"device":"tty:USB0:pn532","cooldown_sec":2.0,"library_path":"/opt/videocitofono/data/nfc_tags.json"}}}'
-if ssh_ha "command -v mosquitto_pub >/dev/null 2>&1"; then
-    ssh_ha "mosquitto_pub -h '${PI_HOST}' -p 1883 -t videocitofono/cmd -q 1 -m '${PAYLOAD}'"
-    ssh_ha "mosquitto_pub -h '${PI_HOST}' -p 1883 -t videocitofono/cmd -q 1 -m '{\"action\":\"restart_app\"}'"
-    echo "    Config NFC inviata + restart_app"
-else
-    echo "    mosquitto_pub non su HA: in dashboard premi 'Applica configurazione' e accendi NFC."
-fi
-
-echo "==> Deploy via HA completato."
+echo "==> Deploy via HA completato (NFC non forzato via MQTT: serve token cmd)."

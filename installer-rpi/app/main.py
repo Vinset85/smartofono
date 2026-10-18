@@ -644,6 +644,8 @@ class VideocitofonoApp(App):
             bg_source=bg_init,
         ))
         self.sm = sm
+        self._ha_asset_retries = 0
+        Clock.schedule_once(self._retry_ha_assets, 20.0)
         # Cleanup centralizzato del LiveKit session quando si esce
         # dal ciclo chiamata. Evita di replicare lo stop in ogni
         # path di terminazione (annullata/porta_aperta/terminata/timeout/
@@ -1998,11 +2000,15 @@ class VideocitofonoApp(App):
         screen = getattr(self.sm, "current", "home") if hasattr(self, "sm") else "home"
         if not mcfg.get("enabled", True):
             subs["motion_status"] = "off"
-        elif isinstance(mot, MotionDetector):
-            subs["motion_status"] = "ok"
+        elif mot is None:
+            subs["motion_status"] = "down"
+        elif hasattr(mot, "health_status"):
+            want = self._should_start_motion(screen)
+            subs["motion_status"] = mot.health_status(
+                screen, expected_running=want)
         else:
-            th = getattr(mot, "_thread", None) if mot is not None else None
-            running = bool(mot is not None and th and th.is_alive())
+            th = getattr(mot, "_thread", None)
+            running = bool(th and th.is_alive())
             if running:
                 subs["motion_status"] = "ok"
             elif screen == "screensaver":
@@ -2543,6 +2549,49 @@ class VideocitofonoApp(App):
                 continue
         LOG.warning("download icona %s err: %s", filename, last_err)
         return None
+
+    def _retry_ha_assets(self, *_):
+        """Ritenta sfondo/icone se HA era giu al boot (502 / connection refused)."""
+        ha_url = (self.cfg.get("home_assistant", {}) or {}).get("base_url", "").rstrip("/")
+        if not ha_url:
+            return
+        missing = False
+        sfondo = ((self.cfg.get("ui") or {}).get("sfondo") or "").strip()
+        if sfondo and sfondo != "default":
+            local = os.path.join(self.SFONDI_DIR, os.path.basename(sfondo))
+            if not os.path.exists(local):
+                missing = True
+                self._download_sfondo(ha_url + "/local/vc-sfondi/" + os.path.basename(sfondo),
+                                      os.path.basename(sfondo))
+                if os.path.exists(local):
+                    try:
+                        self._set_sfondo_live(os.path.basename(sfondo))
+                    except Exception as e:
+                        LOG.warning("retry sfondo apply err: %s", e)
+                    missing = False
+        try:
+            needed = []
+            for c in self.cfg.get("campanelli", []) or []:
+                if isinstance(c, dict):
+                    fn = os.path.basename((c.get("icona") or "").strip())
+                    if fn and fn != "default":
+                        needed.append(fn)
+            for fn in (self.cfg.get("access_icons", {}) or {}).values():
+                fn = os.path.basename((fn or "").strip())
+                if fn and fn != "default":
+                    needed.append(fn)
+            for fn in needed:
+                dst = os.path.join(self.AVATARS_DIR, fn)
+                if not os.path.exists(dst):
+                    missing = True
+                    self._download_icona(ha_url + "/local/vc-icone/" + fn, fn)
+        except Exception as e:
+            LOG.warning("retry icone err: %s", e)
+        self._ha_asset_retries = int(getattr(self, "_ha_asset_retries", 0)) + 1
+        if missing and self._ha_asset_retries < 6:
+            delay = min(20.0 * (2 ** (self._ha_asset_retries - 1)), 120.0)
+            Clock.schedule_once(self._retry_ha_assets, delay)
+            LOG.info("retry asset HA tra %.0fs (n=%d)", delay, self._ha_asset_retries)
 
     # ----------------------- gestione volti (face) -----------------------
 

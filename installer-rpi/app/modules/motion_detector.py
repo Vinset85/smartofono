@@ -44,6 +44,13 @@ class MotionDetector:
     def on_motion(self, cb: Callable[[], None]) -> None:
         self._cb = cb
 
+    def health_status(self, screen: str = "home",
+                      expected_running: bool = True) -> str:
+        cam = self.camera
+        if cam is not None and hasattr(cam, "is_available") and cam.is_available():
+            return "ok"
+        return "down" if expected_running else "idle"
+
     def tick(self) -> bool:
         """Esegue una valutazione. Restituisce True se motion rilevato."""
         if not self.camera or not self.camera.is_available():
@@ -124,9 +131,22 @@ class MotionPicameraDetector:
         self._thread = None
         self._cam = None
         self._tick_n = 0
+        self._fail_streak = 0
 
     def on_motion(self, cb: Callable[[], None]) -> None:
         self._cb = cb
+
+    def health_status(self, screen: str = "home",
+                      expected_running: bool = True) -> str:
+        th = self._thread
+        running = bool(th is not None and th.is_alive())
+        if not running:
+            return "down" if expected_running else "idle"
+        if self._cam is not None:
+            return "ok"
+        if self._fail_streak >= 3:
+            return "down"
+        return "ok"
 
     def is_available(self) -> bool:
         return True
@@ -185,20 +205,20 @@ class MotionPicameraDetector:
     def _loop(self):
         import numpy as np
         period = 1.0 / max(self.fps, 0.5)
-        fail_streak = 0
+        self._fail_streak = 0
         try:
             while self._stop and not self._stop.is_set():
                 if self._cam is None:
                     self._cam = self._open_cam()
                     if self._cam is None:
-                        fail_streak += 1
-                        if fail_streak in (1, 5, 15) or fail_streak % 30 == 0:
+                        self._fail_streak += 1
+                        if self._fail_streak in (1, 5, 15) or self._fail_streak % 30 == 0:
                             LOG.warning(
                                 "motion picam: camera non disponibile (retry %d)",
-                                fail_streak)
+                                self._fail_streak)
                         self._stop.wait(min(period * 3, 5.0))
                         continue
-                    fail_streak = 0
+                    self._fail_streak = 0
                     self._prev = None
                 t0 = time.time()
                 try:
@@ -296,6 +316,16 @@ class MotionSnapshotDetector:
 
     def on_motion(self, cb: Callable[[], None]) -> None:
         self._cb = cb
+
+    def health_status(self, screen: str = "home",
+                      expected_running: bool = True) -> str:
+        th = self._thread
+        running = bool(th is not None and th.is_alive())
+        if not running:
+            return "down" if expected_running else "idle"
+        if self._fail_count >= 5:
+            return "down"
+        return "ok"
 
     def is_available(self) -> bool:
         return True

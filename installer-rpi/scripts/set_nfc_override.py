@@ -13,8 +13,10 @@ if path.is_file():
     with path.open(encoding="utf-8") as f:
         existing = yaml.safe_load(f) or {}
 nfc = existing.get("nfc") if isinstance(existing.get("nfc"), dict) else {}
+# Non riaccendere NFC se HA/config lo hanno spento: solo default al primo giro.
+if "enabled" not in nfc:
+    nfc["enabled"] = True
 nfc.update({
-    "enabled": True,
     "device": nfc.get("device") or "tty:USB0:pn532",
     "device_candidates": nfc.get("device_candidates")
     or ["tty:USB0:pn532", "tty:USB1:pn532", "i2c:1:0x24"],

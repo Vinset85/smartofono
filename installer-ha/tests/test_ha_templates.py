@@ -145,3 +145,18 @@ def test_livekit_turn_relay_porte_basse():
     assert "relay_range_start: 8102" in lk
     assert "relay_range_end: 8106" in lk
     assert "udp_port: 3478" in lk
+
+
+def test_token_issuer_richiede_secret():
+    src = (ROOT / "livekit" / "token_issuer" / "issuer.py").read_text()
+    assert "ALLOW_INSECURE_TOKEN_ISSUER" in src
+    assert "TOKEN_ISSUER_SECRET non configurato" in src
+    assert "if TOKEN_ISSUER_SECRET:" not in src.split("def issue_token", 1)[-1][:500]
+
+
+def test_apply_rinomina_entity_id_e_scripts_yaml():
+    sh = (ROOT / "scripts" / "apply-videocitofono.sh").read_text()
+    assert "automation.videocitofono_timeout_chiamata" in sh
+    assert "entity_registry_renamed" in sh
+    dep = (ROOT / "deploy.sh").read_text()
+    assert "scripts.yaml.fixed" in dep

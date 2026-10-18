@@ -234,7 +234,7 @@ def test_version_unica():
 
     v = get_version()
     assert v == (ROOT / "version.txt").read_text(encoding="utf-8").strip()
-    assert v == "1.5.1"
+    assert v == "1.5.2"
     main = (ROOT / "main.py").read_text(encoding="utf-8")
     assert "from modules.version import get_version" in main
     assert '"0.1.0"' not in main
@@ -317,3 +317,36 @@ def test_kivy_fit_mode_e_watchdog_clock():
     assert "pending_admin" in home
     pin = (ROOT / "screens" / "pin.py").read_text(encoding="utf-8")
     assert 'ruolo != "admin"' in pin or "ruolo != 'admin'" in pin
+    assert "_retry_ha_assets" in main
+    nfcov = (Path(__file__).resolve().parents[1] / "scripts" / "set_nfc_override.py").read_text()
+    assert 'if "enabled" not in nfc' in nfcov
+    via = (Path(__file__).resolve().parents[1] / "scripts" / "deploy-via-ha.sh").read_text()
+    assert "SKIP_APT=1" in via
+    assert "SKIP_PIP_UPGRADE=1" in via
+    assert "mosquitto_pub" not in via
+
+
+def test_motion_health_non_ok_se_camera_ko():
+    from modules.motion_detector import (
+        MotionDetector, MotionPicameraDetector, MotionSnapshotDetector,
+    )
+
+    class _Alive:
+        def is_alive(self):
+            return True
+
+    p = MotionPicameraDetector()
+    p._thread = _Alive()
+    p._cam = None
+    p._fail_streak = 5
+    assert p.health_status("screensaver", expected_running=True) == "down"
+    p._fail_streak = 0
+    p._cam = object()
+    assert p.health_status("screensaver", expected_running=True) == "ok"
+    s = MotionSnapshotDetector(snapshot_url="http://127.0.0.1/missing")
+    s._thread = _Alive()
+    s._fail_count = 8
+    assert s.health_status("screensaver", expected_running=True) == "down"
+    m = MotionDetector(camera=None)
+    assert m.health_status("home", expected_running=False) == "idle"
+    assert m.health_status("screensaver", expected_running=True) == "down"

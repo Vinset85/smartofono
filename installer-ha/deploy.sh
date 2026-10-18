@@ -32,7 +32,8 @@ ssh_ha "mkdir -p ${TMP}"
 
 echo "    pyscript + www + lovelace + scripts"
 tar -C "${ROOT}" -czf "/tmp/vc-deploy-${TS}.tar.gz" pyscript www lovelace \
-  packages/automations.yaml.fixed packages/configuration.yaml.fixed
+  packages/automations.yaml.fixed packages/configuration.yaml.fixed \
+  packages/scripts.yaml.fixed
 scp_ha "/tmp/vc-deploy-${TS}.tar.gz" "${HA_SSH}:${TMP}/bundle.tar.gz"
 rm -f "/tmp/vc-deploy-${TS}.tar.gz"
 
@@ -44,6 +45,10 @@ cp -f pyscript/* ${HA_CONFIG}/pyscript/
 cp -f www/* ${HA_CONFIG}/www/
 mkdir -p ${HA_CONFIG}/lovelace
 cp -f lovelace/* ${HA_CONFIG}/lovelace/
+if [ -f packages/scripts.yaml.fixed ]; then
+  cp -f packages/scripts.yaml.fixed ${HA_CONFIG}/scripts.yaml
+  echo "    scripts.yaml aggiornato"
+fi
 cp -f packages/automations.yaml.fixed /tmp/vc_automations.fixed
 cp -f packages/configuration.yaml.fixed /tmp/vc_configuration.fixed
 chown -R root:root ${HA_CONFIG}/pyscript ${HA_CONFIG}/www ${HA_CONFIG}/lovelace
