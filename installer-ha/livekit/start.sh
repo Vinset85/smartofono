@@ -66,9 +66,10 @@ LIVEKIT_API_SECRET="${LIVEKIT_API_SECRET:-}"
 # WAN; questo e' il secondo strato. Deve combaciare con il rest_command HA
 # (installer-ha/packages/configuration.yaml.fixed).
 EGRESS_SECRET="${EGRESS_SECRET:-}"
-if [ -z "$LIVEKIT_API_SECRET" ] || [ -z "$EGRESS_SECRET" ]; then
-    echo "ERRORE: LIVEKIT_API_SECRET e EGRESS_SECRET vanno in env o in .secrets" >&2
-    echo "        (copia .secrets.example -> .secrets e riempilo)." >&2
+TOKEN_ISSUER_SECRET="${TOKEN_ISSUER_SECRET:-}"
+if [ -z "$LIVEKIT_API_SECRET" ] || [ -z "$EGRESS_SECRET" ] || [ -z "$TOKEN_ISSUER_SECRET" ]; then
+    echo "ERRORE: LIVEKIT_API_SECRET, EGRESS_SECRET e TOKEN_ISSUER_SECRET" >&2
+    echo "        vanno in env o in .secrets (copia .secrets.example)." >&2
     exit 1
 fi
 # Cartella host dove l'egress scrive gli MP4. Corrisponde a
@@ -197,6 +198,7 @@ docker run -d \
   -e LIVEKIT_HOST="$LIVEKIT_HOST_PUBLIC" \
   -e LIVEKIT_HOST_LAN="$LIVEKIT_HOST_LAN" \
   -e TOKEN_ISSUER_PORT=8081 \
+  -e TOKEN_ISSUER_SECRET="$TOKEN_ISSUER_SECRET" \
   -e EGRESS_SECRET="$EGRESS_SECRET" \
   -e LIVEKIT_API_URL="http://127.0.0.1:7880" \
   -e EGRESS_OUTPUT_DIR="/out" \

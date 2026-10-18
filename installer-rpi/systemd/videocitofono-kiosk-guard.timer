@@ -1,0 +1,11 @@
+[Unit]
+Description=Videocitofono - ricontrolla sessione kiosk ogni minuto
+
+[Timer]
+OnBootSec=25
+OnUnitActiveSec=45
+AccuracySec=5
+Unit=videocitofono-kiosk-guard.service
+
+[Install]
+WantedBy=timers.target

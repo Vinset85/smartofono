@@ -516,18 +516,16 @@
 - id: '1761000000006'
   alias: Videocitofono - go2rtc keep-alive (pre-warm pull RTSP)
   description: >-
-    Mantiene sempre attivo il pull RTSP HA→RPi nel go2rtc-addon (porta 1984)
-    chiamando frame.jpeg ogni 5s. Senza questo, lo stream è on-demand e ogni
-    apertura popup pagherebbe 10-15s di cold-start (handshake RTSP + primo
-    keyframe attraverso il WiFi lento del RPi). Con keep-alive il GOP corrente
-    è sempre in cache su HA → primo frame WebRTC al browser in <1s.
-    Il rest_command go2rtc_keepalive è definito in configuration.yaml.
+    Disabilitata: il Pi pubblica in LiveKit (go2rtc locale spento, motion
+    picamera). Il pull RTSP ogni 5s verso pi5cam_h264 andava a vuoto.
+    Riattivare solo se si torna a motion.source=snapshot + go2rtc sul Pi.
+  initial_state: false
   triggers:
   - trigger: time_pattern
     seconds: '/5'
-  - trigger: homeassistant
-    event: start
-  conditions: []
+  conditions:
+  - condition: template
+    value_template: "{{ false }}"
   actions:
   - action: rest_command.go2rtc_keepalive
     continue_on_error: true

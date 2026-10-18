@@ -89,6 +89,19 @@
     if (opts.wsUrl) cfg.wsUrl = opts.wsUrl;
     if (opts.sdkUrl) cfg.sdkUrl = opts.sdkUrl;
     if (opts.roomName) cfg.roomName = opts.roomName;
+    if (opts.tokenSecret) cfg.tokenSecret = opts.tokenSecret;
+  }
+
+  function tokenSecret() {
+    if (cfg.tokenSecret) return String(cfg.tokenSecret).trim();
+    try {
+      const ha = document.querySelector('home-assistant');
+      const hass = ha && ha.hass;
+      const st = hass && hass.states && hass.states['input_text.videocitofono_lk_token'];
+      const v = st && st.state;
+      if (v && v !== 'unknown' && v !== 'unavailable') return String(v).trim();
+    } catch (e) {}
+    return '';
   }
 
   function loadSdk() {
@@ -125,9 +138,12 @@
       can_subscribe: true,
       prefer_lan: false,
     });
+    const headers = { 'Content-Type': 'application/json' };
+    const secret = tokenSecret();
+    if (secret) headers['X-VC-Token'] = secret;
     const resp = await fetch(cfg.tokenUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: body,
     });
     if (!resp.ok) {

@@ -86,7 +86,8 @@ services:
       # senza passare da Caddy). Vedi installer-rpi/app/modules/livekit_client.py.
       LIVEKIT_HOST_LAN: ws://192.168.1.160:7880
       TOKEN_ISSUER_PORT: "8081"
-      TOKEN_ISSUER_SECRET: ${TOKEN_ISSUER_SECRET:-}
+      # Obbligatorio: senza secret POST /token risponde 503.
+      TOKEN_ISSUER_SECRET: ${TOKEN_ISSUER_SECRET:?TOKEN_ISSUER_SECRET mancante}
       # Endpoint /egress/*: HA li chiama per avviare/fermare la registrazione.
       # Il secret e' obbligatorio (l'issuer rifiuta 401 se assente).
       EGRESS_SECRET: ${EGRESS_SECRET:-}

@@ -96,7 +96,7 @@ if auto_dst.exists():
                 return live_txt[:i] + blk + (live_txt[j + 1:] if j >= 0 else "")
         return live_txt.rstrip() + "\n" + blk
 
-    for aid in ("1761000000023", "1761000000026", "1761000000027",
+    for aid in ("1761000000006", "1761000000023", "1761000000026", "1761000000027",
                 "1761000000028", "1761000000029",
                 "1761000000031", "1761000000032"):
         live = _replace_or_append(live, aid)
@@ -187,6 +187,31 @@ def drop_yaml_key(src, key):
         i += 1
     return "".join(out)
 
+if "videocitofono_lk_token:" not in text and "videocitofono_cmd_token:" in text:
+    _ln = text.splitlines(keepends=True)
+    _out, _i, _ins = [], 0, False
+    while _i < len(_ln):
+        _out.append(_ln[_i])
+        if (not _ins) and _ln[_i].startswith("  videocitofono_cmd_token:"):
+            _i += 1
+            while _i < len(_ln) and (
+                _ln[_i].startswith("    ")
+                or _ln[_i].startswith("  #")
+                or _ln[_i].strip() == ""
+            ):
+                _out.append(_ln[_i])
+                _i += 1
+            _out.append("  videocitofono_lk_token:\n")
+            _out.append("    name: Token issuer LiveKit\n")
+            _out.append("    mode: password\n")
+            _out.append('    initial: ""\n')
+            _ins = True
+            continue
+        _i += 1
+    text = "".join(_out)
+    if _ins:
+        need_ha_restart = True
+        print("cfg_lk_token_helper")
 if "videocitofono_finger_enabled" in text or "videocitofono_metodo_fingerprint_icona" in text:
     need_ha_restart = True
 text = drop_yaml_key(text, "videocitofono_finger_enabled")

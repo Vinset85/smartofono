@@ -2455,6 +2455,9 @@ class VideocitofonoApp(App):
             except Exception as e:
                 last_err = e
                 continue
+        if os.path.exists(dst) and os.path.getsize(dst) > 0:
+            LOG.info("download sfondo %s: HA irraggiungibile, tengo locale", filename)
+            return dst
         LOG.warning("download sfondo %s err: %s", filename, last_err)
         return None
 
@@ -2547,6 +2550,9 @@ class VideocitofonoApp(App):
             except Exception as e:
                 last_err = e
                 continue
+        if os.path.exists(dst) and os.path.getsize(dst) > 0:
+            LOG.info("download icona %s: HA irraggiungibile, tengo locale", filename)
+            return dst
         LOG.warning("download icona %s err: %s", filename, last_err)
         return None
 

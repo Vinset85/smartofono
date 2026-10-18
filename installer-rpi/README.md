@@ -142,7 +142,7 @@ e specifiche della serratura in
 | `videocitofono/chiamata`     | `{"stato":"chiamata_in_corso","campanello":"famiglia_rossi"}`         |
 | `videocitofono/chiamata`     | `{"stato":"annullata","campanello":"famiglia_rossi"}`                 |
 | `videocitofono/apertura`     | `{"metodo":"pin","utente":"Admin","scope":"porta"}`                      |
-| `videocitofono/evento`       | `{"tipo":"boot","dati":{"versione":"1.5.1"}}`                            |
+| `videocitofono/evento`       | `{"tipo":"boot","dati":{"versione":"1.5.3"}}`                            |
 
 > Sul lato HA li raccoglie `automation.chiamata_videocitofono`, nel package `installer-ha/packages/automations.yaml.fixed`.
 

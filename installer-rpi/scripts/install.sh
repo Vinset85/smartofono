@@ -213,11 +213,14 @@ sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono-nfc-prep.service" \
     /etc/systemd/system/videocitofono-nfc-prep.service
 sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono-kiosk-guard.service" \
     /etc/systemd/system/videocitofono-kiosk-guard.service
+sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono-kiosk-guard.timer" \
+    /etc/systemd/system/videocitofono-kiosk-guard.timer
 sudo systemctl daemon-reload
 # Prep NFC non abilitato di default (evita conflitti con touch USB interno).
 sudo systemctl disable videocitofono-nfc-prep.service 2>/dev/null || true
 sudo systemctl enable videocitofono.service
-sudo systemctl enable videocitofono-kiosk-guard.service
+sudo systemctl disable videocitofono-kiosk-guard.service 2>/dev/null || true
+sudo systemctl enable --now videocitofono-kiosk-guard.timer
 # Raspberry Pi Connect/WayVNC non serve in kiosk e al boot fallisce.
 sudo systemctl disable --now rpi-connect.service rpi-connect-wayvnc.service \
     rpi-connect-signin.service 2>/dev/null || true

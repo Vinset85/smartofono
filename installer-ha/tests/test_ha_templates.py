@@ -152,6 +152,14 @@ def test_token_issuer_richiede_secret():
     assert "ALLOW_INSECURE_TOKEN_ISSUER" in src
     assert "TOKEN_ISSUER_SECRET non configurato" in src
     assert "if TOKEN_ISSUER_SECRET:" not in src.split("def issue_token", 1)[-1][:500]
+    start = (ROOT / "livekit" / "start.sh").read_text()
+    assert "TOKEN_ISSUER_SECRET=" in start
+    assert '-e TOKEN_ISSUER_SECRET="$TOKEN_ISSUER_SECRET"' in start
+    js = (ROOT / "www" / "vc-livekit.js").read_text()
+    assert "X-VC-Token" in js
+    assert "input_text.videocitofono_lk_token" in js
+    assert "initial_state: false" in AUTO
+    assert "1761000000006" in AUTO
 
 
 def test_apply_rinomina_entity_id_e_scripts_yaml():

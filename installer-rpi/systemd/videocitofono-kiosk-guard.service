@@ -5,9 +5,5 @@ Wants=display-manager.service
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/opt/videocitofono/scripts/kiosk-ensure-session.sh
-TimeoutStartSec=120
-
-[Install]
-WantedBy=graphical.target
+TimeoutStartSec=90

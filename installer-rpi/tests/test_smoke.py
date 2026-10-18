@@ -234,7 +234,7 @@ def test_version_unica():
 
     v = get_version()
     assert v == (ROOT / "version.txt").read_text(encoding="utf-8").strip()
-    assert v == "1.5.2"
+    assert v == "1.5.3"
     main = (ROOT / "main.py").read_text(encoding="utf-8")
     assert "from modules.version import get_version" in main
     assert '"0.1.0"' not in main
@@ -318,6 +318,11 @@ def test_kivy_fit_mode_e_watchdog_clock():
     pin = (ROOT / "screens" / "pin.py").read_text(encoding="utf-8")
     assert 'ruolo != "admin"' in pin or "ruolo != 'admin'" in pin
     assert "_retry_ha_assets" in main
+    assert "tengo locale" in main
+    timer = Path(__file__).resolve().parents[1] / "systemd" / "videocitofono-kiosk-guard.timer"
+    assert timer.is_file()
+    inst = Path(__file__).resolve().parents[1] / "scripts" / "install.sh"
+    assert "videocitofono-kiosk-guard.timer" in inst.read_text(encoding="utf-8")
     nfcov = (Path(__file__).resolve().parents[1] / "scripts" / "set_nfc_override.py").read_text()
     assert 'if "enabled" not in nfc' in nfcov
     via = (Path(__file__).resolve().parents[1] / "scripts" / "deploy-via-ha.sh").read_text()
