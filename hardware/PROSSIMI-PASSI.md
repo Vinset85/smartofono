@@ -480,9 +480,10 @@ Copia e porta in ferramenta / apri Amazon e cerca esatto:
 - [ ] PN532 USB
 - [ ] altoparlante ovale ~70 x 32
 - [ ] switch o injector **PoE+ 802.3at** (non PoE semplice: 12,95 W non
-  ```
   bastano)
-  ```
+- [ ] elettroserratura **12 V DC fail-secure a impulso**, ≤ 800 mA, spunto
+  ≤ 1 A (schema B, UPS). Vedi [SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md)
+- [ ] MOSFET logic-level 3,3 V (o modulo opto) + 1N4007 + 220 Ω, se schema B
 
 Il reed switch e il suo magnetino: si possono comprare dopo. Il software
 oggi non lo legge ancora.
@@ -642,9 +643,11 @@ alta del vetro). Usa la dima a piombo, non a occhio.
 
 Due tubi da 25 mm nel fondo della cassa.
 
-- Uno: cavo di rete PoE (è l'unico cavo che serve).
-- Due: vuoto, con un filo pilota dentro. Domani tirare un cavo nel tufo
-murato costa una giornata.
+- Uno: cavo di rete PoE (è l'unico cavo che serve al pannello).
+- Due: schema A, filo pilota 3,3 V verso il relè in quadro. Schema B
+  (serratura sotto UPS): due fili 0,5–0,75 mm², 12 V e ritorno bobina, da
+  [SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md). Domani tirare un cavo nel tufo
+  murato costa una giornata.
 
 Dove il tubo entra nella cassa: silicone neutro **intorno al tubo**.
 Non nella fessura d'ombra sul fronte.

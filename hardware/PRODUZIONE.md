@@ -206,8 +206,11 @@ che poi si vedono in trasparenza.
 ## La minuteria
 
 L'elenco completo con le quantità è nella tabella **Minuteria** del
-[README](README.md). Le tre cose che non vanno sostituite con quello che si
-trova in ferramenta:
+[README](README.md). Se la serratura deve restare sotto l'UPS dello switch
+PoE, i pezzi extra (MOSFET, diodo, elettroserratura 12 V) e lo schema sono in
+[SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md).
+
+Le tre cose che non vanno sostituite con quello che si trova in ferramenta:
 
 - il **biadesivo 3M VHB 4959**, 3,0 mm. Lo spessore non è arbitrario: è lui a
   fissare la distanza fra vetro e telaio, e tutto il resto della catena di

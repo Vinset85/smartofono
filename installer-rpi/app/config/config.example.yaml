@@ -25,7 +25,8 @@ home_assistant:
   script_apri_cancello: script.cancello_strada
 # Relè locale: impulso 3,3 V su GPIO, indipendente da Home Assistant.
 # Porta = GPIO12 (pin fisico 32), cancello = GPIO13 (pin 33). Massa pin 30/34.
-# In quadro: relè/optoisolatore, non la serratura diretta.
+# I 12 V della serratura: header 2 pin dell'HAT PoE, MOSFET, non GPIO.
+# Specifiche e schema in hardware/SCHEMA-SERRATURA.md.
 relay:
   enabled: true
   porta_gpio: 12

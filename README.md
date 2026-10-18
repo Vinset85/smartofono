@@ -57,6 +57,7 @@ camera e una squadretta che finiva sotto il disco NVMe.
 | [hardware/README.md](hardware/README.md) | il progetto e il perché di ogni scelta |
 | [hardware/PRODUZIONE.md](hardware/PRODUZIONE.md) | cosa ordinare, a chi, cosa controllare |
 | [hardware/ASSEMBLAGGIO.md](hardware/ASSEMBLAGGIO.md) | il montaggio, passo per passo |
+| [hardware/SCHEMA-SERRATURA.md](hardware/SCHEMA-SERRATURA.md) | 12 V della serratura dall'HAT PoE, specifiche e schema |
 | [hardware/MISURE.md](hardware/MISURE.md) | il rilievo col calibro dei pezzi reali |
 
 Per rigenerare disegni e modello dopo una modifica alle quote:
@@ -140,8 +141,11 @@ cancello, NFC, PIN, riconoscimento facciale, registro chiamate con i filmati,
 annunci vocali, pannello di salute.
 
 PIN, NFC, volto e **apertura della porta** restano sul Raspberry anche se
-Home Assistant è giù: l'impulso esce da **GPIO12** (pin 32) verso un relè
-in quadro. La videochiamata e le notifiche sul telefono, invece, passano da HA.
+Home Assistant è giù: l'impulso esce da **GPIO12** (pin 32). La serratura
+12 V si può alimentare dall'header dell'HAT PoE, così in blackout resta
+sotto lo stesso UPS dello switch: schema e specifiche in
+[hardware/SCHEMA-SERRATURA.md](hardware/SCHEMA-SERRATURA.md).
+La videochiamata e le notifiche sul telefono, invece, passano da HA.
 
 Resta aperto:
 

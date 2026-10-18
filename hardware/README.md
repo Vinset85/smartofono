@@ -346,6 +346,9 @@ sollecitare il giunto.
 | 6 | dischetto di acciaio dolce Ø6 x 1 | riscontro dei magneti, annegato nelle sedi della battuta |
 | 1 | silicone neutro ossimico | tenuta dei corrugati dove entrano nella cassa. **Non** nella fessura d'ombra |
 | 1 | grasso al silicone | velo sulla battuta, contro la risalita dell'acqua. Facoltativo |
+| 1 | MOSFET N logic-level 3,3 V (o modulo opto, Id ≥ 3 A) | schema B: commuta i 12 V dell'HAT verso la serratura. **Non** un relè elettromeccanico |
+| 1 | resistore 220 Ω | gate del MOSFET, in serie a GPIO12 |
+| 1 | diodo 1N4007 | antiparallelo sulla bobina della serratura |
 
 Il diaframma in PET serve perché l'apertura nel telaio lascerebbe intravedere
 il circuito del lettore attraverso i tratti semitrasparenti dell'icona NFC.
@@ -396,6 +399,20 @@ Infine l'HAT è un convertitore isolato con rendimento intorno all'87%: dei watt
 che entrano, uno e mezzo resta dentro la cassa come calore in più rispetto
 all'alimentazione via USB-C, dove la conversione avviene nel quadro. È poco ma
 va nel conto della ventilazione.
+
+### I 12 V dell'HAT possono alimentare la serratura
+
+L'HAT ha un header a 2 pin **12 V / 2 A**, oltre ai 5 V sul GPIO. Tetto
+dichiarato: **25 W totali** fra le due uscite. I 5 V restano a Pi, NVMe e
+display; i 12 V, commutati da GPIO12 tramite un MOSFET, possono alimentare
+un'elettroserratura a impulso. Serve quando lo switch PoE+ è sotto UPS e la
+porta, in blackout, non ha un altro alimentatore raggiungibile.
+
+Non è un collegamento diretto: i 12 V dell'HAT sono sempre presenti con il
+PoE acceso. Schema, pin, diodo di ricircolo e **specifiche obbligatorie della
+serratura** (12 V DC, fail-secure, ≤ 800 mA, spunto ≤ 1 A) sono in
+[SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md). Una ventosa magnetica o un 24 V
+non ci stanno nel budget PoE+.
 
 ### L'alimentazione dell'SSD è il punto fragile
 

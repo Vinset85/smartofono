@@ -125,10 +125,15 @@ journalctl -u videocitofono -f
 
 ## Apertura senza Home Assistant
 
-PIN, NFC e volto si verificano sul Raspberry. L'impulso del relè esce in
-locale, **GPIO12 pin 32** (porta) e **GPIO13 pin 33** (cancello), 1 s, 3,3 V,
-massa pin 30/34. HA riceve REST e MQTT solo se è raggiungibile: se è giù
-l'apertura avviene lo stesso. Configurazione in `relay:` di `config.yaml`.
+PIN, NFC e volto si verificano sul Raspberry. L'impulso esce in locale,
+**GPIO12 pin 32** (porta) e **GPIO13 pin 33** (cancello), 1 s, 3,3 V, massa
+pin 30/34. HA riceve REST e MQTT solo se è raggiungibile: se è giù l'apertura
+avviene lo stesso. Configurazione in `relay:` di `config.yaml`.
+
+GPIO12 è solo il comando. I 12 V della serratura possono uscire dall'header
+dell'HAT PoE (F), così in blackout restano sotto l'UPS dello switch: schema
+e specifiche della serratura in
+[hardware/SCHEMA-SERRATURA.md](../hardware/SCHEMA-SERRATURA.md).
 
 ## Eventi MQTT pubblicati
 

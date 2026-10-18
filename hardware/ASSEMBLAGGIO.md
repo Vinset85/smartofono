@@ -44,13 +44,25 @@ tag a 2 cm.
 | Switch o injector **802.3at** | — | PoE+, non PoE semplice |
 | Cavo ethernet | RJ45 | porta rete **e** alimentazione; il WiFi non è usato |
 
-Nella scatola **non entra nessun relè**. L'apertura essenziale esce dal
-Raspberry: impulso 3,3 V da **GPIO12 (pin fisico 32)** per la porta e da
-**GPIO13 (pin 33)** per il cancello strada, massa sui pin 30 o 34, durata 1 s.
-In quadro, sul filo pilota del secondo corrugato, un relè o un optoisolatore
-commuta la serratura. Home Assistant resta un canale in più, non l'unico:
-PIN, NFC e volto aprono anche se HA è giù. Con il PoE nei corrugati va un
-cavo di rete; il secondo passaggio porta il pilota del relè.
+Nella scatola **non entra nessun relè elettromeccanico**. L'apertura essenziale
+esce dal Raspberry: impulso 3,3 V da **GPIO12 (pin fisico 32)** per la porta e
+da **GPIO13 (pin 33)** per il cancello strada, massa sui pin 30 o 34, durata 1 s.
+
+Due modi di dare i 12 V alla serratura, dettagliati in
+[SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md):
+
+- **schema A** — in quadro, sul filo pilota del secondo corrugato, un relè
+  commuta un alimentatore 12 V di rete. In blackout il citofono resta acceso
+  (PoE sotto UPS) ma la porta no;
+- **schema B** — i 12 V escono dall'header a 2 pin dell'HAT PoE (F), un MOSFET
+  logic-level in cassa (non un relè) chiude il ritorno, nel secondo corrugato
+  vanno i due fili della bobina. La serratura resta sullo stesso UPS dello
+  switch. Serve un'elettroserratura **12 V DC, fail-secure, impulso, ≤ 800 mA
+  (spunto ≤ 1 A)**.
+
+Home Assistant resta un canale in più, non l'unico: PIN, NFC e volto aprono
+anche se HA è giù. Con il PoE nei corrugati va un cavo di rete; il secondo
+passaggio porta o il pilota (A) o i 12 V commutati della serratura (B).
 
 ### Minuteria e consumabili
 
@@ -234,8 +246,12 @@ monta sul retro, tranne il display.
 9. Reed switch su GPIO27 e massa. Il progetto tiene GPIO17 libero per un
    eventuale pulsante di chiamata, quindi non usare quello. Tieni presente che
    l'HAT audio occupa GPIO25 per il suo LED.
-10. Relè apertura: GPIO12 (pin 32) porta, GPIO13 (pin 33) cancello, massa
-    pin 30 o 34. Impulso 1 s a 3,3 V verso relè in quadro, non in cassa.
+10. Apertura: GPIO12 (pin 32) porta, GPIO13 (pin 33) cancello, massa pin 30
+    o 34. Impulso 1 s a 3,3 V. Schema A: quel filo va al relè in quadro.
+    Schema B (serratura sotto UPS): 12 V dall'header 2 pin dell'HAT, MOSFET
+    in cassa, diodo 1N4007 sulla bobina, due fili nel secondo corrugato.
+    Schema e specifiche in [SCHEMA-SERRATURA.md](SCHEMA-SERRATURA.md).
+    Il cancello resta sempre schema A, sul suo quadro.
 11. Ethernet lasciato uscire verso il fondo, con un'ansa di scarico.
 
 Fissa i cavi con fascette alla piastra, lontano dal percorso dell'aria e dal
