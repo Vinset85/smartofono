@@ -9,6 +9,31 @@ ROOT = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(ROOT))
 
 
+def test_mqtt_on_connected_cb():
+    try:
+        from modules.mqtt_client import MqttPublisher
+    except ModuleNotFoundError:
+        return
+
+    p = MqttPublisher(
+        {"broker": "127.0.0.1", "port": 1883, "topic_chiamata": "t",
+         "topic_status": "videocitofono/status"}
+    )
+    seen = []
+    p.on_connected(lambda: seen.append(True))
+    p._on_connect(p._client, None, None, 0)
+    assert seen == [True]
+    p._on_connect(p._client, None, None, 5)
+    assert seen == [True]
+
+
+def test_nfc_usb_recover_max():
+    from modules import nfc_reader as nr
+
+    assert nr.USB_RECOVER_MAX == 2
+    assert nr.NFC_GIVE_UP_BACKOFF_SEC >= 60
+
+
 def test_cmd_auth():
     from modules.cmd_auth import CmdAuthGuard
 

@@ -42,16 +42,35 @@ CADDY_IMAGE="caddy:2.11-alpine"
 REDIS_IMAGE="redis:7-alpine"
 EGRESS_IMAGE="livekit/egress:v1.15.0"
 
-LIVEKIT_API_KEY="videocitofono"
-LIVEKIT_API_SECRET="SOSTITUISCI_CON_IL_TUO_LIVEKIT_API_SECRET"
+# Segreti: env, poi file non versionato `.secrets` (KEY=value).
+# Mai committare valori veri: vedi .secrets.example.
+for _sec in \
+    "${LIVEKIT_DIR_LOCAL}/.secrets" \
+    "/addons/livekit/.secrets"; do
+    if [ -f "$_sec" ]; then
+        # shellcheck disable=SC1090
+        set -a
+        . "$_sec"
+        set +a
+        echo "==> secrets da $_sec"
+        break
+    fi
+done
 
+LIVEKIT_API_KEY="${LIVEKIT_API_KEY:-videocitofono}"
+LIVEKIT_API_SECRET="${LIVEKIT_API_SECRET:-}"
 # Secret richiesto (header X-VC-Egress) sugli endpoint /egress/* del token
 # issuer. Serve perche' l'issuer e' esposto pubblicamente da Caddy sotto
 # /livekit-token/*: senza secret chiunque da Internet potrebbe avviare
 # registrazioni. Il Caddyfile blocca comunque /livekit-token/egress/* dalla
 # WAN; questo e' il secondo strato. Deve combaciare con il rest_command HA
 # (installer-ha/packages/configuration.yaml.fixed).
-EGRESS_SECRET="${EGRESS_SECRET:-SOSTITUISCI_CON_IL_TUO_EGRESS_SECRET}"
+EGRESS_SECRET="${EGRESS_SECRET:-}"
+if [ -z "$LIVEKIT_API_SECRET" ] || [ -z "$EGRESS_SECRET" ]; then
+    echo "ERRORE: LIVEKIT_API_SECRET e EGRESS_SECRET vanno in env o in .secrets" >&2
+    echo "        (copia .secrets.example -> .secrets e riempilo)." >&2
+    exit 1
+fi
 # Cartella host dove l'egress scrive gli MP4. Corrisponde a
 # /config/www/videocitofono lato HA, servita come /local/videocitofono/<file>.
 RECORDINGS_DIR="${RECORDINGS_DIR:-/mnt/data/supervisor/homeassistant/www/videocitofono}"

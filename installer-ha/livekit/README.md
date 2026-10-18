@@ -73,11 +73,11 @@ videocitofono) parlano un solo origin pubblico:
    | 7881 | 7881 | TCP | LiveKit ICE/TLS fallback (reti che bloccano UDP) |
    | 3478 | 3478 | UDP | TURN UDP (telefono 4G / Wi‑Fi da hotel) |
    | 5349 | 5349 | TCP | TURN TLS |
+   | 8102–8106 | 8102–8106 | UDP | TURN relay media (porte singole) |
 
    Senza 3478/5349 i client LAN restano sul candidate host. I client WAN
    tentano TURN e, se irraggiungibile, tornano a ICE TCP 7881. I media
-   relay TURN usano internamente anche 30000–40000: senza quel range il
-   allocate può riuscire e i media no.
+   relay usano 8102–8106 (`turn.relay_range_*` in `livekit.yaml`).
 
    > **Single-port mux**: LiveKit Server (≥ v1.x) sa multiplexare TUTTO il
    > traffico media RTP/RTCP di tutti i partecipanti su una sola porta UDP

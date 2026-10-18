@@ -5,6 +5,7 @@ secrets.yaml
 *.pem
 .env
 .env.*
+installer-ha/livekit/.secrets
 
 # Documentazione di lavoro dell'impianto reale: contiene credenziali, token,
 # la topologia della rete di casa e i backup di Home Assistant (centinaia di

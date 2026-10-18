@@ -132,6 +132,9 @@ logging:
 # forward singoli, porte <= 8191:
 #   WAN 3478 udp -> 192.168.1.160:3478
 #   WAN 5349 tcp -> 192.168.1.160:5349
+# I media relay TURN di default usano 30000-40000; il router non fa range.
+# Limitiamo a poche porte singole <= 8191 da forwardare una a una:
+#   WAN 8102-8106 udp -> 192.168.1.160:8102-8106
 # Senza questi forward i client LAN restano sul candidate host 192.168.1.160
 # (path attuale). I client WAN provano TURN e, se irraggiungibile, tornano
 # a ICE host/tcp 7881.
@@ -142,5 +145,7 @@ turn:
   key_file: /ssl/privkey.pem
   udp_port: 3478
   tls_port: 5349
+  relay_range_start: 8102
+  relay_range_end: 8106
 
 development: false

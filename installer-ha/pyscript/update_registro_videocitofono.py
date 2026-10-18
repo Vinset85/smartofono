@@ -20,6 +20,10 @@ from builtins import open
 REGISTRO_FILE = "/config/www/registro_videocitofono.json"
 VIDEO_DIR = "/config/www/videocitofono"
 DEFAULT_PURGE_DAYS = 7
+# Tetto disco: se le chiamate non risposte si accumulano prima del purge
+# notturno, togliamo i file piu' vecchi. 2 GiB / 80 file.
+VIDEO_MAX_BYTES = 2 * 1024 * 1024 * 1024
+VIDEO_MAX_FILES = 80
 
 # Un'azione di risposta o di apertura vale per l'ultima chiamata solo se quella
 # chiamata e' ancora aperta, oppure si e' chiusa un attimo prima: rispondendo
@@ -292,6 +296,10 @@ def purge_registro_videocitofono(giorni=DEFAULT_PURGE_DAYS):
             eliminati += 1
     _save_registro(tenuti)
     orfani = _rimuovi_video_orfani(tenuti)
+    quota = _enforce_video_quota(tenuti)
+    if quota:
+        tenuti = quota
+        _save_registro(tenuti)
     log.info(
         f"Purge completato: {eliminati} record eliminati (> {giorni}g), "
         f"{video_eliminati} video cancellati, {orfani} orfani rimossi, "
@@ -338,10 +346,50 @@ def _rimuovi_video_orfani(data):
     return rimossi
 
 
+def _enforce_video_quota(data, max_bytes=VIDEO_MAX_BYTES, max_files=VIDEO_MAX_FILES):
+    """Cancella gli MP4 piu' vecchi se si supera tetto disco o numero file."""
+    try:
+        files = []
+        for fname in os.listdir(VIDEO_DIR):
+            if not fname.endswith(".mp4"):
+                continue
+            full = os.path.join(VIDEO_DIR, fname)
+            try:
+                st = os.stat(full)
+            except OSError:
+                continue
+            files.append((st.st_mtime, st.st_size, full, fname))
+    except Exception as e:
+        log.warning(f"Quota video: scan fallito: {e}")
+        return None
+    files.sort()
+    total = sum(sz for _m, sz, _p, _n in files)
+    changed = False
+    while files and (len(files) > max_files or total > max_bytes):
+        _mtime, size, full, fname = files.pop(0)
+        try:
+            os.remove(full)
+            total -= size
+            changed = True
+            log.info(f"Quota video: rimosso {full}")
+        except Exception as e:
+            log.error(f"Quota video: errore {full}: {e}")
+            continue
+        for r in data:
+            path = _video_disk_path(r)
+            if path and os.path.basename(path) == fname:
+                r["video"] = ""
+    return data if changed else None
+
+
 @time_trigger("startup")
 def _purge_orfani_all_avvio():
     """Toglie gli MP4 che il registro non cita piu', senza toccare i recentissimi."""
-    n = _rimuovi_video_orfani(_load_registro())
+    data = _load_registro()
+    n = _rimuovi_video_orfani(data)
+    quota = _enforce_video_quota(data)
+    if quota:
+        _save_registro(quota)
     if n:
         log.info(f"Avvio: {n} video orfani rimossi")
 

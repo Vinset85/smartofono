@@ -77,3 +77,18 @@ def test_cmd_mqtt_non_espone_helper_negli_script():
     assert "action: pyscript.videocitofono_mqtt_cmd" in scripts
     mqtt_cmd = (ROOT / "pyscript" / "mqtt_cmd.py").read_text()
     assert "videocitofono_cmd_secret" in mqtt_cmd
+
+
+def test_quota_video_e_purge_avvio():
+    reg = (ROOT / "pyscript" / "update_registro_videocitofono.py").read_text()
+    assert "VIDEO_MAX_BYTES" in reg
+    assert "VIDEO_MAX_FILES" in reg
+    assert "def _enforce_video_quota" in reg
+    assert '@time_trigger("startup")' in reg
+
+
+def test_livekit_turn_relay_porte_basse():
+    lk = (ROOT / "livekit" / "livekit.yaml").read_text()
+    assert "relay_range_start: 8102" in lk
+    assert "relay_range_end: 8106" in lk
+    assert "udp_port: 3478" in lk

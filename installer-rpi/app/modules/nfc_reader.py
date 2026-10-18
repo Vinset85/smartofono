@@ -42,6 +42,10 @@ LOG = logging.getLogger(__name__)
 # il primo byte fino a ~1 s (bug USB BCM). nfcpy usa 1500 ms di ACK timeout;
 # qui aspettiamo almeno 3 s tra close e reopen.
 USB_REOPEN_SETTLE_SEC = 3.0
+# Reset USB CH340 al massimo N volte: oltre, il loop resta in down
+# senza toccare l'hub (il touch 1a86:e5e3 sta sullo stesso bus).
+USB_RECOVER_MAX = 2
+NFC_GIVE_UP_BACKOFF_SEC = 300.0
 
 # Path nfcpy da provare in ordine (PN532 UART/I2C, ACR122U).
 DEFAULT_DEVICE_CANDIDATES = (
@@ -431,7 +435,7 @@ class NfcReader:
                         self._mark_serial_closed()
                         if not self._wait_usb_settle():
                             break
-                elif self._pending_usb_recover and self._usb_recoveries < 2:
+                elif self._pending_usb_recover and self._usb_recoveries < USB_RECOVER_MAX:
                     now = time.time()
                     if now - self._last_usb_recover_ts < 120.0:
                         self._pending_usb_recover = False
@@ -441,8 +445,8 @@ class NfcReader:
                         self._usb_recoveries += 1
                         self._last_usb_recover_ts = now
                         LOG.warning(
-                            "NFC: recupero USB automatico (%d/2)",
-                            self._usb_recoveries)
+                            "NFC: recupero USB automatico (%d/%d)",
+                            self._usb_recoveries, USB_RECOVER_MAX)
                         prepare_nfc_hardware("recover")
                         self._mark_serial_closed()
                         self._reset_device_primary()
@@ -460,7 +464,8 @@ class NfcReader:
                 elif self._open_failures >= 3:
                     self._open_failures = 0
                     self._reset_device_primary()
-                    self._pending_usb_recover = True
+                    if self._usb_recoveries < USB_RECOVER_MAX:
+                        self._pending_usb_recover = True
                 disable_ch340_autosuspend()
                 ensure_pn532_ready(self.device)
                 if not self._wait_usb_settle():
@@ -495,10 +500,17 @@ class NfcReader:
                 self._ready.clear()
                 self._last_error = str(e)
                 self._open_failures += 1
-                if self._open_failures in (2, 6, 12):
+                if (self._usb_recoveries < USB_RECOVER_MAX
+                        and self._open_failures in (2, 6, 12)):
                     self._pending_usb_recover = True
-                LOG.warning("NFC loop err: %s (retry in %.1fs)",
-                            e, backoff)
+                if self._usb_recoveries >= USB_RECOVER_MAX:
+                    backoff = NFC_GIVE_UP_BACKOFF_SEC
+                    LOG.warning(
+                        "NFC loop err: %s (niente altri reset USB, retry in %.0fs)",
+                        e, backoff)
+                else:
+                    LOG.warning("NFC loop err: %s (retry in %.1fs)",
+                                e, backoff)
                 if self._clf is not None:
                     try:
                         self._clf.close()
@@ -508,7 +520,10 @@ class NfcReader:
                     self._mark_serial_closed()
                 if self._stop.wait(backoff):
                     break
-                backoff = min(backoff * 1.5, 60.0)
+                if self._usb_recoveries >= USB_RECOVER_MAX:
+                    backoff = NFC_GIVE_UP_BACKOFF_SEC
+                else:
+                    backoff = min(backoff * 1.5, 60.0)
         LOG.info("NfcReader thread terminato")
 
 

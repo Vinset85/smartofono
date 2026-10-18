@@ -54,6 +54,7 @@ class MqttPublisher:
         self._responder_video_cb: Optional[Callable[[str], None]] = None
         self._responder_audio_cb: Optional[Callable[[str], None]] = None
         self._chiamata_cb: Optional[Callable[[str], None]] = None
+        self._on_connected_cb: Optional[Callable[[], None]] = None
         # Ultimo campanello visto in un payload chiamata JSON. Usato dal
         # main per recuperare l'ID quando chiamata_in_corso arriva via
         # MQTT (test da HA) e va aperta CallingScreen con nominativo.
@@ -92,6 +93,10 @@ class MqttPublisher:
         timeout interno."""
         self._chiamata_cb = cb
 
+    def on_connected(self, cb: Callable[[], None]) -> None:
+        """Dopo un connect riuscito (anche in riconnessione)."""
+        self._on_connected_cb = cb
+
     def _on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             LOG.info("MQTT connesso a %s:%s", self.cfg["broker"], self.cfg["port"])
@@ -120,6 +125,11 @@ class MqttPublisher:
                 LOG.info("MQTT availability: online (%s)", self._status_topic)
             except Exception as e:
                 LOG.error("MQTT birth publish err: %s", e)
+            if self._on_connected_cb:
+                try:
+                    self._on_connected_cb()
+                except Exception as e:
+                    LOG.error("MQTT on_connected cb err: %s", e)
         else:
             LOG.error("MQTT connect rc=%s", rc)
 

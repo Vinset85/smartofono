@@ -274,6 +274,8 @@ class VideocitofonoApp(App):
             LOG.warning(
                 "mqtt.cmd_secret vuoto: i comandi su videocitofono/cmd "
                 "vengono accettati senza token")
+        self.mqtt.on_connected(lambda: Clock.schedule_once(
+            lambda *_: self._mqtt_republish_idle(), 0.4))
         self.mqtt.start()
         self.ha = HaClient(self.cfg["home_assistant"])
         bootstrap_users(self.cfg["pin"])
@@ -1303,6 +1305,19 @@ class VideocitofonoApp(App):
             except Exception as e:
                 LOG.warning("resume_after_camera preview err: %s", e)
         self._preview_stato("off", motivo=motivo)
+
+    def _mqtt_republish_idle(self) -> None:
+        """Dopo reconnect: se non siamo in chiamata, HA non deve restare ON."""
+        cur = ""
+        if getattr(self, "sm", None) is not None:
+            cur = str(getattr(self.sm, "current", "") or "")
+        if cur in ("calling", "conversation"):
+            return
+        try:
+            self.mqtt.publish_chiamata("terminata", "")
+            LOG.info("MQTT chiamata idle retain (screen=%s)", cur or "n/a")
+        except Exception as e:
+            LOG.warning("MQTT idle publish err: %s", e)
 
     def _handle_chiamata(self, stato: str) -> None:
         """MQTT `videocitofono/chiamata`:
