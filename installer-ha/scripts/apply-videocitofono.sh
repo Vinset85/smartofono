@@ -276,50 +276,6 @@ if lov.exists():
     except Exception as e:
         print("lovelace_finger_err", type(e).__name__)
 
-er = Path("/config/.storage/core.entity_registry")
-if er.exists():
-    try:
-        data = json.loads(er.read_text())
-        ents = ((data.get("data") or {}).get("entities")) or []
-        taken = {e.get("entity_id") for e in ents if isinstance(e, dict)}
-        by_uid = {
-            "1761000000004": "automation.videocitofono_timeout_chiamata",
-            "1761000000007": "automation.videocitofono_refresh_icone_periodico",
-            "1761000000010": "automation.videocitofono_pulsante_applica_configurazione",
-        }
-        by_old = {
-            "automation.videocitofono_apertura_via_mqtt_pin_face_nfc_finger":
-                "automation.videocitofono_pulsante_applica_configurazione",
-            "automation.videocitofono_refresh_sfondi_a_ha_start":
-                "automation.videocitofono_timeout_chiamata",
-            "automation.videocitofono_refresh_icone_a_ha_start":
-                "automation.videocitofono_refresh_icone_periodico",
-        }
-        renamed = 0
-        for e in ents:
-            if not isinstance(e, dict):
-                continue
-            uid = str(e.get("unique_id") or "")
-            eid = str(e.get("entity_id") or "")
-            new = by_uid.get(uid) or by_old.get(eid)
-            if not new or eid == new:
-                continue
-            if new in taken:
-                print("eid_skip_taken", eid, new)
-                continue
-            taken.discard(eid)
-            taken.add(new)
-            e["entity_id"] = new
-            renamed += 1
-            print("eid_renamed", eid, "->", new)
-        if renamed:
-            shutil.copy2(er, Path(str(er) + ".bak-apply-" + ts))
-            er.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
-            need_ha_restart = True
-            print("entity_registry_renamed", renamed)
-    except Exception as e:
-        print("entity_registry_err", type(e).__name__)
-
 tok_path = Path("/run/s6/container_environment/SUPERVISOR_TOKEN")
 tok = tok_path.read_text().strip() if tok_path.exists() else ""
 
@@ -351,6 +307,133 @@ for svc in svcs:
     except Exception as e:
         print("reload_err", svc, type(e).__name__)
 os.remove("/tmp/vc_apply.tar")
+PY
+
+echo "==> rinomina entity_id via websocket (il file .storage viene sovrascritto da HA)"
+ssh_ha 'sudo python3 -' <<'PY'
+import json, os, socket, struct, base64, time, urllib.request
+
+tok_path = "/run/s6/container_environment/SUPERVISOR_TOKEN"
+tok = open(tok_path).read().strip() if os.path.exists(tok_path) else ""
+if not tok:
+    print("eid_ws_skip_no_token")
+    raise SystemExit(0)
+
+def api_ok():
+    req = urllib.request.Request(
+        "http://supervisor/core/api/states/sensor.videocitofono_health",
+        headers={"Authorization": "Bearer " + tok},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+for i in range(24):
+    if api_ok():
+        break
+    time.sleep(5)
+else:
+    print("eid_ws_skip_core_down")
+    raise SystemExit(0)
+
+def frame(data, opcode=1):
+    raw = data if isinstance(data, bytes) else data.encode()
+    hdr = bytearray([0x80 | opcode])
+    n = len(raw)
+    mask = os.urandom(4)
+    if n < 126:
+        hdr.append(0x80 | n)
+    elif n < 65536:
+        hdr.append(0x80 | 126)
+        hdr.extend(struct.pack("!H", n))
+    else:
+        hdr.append(0x80 | 127)
+        hdr.extend(struct.pack("!Q", n))
+    hdr.extend(mask)
+    return bytes(hdr) + bytes(b ^ mask[i % 4] for i, b in enumerate(raw))
+
+def read_msg(sock):
+    while True:
+        hdr = b""
+        while len(hdr) < 2:
+            c = sock.recv(2 - len(hdr))
+            if not c:
+                raise EOFError("ws closed")
+            hdr += c
+        opcode = hdr[0] & 0x0F
+        masked = bool(hdr[1] & 0x80)
+        n = hdr[1] & 0x7F
+        extra = b""
+        if n == 126:
+            extra = sock.recv(2)
+            n = struct.unpack("!H", extra)[0]
+        elif n == 127:
+            extra = sock.recv(8)
+            n = struct.unpack("!Q", extra)[0]
+        mask = sock.recv(4) if masked else b""
+        data = b""
+        while len(data) < n:
+            data += sock.recv(n - len(data))
+        if masked:
+            data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
+        if opcode == 0x8:
+            return None
+        if opcode == 0x9:
+            sock.sendall(frame(data, opcode=0xA))
+            continue
+        if opcode in (0x1, 0x2, 0x0):
+            return data.decode("utf-8", "replace")
+
+key = base64.b64encode(os.urandom(16)).decode()
+req = (
+    "GET /core/websocket HTTP/1.1\r\n"
+    "Host: supervisor\r\n"
+    "Upgrade: websocket\r\n"
+    "Connection: Upgrade\r\n"
+    "Sec-WebSocket-Key: %s\r\n"
+    "Sec-WebSocket-Version: 13\r\n"
+    "Authorization: Bearer %s\r\n"
+    "\r\n"
+) % (key, tok)
+s = socket.create_connection(("supervisor", 80), 10)
+s.settimeout(15)
+s.sendall(req.encode())
+buf = b""
+while b"\r\n\r\n" not in buf:
+    chunk = s.recv(4096)
+    if not chunk:
+        print("eid_ws_no_upgrade")
+        raise SystemExit(0)
+    buf += chunk
+read_msg(s)
+s.sendall(frame(json.dumps({"type": "auth", "access_token": tok})))
+auth = json.loads(read_msg(s) or "{}")
+if auth.get("type") != "auth_ok":
+    print("eid_ws_auth_fail", auth.get("type"))
+    raise SystemExit(0)
+renames = [
+    ("automation.videocitofono_refresh_sfondi_a_ha_start",
+     "automation.videocitofono_timeout_chiamata"),
+    ("automation.videocitofono_refresh_icone_a_ha_start",
+     "automation.videocitofono_refresh_icone_periodico"),
+    ("automation.videocitofono_apertura_via_mqtt_pin_face_nfc_finger",
+     "automation.videocitofono_pulsante_applica_configurazione"),
+]
+mid = 1
+for old, new in renames:
+    s.sendall(frame(json.dumps({
+        "id": mid,
+        "type": "config/entity_registry/update",
+        "entity_id": old,
+        "new_entity_id": new,
+    })))
+    resp = json.loads(read_msg(s) or "{}")
+    ok = bool(resp.get("success"))
+    print("eid_ws", old, "->", new, "ok" if ok else resp.get("error") or resp.get("type"))
+    mid += 1
+s.close()
 PY
 
 echo "==> apply completato"

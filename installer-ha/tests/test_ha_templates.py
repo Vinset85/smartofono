@@ -157,6 +157,7 @@ def test_token_issuer_richiede_secret():
 def test_apply_rinomina_entity_id_e_scripts_yaml():
     sh = (ROOT / "scripts" / "apply-videocitofono.sh").read_text()
     assert "automation.videocitofono_timeout_chiamata" in sh
-    assert "entity_registry_renamed" in sh
+    assert "config/entity_registry/update" in sh
+    assert "entity_registry_renamed" not in sh
     dep = (ROOT / "deploy.sh").read_text()
     assert "scripts.yaml.fixed" in dep
