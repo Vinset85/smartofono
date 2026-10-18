@@ -32,7 +32,7 @@ base = load(\"/opt/videocitofono/app/config/config.yaml\")
 ov = load(\"/opt/videocitofono/app/config/config.override.yaml\")
 full = merge(base, ov)
 keys = (\"campanelli\", \"ui\", \"access_icons\", \"motion\", \"pin\",
-        \"face_recognition\", \"fingerprint\", \"nfc\", \"audio\", \"tts\")
+        \"face_recognition\", \"nfc\", \"audio\", \"tts\")
 patch = {k: full[k] for k in keys if k in full}
 example = load(\"/opt/videocitofono/app/config/config.example.yaml\")
 for k, v in patch.items():

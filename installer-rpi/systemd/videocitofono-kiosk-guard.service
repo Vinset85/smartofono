@@ -1,0 +1,13 @@
+[Unit]
+Description=Videocitofono - ritenta autologin se compare il greeter
+After=display-manager.service graphical.target
+Wants=display-manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/videocitofono/scripts/kiosk-ensure-session.sh
+TimeoutStartSec=120
+
+[Install]
+WantedBy=graphical.target

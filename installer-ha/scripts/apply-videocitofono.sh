@@ -26,7 +26,13 @@ echo "==> apply videocitofono -> ${HA_SSH}"
 COPYFILE_DISABLE=1 tar -C "$ROOT" --exclude='._*' -cf - \
   pyscript/mqtt_cmd.py \
   pyscript/update_registro_videocitofono.py \
+  pyscript/icone.py \
+  pyscript/sfondi.py \
+  pyscript/nfc.py \
+  pyscript/volti.py \
+  pyscript/guest_pin.py \
   packages/scripts.yaml.fixed \
+  packages/automations.yaml.fixed \
   www/vc-livekit-preview.js \
   www/vc-livekit-call.js \
   www/vc-livekit.js \
@@ -39,6 +45,7 @@ import tarfile, datetime, shutil, json, urllib.request, os
 
 ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tf = tarfile.open("/tmp/vc_apply.tar")
+need_ha_restart = False
 
 def extract(member, dest):
     src = tf.extractfile(member)
@@ -48,12 +55,72 @@ def extract(member, dest):
 
 extract("pyscript/mqtt_cmd.py", Path("/config/pyscript/mqtt_cmd.py"))
 extract("pyscript/update_registro_videocitofono.py", Path("/config/pyscript/update_registro_videocitofono.py"))
+extract("pyscript/icone.py", Path("/config/pyscript/icone.py"))
+extract("pyscript/sfondi.py", Path("/config/pyscript/sfondi.py"))
+extract("pyscript/nfc.py", Path("/config/pyscript/nfc.py"))
+extract("pyscript/volti.py", Path("/config/pyscript/volti.py"))
+extract("pyscript/guest_pin.py", Path("/config/pyscript/guest_pin.py"))
 extract("packages/scripts.yaml.fixed", Path("/config/scripts.yaml"))
+auto_src = tf.extractfile("packages/automations.yaml.fixed").read().decode()
+auto_dst = Path("/config/automations.yaml")
+
+
+def _auto_block(src, aid):
+    marker = "- id: '%s'" % aid
+    i = src.find(marker)
+    if i < 0:
+        return ""
+    j = src.find("\n- id:", i + len(marker))
+    chunk = src[i:j] if j >= 0 else src[i:]
+    return chunk.rstrip() + "\n"
+
+
+if auto_dst.exists():
+    live = auto_dst.read_text()
+    orig = live
+    if "pyscript.videocitofono_mqtt_cmd" not in live and "videocitofono/cmd" in live and "campanelli" in live:
+        live = live.replace(
+            "  - action: mqtt.publish\n    data:\n      topic: videocitofono/cmd\n      qos: 1\n      retain: false\n      payload: >-\n        {\"action\":\"set_config\",\"persist_default\":true,\"config\":{\"campanelli\": {{ campanelli | tojson }} }}",
+            "  - action: pyscript.videocitofono_mqtt_cmd\n    data:\n      action: set_config\n      persist_default: true\n      config: '{\"campanelli\": {{ campanelli | tojson }}}'",
+            1,
+        )
+    for aid in ("1761000000026", "1761000000027"):
+        if aid not in live:
+            blk = _auto_block(auto_src, aid)
+            if blk:
+                live = live.rstrip() + "\n" + blk
+    blk5 = _auto_block(auto_src, "1761000000005")
+    if blk5:
+        marker = "- id: '1761000000005'"
+        i = live.find(marker)
+        if i >= 0:
+            j = live.find("\n- id:", i + len(marker))
+            live = live[:i] + blk5 + (live[j+1:] if j >= 0 else "")
+    if live != orig:
+        shutil.copy2(auto_dst, Path(str(auto_dst) + ".bak-apply-" + ts))
+        auto_dst.write_text(live)
+        print("automations_patched")
 for name in (
     "vc-livekit-preview.js", "vc-livekit-call.js",
     "vc-livekit.js", "vc-ring-visitor.js",
 ):
     extract("www/" + name, Path("/config/www") / name)
+res = Path("/config/.storage/lovelace_resources")
+if res.exists():
+    try:
+        data = json.loads(res.read_text())
+        items = (data.get("data") or {}).get("items") or []
+        changed = False
+        for item in items:
+            url = str(item.get("url") or "")
+            if "vc-livekit-call.js" in url:
+                item["url"] = "/local/vc-livekit-call.js?v=" + ts
+                changed = True
+        if changed:
+            res.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+            print("lovelace_call_js_bust")
+    except Exception as e:
+        print("lovelace_bust_err", type(e).__name__)
 
 cfg = Path("/config/configuration.yaml")
 shutil.copy2(cfg, Path(str(cfg) + ".bak-apply-" + ts))
@@ -86,8 +153,80 @@ if "unique_id: vc_registro" not in text and "name: Registro Videocitofono" in te
         "name: Registro Videocitofono\n      unique_id: vc_registro\n",
         1,
     )
+def drop_yaml_key(src, key):
+    needle = "  %s:" % key
+    lines = src.splitlines(keepends=True)
+    out, i = [], 0
+    while i < len(lines):
+        if lines[i].startswith(needle):
+            i += 1
+            while i < len(lines) and (
+                lines[i].startswith("    ") or lines[i].startswith("  -")
+            ):
+                i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return "".join(out)
+
+if "videocitofono_finger_enabled" in text or "videocitofono_metodo_fingerprint_icona" in text:
+    need_ha_restart = True
+text = drop_yaml_key(text, "videocitofono_finger_enabled")
+text = drop_yaml_key(text, "videocitofono_metodo_fingerprint_icona")
 cfg.write_text(text)
 print("cfg_ok")
+
+def strip_finger(obj):
+    def is_finger_leaf(o):
+        if not isinstance(o, dict):
+            return False
+        if any(k in o for k in ("cards", "sections", "views", "config", "data", "version")):
+            return False
+        eid = str(o.get("entity") or "")
+        if "finger_enabled" in eid or "metodo_fingerprint" in eid:
+            return True
+        blob = " ".join(str(o.get(k) or "") for k in ("name", "title", "content", "icon", "label")).lower()
+        return "impronta" in blob or "mdi:fingerprint" in blob
+    if isinstance(obj, dict):
+        if is_finger_leaf(obj):
+            return None
+        out = {}
+        for k, v in obj.items():
+            if k in ("cards", "sections", "views", "entities", "targets") and isinstance(v, list):
+                out[k] = [x for x in (strip_finger(i) for i in v) if x is not None]
+            else:
+                nv = strip_finger(v)
+                if nv is None and k in ("data", "config", "views"):
+                    raise RuntimeError("strip_finger refused to drop " + k)
+                if nv is not None:
+                    out[k] = nv
+        title = str(out.get("title", ""))
+        if "impronta" in title.lower():
+            out["title"] = title.replace("PIN, volto, impronta, RFID", "PIN, volto, RFID")
+        return out
+    if isinstance(obj, list):
+        return [x for x in (strip_finger(i) for i in obj) if x is not None]
+    return obj
+
+lov = Path("/config/.storage/lovelace.lovelace")
+if lov.exists():
+    try:
+        raw = lov.read_text().strip()
+        if raw in ("", "null", "None"):
+            print("lovelace_live_empty_skip")
+        else:
+            data = json.loads(raw)
+            stripped = strip_finger(data)
+            views = ((stripped or {}).get("data") or {}).get("config") or {}
+            if not (views.get("views") if isinstance(views, dict) else None):
+                print("lovelace_strip_refused")
+            elif json.dumps(stripped) != json.dumps(data):
+                shutil.copy2(lov, Path(str(lov) + ".bak-apply-" + ts))
+                lov.write_text(json.dumps(stripped, ensure_ascii=False, separators=(",", ":")) + "\n")
+                need_ha_restart = True
+                print("lovelace_fingerprint_removed")
+    except Exception as e:
+        print("lovelace_finger_err", type(e).__name__)
 
 tok_path = Path("/run/s6/container_environment/SUPERVISOR_TOKEN")
 tok = tok_path.read_text().strip() if tok_path.exists() else ""
@@ -106,7 +245,15 @@ def api(path, method="POST", body=None):
     with urllib.request.urlopen(req, timeout=30) as resp:
         print(path, resp.status)
 
-for svc in ("/services/script/reload", "/services/mqtt/reload", "/services/pyscript/reload"):
+svcs = [
+    "/services/script/reload",
+    "/services/mqtt/reload",
+    "/services/pyscript/reload",
+    "/services/automation/reload",
+]
+if need_ha_restart:
+    svcs.append("/services/homeassistant/restart")
+for svc in svcs:
     try:
         api(svc)
     except Exception as e:

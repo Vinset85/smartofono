@@ -2,7 +2,7 @@
 
 Pubblica su:
   videocitofono/chiamata           "chiamata_in_corso" | "annullata"
-  videocitofono/apertura           {"metodo": "pin|face|finger|nfc|admin", "utente": "...", "scope": "porta|cancello"}
+  videocitofono/apertura           {"metodo": "pin|face|nfc|admin", "utente": "...", "scope": "porta|cancello"}
   videocitofono/evento             eventi diagnostica (boot, errore, ecc)
 
 Si sottoscrive a:
@@ -201,6 +201,9 @@ class MqttPublisher:
             if msg.topic == topic_wake and self._wake_cb:
                 self._wake_cb(payload)
             elif msg.topic == topic_cmd and self._cmd_cb:
+                if getattr(msg, "retain", False):
+                    LOG.info("MQTT cmd retain ignorato (pulire videocitofono/cmd)")
+                    return
                 self._cmd_cb(payload)
         except Exception as e:
             LOG.error("MQTT cb err: %s", e)

@@ -72,12 +72,11 @@ def _set_options(options):
 
 def _publish_library(files):
     try:
-        payload = {
-            "action": "set_sfondi_library",
-            "base_url": "/local/vc-sfondi/",
-            "files": files,
-        }
-        mqtt.publish(topic=TOPIC_CMD, payload=json.dumps(payload), qos=1, retain=False)
+        videocitofono_mqtt_cmd(
+            action="set_sfondi_library",
+            base_url="/local/vc-sfondi/",
+            files=files,
+        )
     except Exception as e:
         log.warning(f"MQTT publish library sfondi fallito: {e}")
 

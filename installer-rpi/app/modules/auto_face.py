@@ -302,31 +302,13 @@ class AutoFaceScanner:
     def _open_door(self, match: dict) -> None:
         nome = match.get("nome", "")
         scope = match.get("apre", "porta")
-        rest_ok = False
-        try:
-            ha = getattr(self.app, "ha", None)
-            if ha is not None:
-                rest_ok = (ha.apri_porta() if scope == "porta"
-                           else ha.apri_cancello())
-        except Exception as e:
-            LOG.warning("auto_face REST err: %s", e)
-        try:
-            mqtt = getattr(self.app, "mqtt", None)
-            if mqtt is not None:
-                mqtt.publish_apertura(metodo="face_auto",
-                                      utente=nome, scope=scope)
-        except Exception:
-            pass
-        try:
-            ctx = getattr(self.app, "ctx", None)
-            if ctx is not None:
-                ctx.record_open(method="face_auto", user=nome, scope=scope,
-                                success=True,
-                                distance=float(match.get("distance", -1)))
-        except Exception:
-            pass
-        LOG.info("auto_face: aperto scope=%s rest_ok=%s nome=%s",
-                 scope, rest_ok, nome)
+        ctx = getattr(self.app, "ctx", None)
+        if ctx is not None:
+            ctx.open_access(
+                method="face_auto", user=nome, scope=scope,
+                distance=float(match.get("distance", -1)),
+            )
+        LOG.info("auto_face: aperto scope=%s nome=%s", scope, nome)
         # UI feedback (deve girare sul thread di Kivy): mostra la stessa
         # schermata "Porta aperta / Cancello aperto" del flusso manuale,
         # con saluto personalizzato e TTS dopo il suono di successo.

@@ -17,7 +17,7 @@ sudo apt-get install -y --no-install-recommends \
     libmtdev-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
     libgl1 libgles2 libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
     fonts-dejavu fonts-noto-color-emoji fonts-symbola \
-    python3-picamera2 python3-opencv python3-numpy \
+    python3-picamera2 python3-opencv python3-numpy python3-lgpio \
     libusb-1.0-0 \
     xwayland grim wlr-randr \
     git rsync
@@ -53,6 +53,28 @@ if [ ! -f "$APP_ROOT/app/config/config.yaml" ]; then
     cp "$APP_ROOT/app/config/config.example.yaml" "$APP_ROOT/app/config/config.yaml"
     echo "    Modificare $APP_ROOT/app/config/config.yaml prima dell'avvio."
 fi
+rm -f "$APP_ROOT/app/assets/avatars/icons8-fingerprint-100.png"
+"$APP_ROOT/venv/bin/python3" - <<'PY' || true
+import yaml
+from pathlib import Path
+root = Path("/opt/videocitofono/app/config")
+for name in ("config.yaml", "config.override.yaml"):
+    p = root / name
+    if not p.is_file():
+        continue
+    data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    changed = False
+    if "fingerprint" in data:
+        data.pop("fingerprint", None)
+        changed = True
+    icons = data.get("access_icons")
+    if isinstance(icons, dict) and "fingerprint" in icons:
+        icons.pop("fingerprint", None)
+        changed = True
+    if changed:
+        p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        print("removed fingerprint from", p)
+PY
 
 echo "--> udev rule per controllo backlight da utente non root"
 sudo tee /etc/udev/rules.d/99-backlight.rules >/dev/null <<'EOF'
@@ -62,7 +84,8 @@ EOF
 sudo udevadm control --reload-rules || true
 sudo udevadm trigger --action=add --subsystem-match=backlight || true
 sudo usermod -aG video "$APP_USER" || true
-# Porta seriale USB del lettore NFC (ttyUSB*)
+# GPIO relè apertura (gpiochip / pinctrl) e seriale USB NFC
+sudo usermod -aG gpio "$APP_USER" || true
 sudo usermod -aG dialout "$APP_USER" || true
 if [ -f "$REPO_ROOT/scripts/udev-nfc-ch340.rules" ]; then
     sudo cp "$REPO_ROOT/scripts/udev-nfc-ch340.rules" \
@@ -115,10 +138,22 @@ EOF
     chown "$APP_USER:$APP_USER" /home/"$APP_USER"/.config/labwc/environment
 fi
 
-echo "--> Script reset USB lettore NFC (CH340)"
+echo "--> Script reset USB lettore NFC (CH340) e attesa display kiosk"
 sudo mkdir -p "$APP_ROOT/scripts"
 sudo install -m 0755 "$REPO_ROOT/scripts/nfc-usb-reset.sh" \
     "$APP_ROOT/scripts/nfc-usb-reset.sh"
+sudo install -m 0755 "$REPO_ROOT/scripts/wait-kiosk-display.sh" \
+    "$APP_ROOT/scripts/wait-kiosk-display.sh"
+sudo install -m 0755 "$REPO_ROOT/scripts/kiosk-ensure-session.sh" \
+    "$APP_ROOT/scripts/kiosk-ensure-session.sh"
+
+echo "--> LightDM: autologin immediato (niente timeout greeter)"
+sudo mkdir -p /etc/lightdm/lightdm.conf.d
+sudo tee /etc/lightdm/lightdm.conf.d/99-videocitofono-kiosk.conf >/dev/null <<EOF
+[Seat:*]
+autologin-user=$APP_USER
+autologin-user-timeout=0
+EOF
 
 echo "--> Sudoers: consenti all'app di restartare se stessa e rebootare l'RPi via MQTT"
 sudo tee /etc/sudoers.d/videocitofono >/dev/null <<EOF
@@ -169,10 +204,13 @@ sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono.service" \
     /etc/systemd/system/videocitofono.service
 sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono-nfc-prep.service" \
     /etc/systemd/system/videocitofono-nfc-prep.service
+sudo install -m 0644 "$REPO_ROOT/systemd/videocitofono-kiosk-guard.service" \
+    /etc/systemd/system/videocitofono-kiosk-guard.service
 sudo systemctl daemon-reload
 # Prep NFC non abilitato di default (evita conflitti con touch USB interno).
 sudo systemctl disable videocitofono-nfc-prep.service 2>/dev/null || true
 sudo systemctl enable videocitofono.service
+sudo systemctl enable videocitofono-kiosk-guard.service
 
 cat <<EOF
 

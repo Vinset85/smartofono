@@ -656,31 +656,15 @@ class FaceScreen(BgScreen):
         scope = utente.get("apre", "porta")
         nome = utente.get("nome", "")
         nome_h = nome.replace("_", " ")
-        # Apertura via doppio canale (REST + MQTT, vedi PinScreen._apri).
-        rest_ok = False
-        try:
-            rest_ok = (
-                self.app_ctx.ha.apri_porta() if scope == "porta"
-                else self.app_ctx.ha.apri_cancello()
-            )
-        except Exception as e:
-            LOG.warning("apri (REST) face err: %s", e)
-        try:
-            self.app_ctx.mqtt.publish_apertura(metodo="face", utente=nome, scope=scope)
-        except Exception as e:
-            LOG.warning("publish_apertura face err: %s", e)
-        LOG.info("face success scope=%s rest_ok=%s nome=%s dist=%.3f",
-                 scope, rest_ok, nome, float(utente.get("distance", -1)))
-        try:
-            self.app_ctx.record_open(
-                method="face", user=nome, scope=scope, success=True,
-                distance=float(utente.get("distance", -1)),
-                similarity=float(utente.get("similarity", 0.0)),
-                engine=getattr(self.app_ctx.face, "engine_name", ""),
-                liveness_blinks=(self._liveness.blinks if self._liveness else None),
-            )
-        except Exception:
-            pass
+        self.app_ctx.open_access(
+            method="face", user=nome, scope=scope,
+            distance=float(utente.get("distance", -1)),
+            similarity=float(utente.get("similarity", 0.0)),
+            engine=getattr(self.app_ctx.face, "engine_name", ""),
+            liveness_blinks=(self._liveness.blinks if self._liveness else None),
+        )
+        LOG.info("face success scope=%s nome=%s dist=%.3f",
+                 scope, nome, float(utente.get("distance", -1)))
         # Schermata Porta aperta con saluto personalizzato e variabile
         # in base alla fascia oraria (mattina/pomeriggio/sera/notte) e al
         # sesso dell'utente. Vedi modules/greetings.py.

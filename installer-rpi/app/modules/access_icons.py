@@ -1,4 +1,4 @@
-"""Risoluzione icone metodi di accesso (PIN, volto, impronta, NFC).
+"""Risoluzione icone metodi di accesso (PIN, volto, NFC).
 
 Default allineati a config.example.yaml / videocitofono_defaults.json HA.
 I PNG di default sono in app/assets/avatars/ (shippati col deploy).
@@ -13,7 +13,6 @@ from typing import Any, Tuple
 DEFAULT_ACCESS_ICONS = {
     "pin": "icons8-keypad-100.png",
     "face": "icons8-face-id-100.png",
-    "fingerprint": "icons8-fingerprint-100.png",
     "nfc": "icons8-rfid-500.png",
 }
 

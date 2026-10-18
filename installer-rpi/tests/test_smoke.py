@@ -9,6 +9,31 @@ ROOT = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(ROOT))
 
 
+def test_mqtt_cmd_retain_ignorato():
+    try:
+        from modules.mqtt_client import MqttPublisher
+    except ModuleNotFoundError:
+        return
+
+    class _Msg:
+        def __init__(self, retain):
+            self.topic = "videocitofono/cmd"
+            self.payload = b'{"action":"set_config"}'
+            self.retain = retain
+
+    p = MqttPublisher(
+        {"broker": "127.0.0.1", "port": 1883, "topic_chiamata": "t",
+         "topic_cmd": "videocitofono/cmd",
+         "topic_status": "videocitofono/status"}
+    )
+    seen = []
+    p.on_cmd(lambda d: seen.append(d))
+    p._on_message(p._client, None, _Msg(True))
+    assert seen == []
+    p._on_message(p._client, None, _Msg(False))
+    assert seen and seen[0].get("action") == "set_config"
+
+
 def test_mqtt_on_connected_cb():
     try:
         from modules.mqtt_client import MqttPublisher
@@ -31,11 +56,33 @@ def test_nfc_usb_recover_max():
     from modules import nfc_reader as nr
 
     assert nr.USB_RECOVER_MAX == 1
+    assert nr.NFC_OPEN_FAILS_BEFORE_USB >= 6
+    assert nr.nfc_recover_mode(0) == "hard"
+    assert nr.nfc_recover_mode(1) == "hard"
     assert 5 <= nr.NFC_GIVE_UP_BACKOFF_SEC <= 30
     src = Path(nr.__file__).read_text(encoding="utf-8")
     assert "esce solo su stop() esplicito" in src
     assert "riapertura ascolto" in src
-    assert "recupero USB per ascolto" in src
+    assert "uart_pn532_reset_and_wake" in src
+    assert "reset software" in src
+    assert "USB_RECOVER_RETRY_SEC" in src
+    assert "_emit_status" in src
+    script = Path(nr.__file__).resolve().parents[2] / "scripts" / "nfc-usb-reset.sh"
+    sh = script.read_text(encoding="utf-8")
+    assert "dwc3_reset_ch340_controller" in sh
+    assert "1f00300000.usb" in sh
+    assert "skip VBUS" in sh
+
+
+def test_kiosk_attende_labwc():
+    root = Path(__file__).resolve().parents[1]
+    unit = (root / "systemd" / "videocitofono.service").read_text(encoding="utf-8")
+    assert "wait-kiosk-display.sh" in unit
+    assert "display-manager.service" in unit
+    wait = (root / "scripts" / "wait-kiosk-display.sh").read_text(encoding="utf-8")
+    assert "wayland-0" in wait
+    guard = (root / "scripts" / "kiosk-ensure-session.sh").read_text(encoding="utf-8")
+    assert "restart lightdm" in guard
 
 
 def test_cmd_auth():
@@ -89,12 +136,41 @@ def test_backup_targets():
     assert "nfc_tags.json" in names
 
 
-def test_fingerprint_stub():
-    from modules.fingerprint_reader import FingerprintReader
+def test_door_relay_impulso_locale():
+    from modules.door_gpio import DoorRelay
 
-    fp = FingerprintReader({"enabled": True})
-    assert not fp.is_available()
-    assert fp.enroll_next() is None
+    off = DoorRelay({"enabled": False})
+    assert off.gpio_for("porta") == 12
+    assert off.gpio_for("cancello") == 13
+    assert off.pulse("porta") is False
+
+    calls: list[tuple[int, int]] = []
+    r = DoorRelay({"enabled": False, "pulse_ms": 20, "porta_gpio": 12})
+    r.enabled = True
+    r._backend = "mock"
+    r._lgpio = None
+    r._claim_output = lambda gpio: None
+    r._write = lambda gpio, level: calls.append((gpio, int(level)))
+    assert r.pulse("porta") is True
+    assert calls[0] == (12, 1)
+    cfg = (ROOT / "config" / "config.example.yaml").read_text()
+    assert "porta_gpio: 12" in cfg
+    main = (ROOT / "main.py").read_text()
+    assert "def open_access" in main
+    assert "DoorRelay" in main
+
+
+def test_fingerprint_rimosso():
+    assert not (ROOT / "modules" / "fingerprint_reader.py").exists()
+    cfg = (ROOT / "config" / "config.example.yaml").read_text()
+    assert "fingerprint" not in cfg
+    main = (ROOT / "main.py").read_text()
+    assert "FingerprintReader" not in main
+    assert "FingerScreen" not in main
+    kv = (ROOT / "videocitofono.kv").read_text()
+    assert "FingerScreen" not in kv
+    home = (ROOT / "screens" / "home.py").read_text()
+    assert "fingerprint" not in home
 
 
 def test_cmd_auth_senza_secret_accetta():

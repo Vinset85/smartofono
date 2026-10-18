@@ -1,4 +1,4 @@
-"""Schermata Home: header, lista pulsanti chiamata per nominativo, bottoniera metodi accesso (PIN/Volto/Impronta/NFC) filtrata in base ai flag enabled."""
+"""Schermata Home: header, lista pulsanti chiamata per nominativo, bottoniera metodi accesso (PIN/Volto/NFC) filtrata in base ai flag enabled."""
 from __future__ import annotations
 
 import datetime
@@ -35,7 +35,6 @@ class HomeScreen(BgScreen):
         # (cfg_section,    icon_key,       icon_type,      label,      screen,    default_enabled)
         ("pin",             "pin",          "dialpad",      "PIN",      "pin",      True),
         ("face_recognition", "face",        "face",         "Volto",    "face",     False),
-        ("fingerprint",     "fingerprint",  "fingerprint",  "Impronta", "finger",   False),
         ("nfc",             "nfc",          "nfc",          "NFC",      "nfc",      False),
     )
 
@@ -79,7 +78,7 @@ class HomeScreen(BgScreen):
 
     def _is_method_enabled(self, cfg_section: str, default: bool) -> bool:
         """Legge config[<section>].enabled. PIN attivo di default (a meno
-        che esplicitamente disabilitato). Gli altri (face/finger/nfc)
+        che esplicitamente disabilitato). Gli altri (face/nfc)
         disabilitati di default finche' non vengono attivati da HA.
         """
         sec = self.app_ctx.config.get(cfg_section, {}) or {}
@@ -95,7 +94,7 @@ class HomeScreen(BgScreen):
         - Servizi disabilitati: pulsante NON renderizzato.
         - Servizio attivo: IconAccessButton con icona custom (da
           assets/avatars/<filename>) o VectorIcon di default.
-        - cols del GridLayout = numero di pulsanti attivi (max 4) per
+        - cols del GridLayout = numero di pulsanti attivi (max 3) per
           mantenere bottoni quadrati su qualsiasi numero di metodi.
         """
         bar = self.ids.get("bottoniera_accessi")
@@ -214,7 +213,7 @@ class HomeScreen(BgScreen):
             self.app_ctx.sound.play("click")
         except Exception:
             pass
-        instant = screen_name in ("face", "pin", "nfc", "finger")
+        instant = screen_name in ("face", "pin", "nfc")
         self.app_ctx.go_screen(screen_name, instant=instant)
 
     def on_touch_down(self, touch):

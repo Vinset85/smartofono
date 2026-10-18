@@ -764,7 +764,8 @@ rettangolo lattiginoso — ma su OLED è il modo giusto, non un ripiego. Cadono
 quindi entrambe le altre strade, e non è una perdita: il ~~DDC/CI~~ era già stato
 provato e non risponde (sul bus `/dev/i2c-14` c'è solo la EEPROM dell'EDID a
 `0x50`, l'indirizzo `0x37` è muto), e l'~~ingresso PWM di dimming~~ non esiste
-perché non c'è un backlight da dimmerare. GPIO12 e GPIO13 restano liberi.
+perché non c'è un backlight da dimmerare. GPIO12 e GPIO13 restano liberi
+dal display: li usa l'impulso del relè di apertura (porta / cancello).
 
 **Il nero è nero, e il vetro nero funziona per davvero.** Un pixel spento su
 OLED non emette: a display acceso ma interfaccia scura, il pannello è

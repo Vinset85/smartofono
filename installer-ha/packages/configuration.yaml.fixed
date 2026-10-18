@@ -265,10 +265,6 @@ input_boolean:
     name: Videocitofono Riconoscimento volto abilitato
     icon: mdi:face-recognition
     initial: true
-  videocitofono_finger_enabled:
-    name: Videocitofono Lettore impronta abilitato
-    icon: mdi:fingerprint
-    initial: false
   videocitofono_pin_enabled:
     name: Videocitofono PIN abilitato
     icon: mdi:dialpad
@@ -504,7 +500,7 @@ input_select:
       - default
     initial: default
     icon: mdi:account-circle
-  # Icone dei metodi di accesso (PIN/Volto/Impronta/NFC). Stessa libreria
+  # Icone dei metodi di accesso (PIN/Volto/NFC). Stessa libreria
   # di /config/www/vc-icone/. 'default' = grafica vettoriale built-in del Pi.
   videocitofono_metodo_pin_icona:
     name: Metodo PIN - Icona
@@ -520,13 +516,6 @@ input_select:
       - icons8-face-id-100.png
     initial: icons8-face-id-100.png
     icon: mdi:face-recognition
-  videocitofono_metodo_fingerprint_icona:
-    name: Metodo Impronta - Icona
-    options:
-      - default
-      - icons8-fingerprint-100.png
-    initial: icons8-fingerprint-100.png
-    icon: mdi:fingerprint
   videocitofono_metodo_nfc_icona:
     name: Metodo NFC - Icona
     options:

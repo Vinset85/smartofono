@@ -1,5 +1,5 @@
 """Mixin Screen con sfondo dinamico (`bg_source`) condiviso tra tutte
-le schermate (Home, Calling, Pin, Face, Finger, Nfc, Result, ...).
+le schermate (Home, Calling, Pin, Face, Nfc, Result, ...).
 
 Uso:
     class HomeScreen(BgScreen):

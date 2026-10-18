@@ -1,7 +1,7 @@
 [Unit]
 Description=Videocitofono - Postazione Esterna (Kivy)
-After=network-online.target mosquitto.service graphical.target
-Wants=network-online.target
+After=network-online.target mosquitto.service graphical.target display-manager.service
+Wants=network-online.target display-manager.service
 
 [Service]
 Type=notify
@@ -9,6 +9,7 @@ WatchdogSec=60
 NotifyAccess=main
 User=vinset
 Group=vinset
+SupplementaryGroups=gpio
 WorkingDirectory=/opt/videocitofono/app
 Environment=PYTHONUNBUFFERED=1
 # Forza locale UTF-8 (sotto systemd la LANG di default e' C/POSIX -> open() usa
@@ -42,12 +43,16 @@ Environment=XAUTHORITY=/home/vinset/.Xauthority
 Environment=VC_LK_TOKEN_URL=http://192.168.1.160:8081/token
 Environment=VC_LK_WS_URL=ws://192.168.1.160:7880
 Environment=VC_LK_PUBLISH=1
+# Kivy non deve partire prima di labwc: altrimenti DRM/GBM fail e LightDM
+# mostra il login (labwc-pi exit 1).
+ExecStartPre=/opt/videocitofono/scripts/wait-kiosk-display.sh
 ExecStartPre=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/scripts/restore_config_defaults.py
 # Il reset USB a ogni avvio lascia il PN532 acceso ma muto (HSU).
 # Il thread NFC prova nfcpy e, se serve, fa al massimo 2 recover.
 ExecStart=/opt/videocitofono/venv/bin/python3 /opt/videocitofono/app/main.py
 Restart=always
 RestartSec=5
+TimeoutStartSec=120
 
 [Install]
 WantedBy=graphical.target

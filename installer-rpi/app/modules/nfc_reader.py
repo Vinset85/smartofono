@@ -42,11 +42,15 @@ LOG = logging.getLogger(__name__)
 # il primo byte fino a ~1 s (bug USB BCM). nfcpy usa 1500 ms di ACK timeout;
 # qui aspettiamo almeno 3 s tra close e reopen.
 USB_REOPEN_SETTLE_SEC = 3.0
-USB_RECOVER_SETTLE_SEC = 12.0
-USB_RECOVER_COOLDOWN_SEC = 20.0
-# Reset USB CH340 al massimo N volte PRIMA del primo ascolto.
-# Dopo listen_ok non si tocca più l'hub (touch 1a86:e5e3).
+USB_RECOVER_SETTLE_SEC = 8.0
+# DWC3 del CH340 fa blip anche al VBUS condiviso col touch: rarissimo.
+USB_RECOVER_COOLDOWN_SEC = 180.0
+USB_RECOVER_RETRY_SEC = 180.0
 USB_RECOVER_MAX = 1
+USB_RECOVER_MODES = ("hard",)
+# Dopo cold-power il PN532 e' gia' a posto: troppi reset USB fanno
+# cadere il touch. nfcpy va ritentato molte volte prima di un DWC3.
+NFC_OPEN_FAILS_BEFORE_USB = 8
 NFC_GIVE_UP_BACKOFF_SEC = 12.0
 
 # Path nfcpy da provare in ordine (PN532 UART/I2C, ACR122U).
@@ -65,26 +69,83 @@ def _uart_dev_from_nfcpy(path: str) -> Optional[str]:
     return f"/dev/tty{path.split(':')[1]}"
 
 
+def _pn532_hsu_frame(body: bytes) -> bytes:
+    ln = len(body) + 1
+    return (bytes([0x00, 0x00, 0xFF, ln, (-ln) & 0xFF])
+            + body + bytes([(-sum(body)) & 0xFF, 0x00]))
+
+
 def uart_pn532_responds(path: str) -> bool:
     """True se il PN532 risponde al GetFirmwareVersion via UART."""
+    return uart_pn532_reset_and_wake(path, attempts=1, reset_lines=False)
+
+
+def uart_pn532_reset_and_wake(
+    path: str,
+    attempts: int = 3,
+    reset_lines: bool = True,
+) -> bool:
+    """Reset HSU via DTR/RTS/break + preamble 0x55 + GetFirmwareVersion.
+
+    Sui cloni CH340 il RSTPD_N del PN532 e' spesso sul DTR o RTS.
+    Non serve staccare la USB: un impulso di 250 ms riavvia il chip.
+    """
     dev = _uart_dev_from_nfcpy(path)
-    if not dev:
+    if not dev or not os.path.exists(dev):
         return False
     try:
         import serial  # type: ignore
-        with serial.Serial(dev, baudrate=115200, timeout=0.5) as ser:
-            ser.reset_input_buffer()
-            body = bytes([0xD4, 0x02])
-            ln = len(body) + 1
-            frame = (bytes([0x00, 0x00, 0xFF, ln, (-ln) & 0xFF])
-                     + body + bytes([(-sum(body)) & 0xFF, 0x00]))
-            ser.write(frame)
-            time.sleep(0.2)
-            rx = ser.read(32)
-            return len(rx) >= 7 and 0xD5 in rx
     except Exception as e:
-        LOG.debug("uart_pn532_responds %s: %s", dev, e)
+        LOG.debug("pyserial assente: %s", e)
         return False
+    fw = _pn532_hsu_frame(bytes([0xD4, 0x02]))
+    sam = _pn532_hsu_frame(bytes([0xD4, 0x14, 0x01, 0x00, 0x00]))
+    polarities = (
+        (False, False, True, True),
+        (True, True, False, False),
+        (False, True, True, False),
+        (True, False, False, True),
+    )
+    last_rx = b""
+    for i in range(max(1, attempts)):
+        dtr0, rts0, dtr1, rts1 = polarities[i % len(polarities)]
+        try:
+            with serial.Serial(dev, baudrate=115200, timeout=0.4) as ser:
+                if reset_lines:
+                    ser.dtr = dtr0
+                    ser.rts = rts0
+                    time.sleep(0.25)
+                    ser.dtr = dtr1
+                    ser.rts = rts1
+                    time.sleep(0.2)
+                    try:
+                        ser.send_break(duration=0.08)
+                    except Exception:
+                        pass
+                    time.sleep(0.05)
+                ser.reset_input_buffer()
+                ser.write(b"\x55" * 32)
+                time.sleep(0.08)
+                ser.reset_input_buffer()
+                ser.write(fw)
+                time.sleep(0.25)
+                last_rx = ser.read(64)
+                if len(last_rx) >= 7 and 0xD5 in last_rx:
+                    try:
+                        ser.write(sam)
+                        time.sleep(0.12)
+                        ser.read(32)
+                    except Exception:
+                        pass
+                    LOG.info("PN532 UART ok su %s (tentativo %d, rx=%d)",
+                             path, i + 1, len(last_rx))
+                    return True
+        except Exception as e:
+            LOG.debug("uart_pn532_reset_and_wake %s: %s", dev, e)
+        time.sleep(0.35)
+    LOG.info("PN532 UART muto su %s (rx=%s)",
+             path, last_rx.hex() if last_rx else "0")
+    return False
 
 
 def disable_ch340_autosuspend() -> bool:
@@ -116,7 +177,7 @@ def disable_ch340_autosuspend() -> bool:
 
 
 def ensure_pn532_ready(path: str, attempts: int = 4) -> bool:
-    """Wake UART + verifica risposta PN532 (best-effort, non blocca nfcpy)."""
+    """Wake UART + verifica risposta PN532 prima di aprire nfcpy."""
     disable_ch340_autosuspend()
     dev = _uart_dev_from_nfcpy(path)
     if dev and not os.path.exists(dev):
@@ -124,14 +185,10 @@ def ensure_pn532_ready(path: str, attempts: int = 4) -> bool:
             if os.path.exists(dev):
                 break
             time.sleep(0.5)
-    for i in range(attempts):
-        if uart_pn532_responds(path):
-            LOG.info("PN532 pronto su %s (tentativo %d)", path, i + 1)
-            time.sleep(0.4)
-            return True
-        disable_ch340_autosuspend()
-        time.sleep(0.5)
-    LOG.info("PN532 wake UART senza risposta su %s (provo nfcpy)", path)
+    if uart_pn532_reset_and_wake(path, attempts=attempts, reset_lines=True):
+        time.sleep(0.4)
+        return True
+    LOG.info("PN532 wake UART senza risposta su %s", path)
     return False
 
 
@@ -149,8 +206,13 @@ def nfc_prep_mode() -> str:
     return "recover"
 
 
+def nfc_recover_mode(n: int) -> str:
+    """Ciclo recover (CH340) -> hard (xhci CH340) -> power (VBUS)."""
+    return USB_RECOVER_MODES[int(n) % len(USB_RECOVER_MODES)]
+
+
 def prepare_nfc_hardware(mode: str = "recover") -> bool:
-    """Reset CH340 + wake libnfc (come scollegare/ricollegare il cavo USB)."""
+    """Reset software del PN532 (CH340 / xhci / VBUS). Niente stacco USB."""
     if mode == "boot" and os.path.isfile(NFC_PREP_STAMP):
         age = time.time() - os.path.getmtime(NFC_PREP_STAMP)
         if age < NFC_PREP_STAMP_MAX_AGE:
@@ -258,11 +320,13 @@ class NfcReader:
         self._last_serial_close_ts = 0.0
         self._hw_prep_done = bool(hw_prep_done)
         self._usb_recoveries = 0
-        self._last_usb_recover_ts = 0.0
+        self._last_usb_recover_ts = time.time()
         self._pending_usb_recover = False
         self._listen_ok = False
         self._recover_lock = threading.Lock()
         self._tty_was_present = True
+        self._tty_lost_ts = 0.0
+        self._status_cb: Optional[Callable[[], None]] = None
 
     def _mark_serial_closed(self) -> None:
         self._last_serial_close_ts = time.time()
@@ -325,6 +389,19 @@ class NfcReader:
     def last_error(self) -> Optional[str]:
         return self._last_error
 
+    def on_status(self, cb: Optional[Callable[[], None]]) -> None:
+        """Chiamato quando il lettore passa ready/offline (thread NFC)."""
+        self._status_cb = cb
+
+    def _emit_status(self) -> None:
+        cb = self._status_cb
+        if not cb:
+            return
+        try:
+            cb()
+        except Exception as e:
+            LOG.debug("nfc status cb: %s", e)
+
     def probe_ok(self) -> bool:
         return self._probe_ok
 
@@ -338,6 +415,7 @@ class NfcReader:
         self._thread = threading.Thread(
             target=self._loop, name="nfc-reader", daemon=True)
         self._thread.start()
+        self._emit_status()
         LOG.info("NfcReader thread avviato (device=%s, probe_ok=%s)",
                  self.device, self._probe_ok)
         return True
@@ -429,11 +507,12 @@ class NfcReader:
 
         clf.connect(rdwr=...) di nfcpy e' troppo aggressivo per i cloni
         cinesi (CZ10) con UART HSU. Usiamo clf.sense().
-        Prima del primo lock: nfcpy, poi al massimo 2 recover USB.
-        Dopo listen_ok: solo riapertura nfcpy, niente hub USB."""
+        Dopo spegnimento il PN532 e' gia' resettato: si ritenta nfcpy.
+        Un reset DWC3 al massimo (mai VBUS: spegne anche il touch)."""
         import nfc  # type: ignore
         from nfc.clf import RemoteTarget  # type: ignore
-        backoff = 1.0
+        self._emit_status()
+        backoff = 2.0
         targets = [
             RemoteTarget("106A"),  # MIFARE Classic/Ultralight, NTAG
             RemoteTarget("106B"),  # ISO14443B
@@ -446,37 +525,48 @@ class NfcReader:
                     os.path.exists(_uart_dev_from_nfcpy(p) or "")
                     for p in self._device_candidates if p.startswith("tty:")
                 ) or os.path.exists("/dev/ttyUSB0")
+                if not tty_now and self._tty_was_present:
+                    self._tty_lost_ts = time.time()
                 if tty_now and not self._tty_was_present:
-                    LOG.info("NFC: tty ricomparso, apro ascolto")
-                    self._usb_recoveries = 0
+                    gone = (time.time() - self._tty_lost_ts
+                            if self._tty_lost_ts else 0.0)
+                    LOG.info("NFC: tty ricomparso (assente %.0fs)", gone)
                     self._open_failures = 0
                     self._listen_ok = False
+                    if gone >= 60.0:
+                        self._usb_recoveries = 0
                 self._tty_was_present = tty_now
+                now = time.time()
+                if (self._listen_ok
+                        and self._open_failures >= 5
+                        and now - self._last_usb_recover_ts >= USB_RECOVER_RETRY_SEC):
+                    self._listen_ok = False
+                disable_ch340_autosuspend()
                 if (not self._listen_ok
-                        and self._open_failures >= 3
+                        and self._open_failures >= NFC_OPEN_FAILS_BEFORE_USB
                         and self._usb_recoveries < USB_RECOVER_MAX
-                        and (time.time() - self._last_usb_recover_ts)
+                        and now - self._last_usb_recover_ts
                         >= USB_RECOVER_COOLDOWN_SEC):
                     with self._recover_lock:
+                        now = time.time()
                         if (self._usb_recoveries < USB_RECOVER_MAX
-                                and (time.time() - self._last_usb_recover_ts)
+                                and now - self._last_usb_recover_ts
                                 >= USB_RECOVER_COOLDOWN_SEC):
+                            mode = nfc_recover_mode(self._usb_recoveries)
                             self._usb_recoveries += 1
                             self._last_usb_recover_ts = time.time()
                             LOG.warning(
-                                "NFC: recupero USB per ascolto (%d/%d)",
-                                self._usb_recoveries, USB_RECOVER_MAX)
-                            prepare_nfc_hardware("recover")
+                                "NFC: reset software %s (%d/%d)",
+                                mode, self._usb_recoveries, USB_RECOVER_MAX)
+                            prepare_nfc_hardware(mode)
                             self._mark_serial_closed()
                             self._open_failures = 0
                     self._stop.wait(USB_RECOVER_SETTLE_SEC)
-                if self._stop.is_set():
-                    break
-                disable_ch340_autosuspend()
-                if not self._listen_ok and self._usb_recoveries:
-                    ensure_pn532_ready(self.device)
-                if self._stop.is_set():
-                    break
+                    if self._stop.is_set():
+                        break
+                    self._mark_serial_closed()
+                    if not self._wait_usb_settle():
+                        break
                 self._clf = nfc.ContactlessFrontend(self.device)
                 self._ready.set()
                 self._last_error = None
@@ -484,6 +574,7 @@ class NfcReader:
                 self._usb_recoveries = 0
                 self._listen_ok = True
                 LOG.info("NFC reader pronto: %s", self._clf.device)
+                self._emit_status()
                 backoff = 1.0
                 consec_err = 0
                 while not self._stop.is_set():
@@ -508,7 +599,8 @@ class NfcReader:
                 self._ready.clear()
                 self._last_error = str(e)
                 self._open_failures += 1
-                backoff = 1.5 if self._listen_ok else min(max(backoff, 1.0) * 1.2, 5.0)
+                self._emit_status()
+                backoff = 1.5 if self._listen_ok else min(max(backoff, 2.0) * 1.4, NFC_GIVE_UP_BACKOFF_SEC)
                 LOG.warning("NFC loop err: %s (riapertura ascolto in %.1fs)",
                             e, backoff)
                 self._close_clf()

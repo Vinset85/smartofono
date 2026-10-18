@@ -66,7 +66,6 @@ from modules.camera import CameraPreview
 from modules.brightness import BrightnessController
 from modules.motion_detector import MotionDetector, MotionSnapshotDetector, MotionPicameraDetector
 from modules.cmd_auth import CmdAuthGuard
-from modules.fingerprint_reader import FingerprintReader
 from modules.audio_backchannel import AudioBackchannel
 from modules.webrtc_audio import WebRTCAudioController
 from modules.sound_fx import SoundFx
@@ -88,6 +87,7 @@ from modules.connectivity import ConnectivityMonitor
 from modules.voice_id import VoiceId
 from modules.cloud_storage import CloudUploader
 from modules.nfc_reader import NfcReader, NfcLibrary
+from modules.door_gpio import DoorRelay
 from modules.go2rtc_control import pause_for_camera, resume_after_camera, set_idle_go2rtc_allowed
 
 # Widget riutilizzabili (registrati prima del KV)
@@ -105,7 +105,6 @@ from screens.pin import PinScreen
 from screens.face import FaceScreen, FaceMeshOverlay  # noqa: F401  registrato per uso in KV
 from screens.nfc import NfcScreen
 from screens.placeholders import (
-    FingerScreen,
     ResultScreen,
     ScreensaverScreen,
     PlaceholderScreen,  # noqa: F401  registrato per kv
@@ -205,6 +204,53 @@ class AppContext:
     def activity_touch(self, source: str = "touch") -> None:
         self.app.on_activity(source)
 
+    def open_access(
+        self,
+        method: str,
+        user: str = "",
+        scope: str = "porta",
+        **meta,
+    ) -> bool:
+        """Apre in locale (GPIO relè) e, se HA è su, anche via REST/MQTT.
+
+        PIN/NFC/volto restano validi con Home Assistant giù: l'impulso
+        GPIO12/13 esce comunque. REST e MQTT sono best-effort in background.
+        """
+        gpio_ok = False
+        try:
+            rel = getattr(self.app, "door_relay", None)
+            if rel is not None:
+                gpio_ok = bool(rel.pulse(scope))
+        except Exception as e:
+            LOG.warning("open_access gpio err: %s", e)
+        try:
+            self.record_open(
+                method=method, user=user, scope=scope, success=True,
+                gpio=gpio_ok, **meta,
+            )
+        except Exception:
+            pass
+
+        def _notify() -> None:
+            try:
+                ha = self.ha
+                if ha is not None:
+                    if scope == "cancello":
+                        ha.apri_cancello()
+                    else:
+                        ha.apri_porta()
+            except Exception as e:
+                LOG.debug("open_access HA err: %s", e)
+            try:
+                self.mqtt.publish_apertura(metodo=method, utente=user, scope=scope)
+            except Exception:
+                pass
+
+        threading.Thread(target=_notify, daemon=True, name="open-ha").start()
+        LOG.info("open_access method=%s scope=%s user=%s gpio=%s",
+                 method, scope, user, gpio_ok)
+        return gpio_ok
+
     def record_open(self, method: str, user: str = "",
                     scope: str = "porta", success: bool = True,
                     **meta) -> None:
@@ -275,9 +321,10 @@ class VideocitofonoApp(App):
                 "mqtt.cmd_secret vuoto: i comandi su videocitofono/cmd "
                 "vengono accettati senza token")
         self.mqtt.on_connected(lambda: Clock.schedule_once(
-            lambda *_: self._mqtt_republish_idle(), 0.4))
+            lambda *_: (self._mqtt_republish_idle(), self._publish_nfc_status()), 0.4))
         self.mqtt.start()
         self.ha = HaClient(self.cfg["home_assistant"])
+        self.door_relay = DoorRelay(self.cfg.get("relay") or {})
         bootstrap_users(self.cfg["pin"])
         self.pin_manager = PinManager(self.cfg["pin"])
         # Engine facciale: facade che sceglie tra ArcFace e dlib in base
@@ -422,19 +469,13 @@ class VideocitofonoApp(App):
         self._config_debounce_ev = None
         self._CONFIG_DEBOUNCE_SEC = 10.0
 
-        # ---- Fingerprint (stub hardware) -------------------------------
-        self.fingerprint_reader = None
-        fp_cfg = self.cfg.get("fingerprint") or {}
-        if fp_cfg.get("enabled", False):
-            self.fingerprint_reader = FingerprintReader(fp_cfg)
-
         # ---- NFC reader + library --------------------------------
         self.nfc_lib = None
         self.nfc_reader = None
         self._nfc_cfg_active = None
         self._nfc_init_attempted = False
         # Ritardo breve: USB gia' enumerato, niente ExecStartPre recover.
-        Clock.schedule_once(lambda *_: self._init_nfc_from_cfg(), 3.0)
+        Clock.schedule_once(lambda *_: self._init_nfc_from_cfg(), 12.0)
 
         # ---- Backup automatico ----
         try:
@@ -586,7 +627,6 @@ class VideocitofonoApp(App):
         sm.add_widget(ConversationScreen(name="conversation", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(PinScreen(name="pin", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(FaceScreen(name="face", app_ctx=ctx, bg_source=bg_init))
-        sm.add_widget(FingerScreen(name="finger", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(NfcScreen(name="nfc", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(ResultScreen(name="result", app_ctx=ctx, bg_source=bg_init))
         sm.add_widget(ScreensaverScreen(
@@ -1504,7 +1544,6 @@ class VideocitofonoApp(App):
           {"action":"reboot"}                                - systemctl reboot
           {"action":"set_config","config":{...}}             - merge in config.override.yaml + restart
           {"action":"enroll_face"}                           - avvia iscrizione volto
-          {"action":"enroll_fingerprint"}                    - avvia iscrizione impronta (stub)
           {"action":"set_admin_pin","pin":"1234"}            - cambia PIN admin
           {"action":"set_sfondi_library","files":[...],"base_url":"/local/vc-sfondi/"}
               - HA notifica nuova lista sfondi: il RPi pre-scarica i file (best-effort).
@@ -1602,14 +1641,6 @@ class VideocitofonoApp(App):
                 self._handle_delete_auto_face(payload)
             elif action == "purge_auto_faces":
                 self._handle_purge_auto_faces(payload)
-            elif action == "enroll_fingerprint":
-                fp = getattr(self, "fingerprint_reader", None)
-                if fp is None or not fp.is_available():
-                    self.mqtt.publish_evento(
-                        "enroll_fingerprint_error",
-                        {"error": fp.last_error() if fp else "modulo disabilitato"})
-                    return
-                self.mqtt.publish_evento("enroll_fingerprint_started")
             elif action == "guest_pin_create":
                 self._handle_guest_pin_create(payload)
             elif action == "guest_pin_revoke":
@@ -1687,6 +1718,8 @@ class VideocitofonoApp(App):
                 on_tag=lambda uid: Clock.schedule_once(
                     lambda *_: self._on_nfc_tag(uid), 0),
             )
+            self.nfc_reader.on_status(lambda: Clock.schedule_once(
+                lambda *_: self._publish_nfc_status(), 0))
             if self.nfc_reader.is_available():
                 self.nfc_reader.start()
                 self._nfc_cfg_active = snap
@@ -1952,16 +1985,6 @@ class VideocitofonoApp(App):
                 subs["motion_status"] = "down"
             else:
                 subs["motion_status"] = "idle"
-        fp_cfg = (self.cfg.get("fingerprint") or {})
-        fp = getattr(self, "fingerprint_reader", None)
-        if not fp_cfg.get("enabled", False):
-            subs["fingerprint_status"] = "off"
-        elif fp and fp.is_reader_ready():
-            subs["fingerprint_status"] = "ok"
-        else:
-            # enabled ma stub/assente: non "idle", altrimenti HA crede che
-            # il lettore sia in ascolto.
-            subs["fingerprint_status"] = "down"
         lk = getattr(self.ctx, "lk_session", None)
         if lk:
             subs["livekit_status"] = "active"
@@ -2032,11 +2055,11 @@ class VideocitofonoApp(App):
                                                         "persist_default": persist_default})
 
             # Applica live le chiavi gestibili a caldo. I flag enabled di
-            # pin/face_recognition/fingerprint/nfc sono live perche'
+            # pin/face_recognition/nfc sono live perche'
             # influenzano solo la visibilita' dei pulsanti su HomeScreen.
             live_keys = {"campanelli", "ui", "audio", "access_icons", "tts",
-                         "motion", "pin", "face_recognition", "fingerprint", "nfc"}
-            method_keys = {"pin", "face_recognition", "fingerprint", "nfc"}
+                         "motion", "pin", "face_recognition", "nfc"}
+            method_keys = {"pin", "face_recognition", "nfc"}
             applied_live = set()
             for k in list(override.keys()):
                 if k not in live_keys:
@@ -2117,7 +2140,7 @@ class VideocitofonoApp(App):
 
     def _apply_access_methods_live(self) -> None:
         """Forza ricostruzione bottoniera home dopo cambio dei flag
-        enabled di pin/face_recognition/fingerprint/nfc. Il merge dei
+        enabled di pin/face_recognition/nfc. Il merge dei
         valori in self.cfg e' gia' avvenuto via _apply_config_override.
         """
         def _refresh(*_):
@@ -2133,7 +2156,7 @@ class VideocitofonoApp(App):
     def _apply_access_icons_live(self, icons: dict) -> None:
         """Aggiorna access_icons in memoria + forza refresh HomeScreen.
 
-        Le chiavi attese sono pin/face/fingerprint/nfc -> filename in
+        Le chiavi attese sono pin/face/nfc -> filename in
         app/assets/avatars/ (vuoto = ripristina VectorIcon di default).
         """
         if not isinstance(icons, dict):
@@ -2827,25 +2850,11 @@ class VideocitofonoApp(App):
             return
         scope = rec.get("scope", "porta")
         nome = rec.get("nome", "")
-        rest_ok = False
-        try:
-            rest_ok = (self.ha.apri_porta() if scope == "porta"
-                       else self.ha.apri_cancello())
-        except Exception as e:
-            LOG.warning("nfc REST err: %s", e)
-        try:
-            self.mqtt.publish_apertura(metodo="nfc", utente=nome,
-                                       scope=scope)
-        except Exception:
-            pass
-        try:
-            self.ctx.record_open(method="nfc", user=nome, scope=scope,
-                                 success=True,
-                                 label=rec.get("label", ""))
-        except Exception:
-            pass
-        LOG.info("NFC apri scope=%s rest_ok=%s utente=%s uid=%s",
-                 scope, rest_ok, nome, uid)
+        self.ctx.open_access(
+            method="nfc", user=nome, scope=scope,
+            label=rec.get("label", ""),
+        )
+        LOG.info("NFC apri scope=%s utente=%s uid=%s", scope, nome, uid)
         try:
             af = getattr(self, "auto_face", None)
             if af is not None:
@@ -2976,8 +2985,8 @@ class VideocitofonoApp(App):
                     sc.bg_source = path
             Clock.schedule_once(_apply, 0)
         # Propaga lo sfondo a TUTTE le altre schermate (Home, Calling, Pin,
-        # Face, Finger, Nfc, Result) per uno stile coerente.
-        for sname in ("home", "calling", "pin", "face", "finger", "nfc", "result"):
+        # Face, Nfc, Result) per uno stile coerente.
+        for sname in ("home", "calling", "pin", "face", "nfc", "result"):
             if self.sm.has_screen(sname):
                 scr = self.sm.get_screen(sname)
                 def _apply_screen(*_, _scr=scr):

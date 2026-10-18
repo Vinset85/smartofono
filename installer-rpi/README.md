@@ -6,12 +6,12 @@ Applicazione GUI Kivy per il pannello esterno del videocitofono. Gestisce:
 - Apertura via **PIN** numerico (hash bcrypt + lockout)
 - Apertura via **riconoscimento facciale** (ArcFace, con dlib come alternativa)
 - Apertura via **badge NFC** (PN532 su USB)
-- Schermata **impronta digitale** pronta, lettore non ancora collegato
+- **Relè locale su GPIO12/13**: PIN, NFC e volto aprono anche se Home Assistant è giù
 - **Gestione luminosità adattiva**: schermo a luminosità ridotta a riposo, piena luminosità su tocco o **rilevamento movimento** dalla camera
 - **Screensaver** con orologio dopo inattività (risvegliato anche dal movimento)
 - Pubblicazione eventi MQTT verso Home Assistant (`cmd_secret` sui comandi)
 - Videochiamata **LiveKit** (camera + mic, AEC PipeWire)
-- Chiamata diretta script HA via REST API
+- Chiamata diretta script HA via REST API (best-effort: l'apertura non dipende da HA)
 
 ## Struttura
 
@@ -39,7 +39,7 @@ installer-rpi/
 │   │   ├── calling.py
 │   │   ├── pin.py
 │   │   ├── face.py
-│   │   └── placeholders.py           # finger, nfc, result, screensaver
+│   │   └── placeholders.py           # result, screensaver
 │   └── assets/                       # icone, avatar, placeholder camera
 ├── tests/
 │   └── test_smoke.py                 # auth, PIN ospite, face, backup
@@ -115,14 +115,20 @@ journalctl -u videocitofono -f
 
 | Nome          | Funzione                                                                       |
 | ------------- | ------------------------------------------------------------------------------ |
-| `home`        | Header + lista campanelli + 4 metodi accesso (PIN/Volto/Impronta/NFC)          |
+| `home`        | Header + lista campanelli + metodi accesso (PIN/Volto/NFC)                     |
 | `calling`     | Chiamata in corso (preview camera locale, timer, annulla, MQTT publish)        |
 | `pin`         | Tastierino numerico, verifica bcrypt, lockout dopo N tentativi                 |
 | `face`        | Preview camera + scansione continua (ArcFace o dlib)                          |
-| `finger`      | UI pronta, lettore non collegato                                               |
 | `nfc`         | Lettura badge dal PN532, con cooldown                                          |
 | `result`      | Esito accesso (✓/✗) con auto-return                                            |
 | `screensaver` | Orologio + data dopo `screensaver_timeout_sec` (default 60s)                   |
+
+## Apertura senza Home Assistant
+
+PIN, NFC e volto si verificano sul Raspberry. L'impulso del relè esce in
+locale, **GPIO12 pin 32** (porta) e **GPIO13 pin 33** (cancello), 1 s, 3,3 V,
+massa pin 30/34. HA riceve REST e MQTT solo se è raggiungibile: se è giù
+l'apertura avviene lo stesso. Configurazione in `relay:` di `config.yaml`.
 
 ## Eventi MQTT pubblicati
 
@@ -141,6 +147,7 @@ journalctl -u videocitofono -f
 - [x] PIN con bcrypt + lockout
 - [x] MQTT publish chiamata/apertura
 - [x] HA REST chiamata script porta/cancello
+- [x] Relè GPIO locale (apertura anche con HA giù)
 - [x] Camera preview (picamera2 + fallback opencv)
 - [x] Screensaver
 - [x] Brightness adattiva (idle/active). Il pannello e' OLED e non ha
@@ -148,8 +155,6 @@ journalctl -u videocitofono -f
       fisicamente la cosa giusta
 - [x] Motion detector da camera per wake-up automatico
 - [x] Recognizer facciale reale (ArcFace, con dlib come alternativa)
-- [ ] Driver fingerprint (R503 / GROW R307): `fingerprint_reader.py` e' lo
-      stub, l'hardware non e' collegato
 - [x] Driver NFC (PN532, su USB e non su I2C)
 - [ ] Schermata Admin (gestione utenti, enrollment)
 - [x] Audio bidirezionale (LiveKit)

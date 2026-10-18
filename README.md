@@ -139,10 +139,12 @@ Il **software gira su un impianto reale** da mesi: chiamata, video, apertura
 cancello, NFC, PIN, riconoscimento facciale, registro chiamate con i filmati,
 annunci vocali, pannello di salute.
 
+PIN, NFC, volto e **apertura della porta** restano sul Raspberry anche se
+Home Assistant è giù: l'impulso esce da **GPIO12** (pin 32) verso un relè
+in quadro. La videochiamata e le notifiche sul telefono, invece, passano da HA.
+
 Resta aperto:
 
-- il **lettore di impronte** è uno stub (`fingerprint_reader.py`): l'hardware
-  non è ancora collegato, la schermata e l'API ci sono;
 - il **reed switch** antimanomissione è previsto nel telaio ma non acquistato;
 - alcune prove a banco elencate in [hardware/MISURE.md](hardware/MISURE.md):
   il touch attraverso il vetro, la portata NFC attraverso vetro e alluminio,

@@ -59,6 +59,7 @@
   // server vede solo candidate validi per il client e DTLS handshake
   // raggiunge il tablet vero.
   const VC_BLOCKED_IPS = new Set(['192.168.1.185', '192.168.1.52']);
+  const mdi = (name) => `<ha-icon icon="${name}"></ha-icon>`;
   function vcCandidateBlocked(candStr) {
     if (!candStr) return false;
     // candidate string format: "candidate:foundation 1 udp prio IP port typ host ..."
@@ -840,10 +841,16 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center; justify-content: center;
-    color: #fff; font-size: 26px;
+    color: #fff;
     background: #2c3034;
     transition: transform 0.1s ease, background 0.15s ease;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    --mdc-icon-size: 28px;
+  }
+  .btn ha-icon, .btn-answer ha-icon {
+    pointer-events: none;
+    color: inherit;
+    display: flex;
   }
   .btn:hover { background: #3a4046; }
   .btn:active { transform: scale(0.95); }
@@ -896,7 +903,7 @@
     display: inline-flex;
     align-items: center; justify-content: center;
     color: #fff;
-    font-size: 38px;
+    --mdc-icon-size: 42px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     transition: transform 0.1s ease, background 0.15s ease, opacity 0.15s ease;
   }
@@ -942,6 +949,10 @@
     line-height: 1.35;
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
   .status {
     position: absolute; top: 12px; left: 12px;
@@ -950,6 +961,13 @@
     border-radius: 999px;
     font-size: 0.85rem;
     backdrop-filter: blur(6px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status ha-icon, .error ha-icon, .ring-error ha-icon {
+    --mdc-icon-size: 18px;
+    color: inherit;
   }
   .error {
     position: absolute; inset: 0;
@@ -960,6 +978,7 @@
     color: #fff;
     font-size: 1rem;
     line-height: 1.5;
+    gap: 10px;
   }
   .badge-rec { color: #ff5252; margin-right: 6px; }
 </style>
@@ -972,24 +991,24 @@
   </div>
   <div class="status" id="status"></div>
   <div class="controls" id="controls">
-    <button class="btn" id="btn-mic"  title="Mic on/off">🎙</button>
-    <button class="btn" id="btn-cam"  title="Camera on/off">📷</button>
-    <button class="btn primary" id="btn-door" title="Apri porta">🔓</button>
-    <button class="btn danger"  id="btn-end"  title="Chiudi">✖</button>
+    <button class="btn" id="btn-mic"  title="Mic on/off">${mdi('mdi:microphone')}</button>
+    <button class="btn" id="btn-cam"  title="Camera on/off">${mdi('mdi:video')}</button>
+    <button class="btn primary" id="btn-door" title="Apri porta">${mdi('mdi:door-open')}</button>
+    <button class="btn danger"  id="btn-end"  title="Chiudi">${mdi('mdi:phone-hangup')}</button>
   </div>
   <div class="ring-overlay" id="ring-overlay" style="display:none">
     <div class="ring-caller" id="ring-caller">Chiamata in arrivo<small>…</small></div>
     <div class="ring-actions">
       <div class="ring-action">
-        <button class="btn-answer btn-answer-audio" id="btn-answer-audio" title="Rispondi solo audio">🎙</button>
+        <button class="btn-answer btn-answer-audio" id="btn-answer-audio" title="Rispondi solo audio">${mdi('mdi:phone')}</button>
         <span class="ring-action-label">Solo audio</span>
       </div>
       <div class="ring-action">
-        <button class="btn-answer btn-answer-video" id="btn-answer-video" title="Rispondi audio e video">📹</button>
+        <button class="btn-answer btn-answer-video" id="btn-answer-video" title="Rispondi audio e video">${mdi('mdi:video')}</button>
         <span class="ring-action-label">Audio + video</span>
       </div>
       <div class="ring-action">
-        <button class="btn-answer btn-answer-door" id="btn-answer-door" title="Apri porta senza rispondere">🔓</button>
+        <button class="btn-answer btn-answer-door" id="btn-answer-door" title="Apri porta senza rispondere">${mdi('mdi:door-open')}</button>
         <span class="ring-action-label">Apri porta</span>
       </div>
     </div>
@@ -1014,33 +1033,33 @@
 
       if (this._status === 'error') {
         errBox.style.display = 'flex';
-        errBox.textContent = '⚠️ ' + (this._error || 'errore sconosciuto');
+        errBox.innerHTML = mdi('mdi:alert-circle-outline') + ' ' + (this._error || 'errore sconosciuto');
       } else {
         errBox.style.display = 'none';
       }
 
       const labels = {
-        init: '…',
-        preflight: 'verifica…',
-        token: 'autenticazione…',
-        connect: 'connessione…',
-        ringing: '🔔 chiamata in arrivo',
-        gum: 'attivazione camera/microfono…',
-        publishing: 'invio video…',
-        live: '🔴 in chiamata',
-        reconnecting: 'riconnessione in corso…',
-        disconnected: 'connessione persa, ritento…',
-        answered_elsewhere: '↪ risposto da un altro dispositivo',
-        closed: 'chiusa',
-        error: '⚠️ errore',
+        init: mdi('mdi:dots-horizontal') + ' …',
+        preflight: mdi('mdi:shield-check-outline') + ' verifica…',
+        token: mdi('mdi:key-variant') + ' autenticazione…',
+        connect: mdi('mdi:lan-connect') + ' connessione…',
+        ringing: mdi('mdi:phone-ring') + ' chiamata in arrivo',
+        gum: mdi('mdi:video-account') + ' attivazione camera/microfono…',
+        publishing: mdi('mdi:upload') + ' invio video…',
+        live: mdi('mdi:record-circle') + ' in chiamata',
+        reconnecting: mdi('mdi:reload') + ' riconnessione in corso…',
+        disconnected: mdi('mdi:lan-disconnect') + ' connessione persa, ritento…',
+        answered_elsewhere: mdi('mdi:phone-forward') + ' risposto da un altro dispositivo',
+        closed: mdi('mdi:phone-hangup') + ' chiusa',
+        error: mdi('mdi:alert-circle-outline') + ' errore',
       };
       const label = labels[this._status] || this._status;
-      status.textContent = label;
+      status.innerHTML = label;
 
       btnMic.classList.toggle('off', !this._micEnabled);
-      btnMic.textContent = this._micEnabled ? '🎙' : '🔇';
+      btnMic.innerHTML = mdi(this._micEnabled ? 'mdi:microphone' : 'mdi:microphone-off');
       btnCam.classList.toggle('off', !this._camEnabled);
-      btnCam.textContent = this._camEnabled ? '📷' : '🚫';
+      btnCam.innerHTML = mdi(this._camEnabled ? 'mdi:video' : 'mdi:video-off');
 
       // Ringing UI: bottone "Rispondi" enorme + nome campanello.
       // L'overlay e' visibile in TUTTI gli stati pre-answered
@@ -1078,8 +1097,8 @@
       const ringErr = root.getElementById('ring-error');
       if (ringErr) {
         if (ringing && this._answerError) {
-          ringErr.style.display = 'block';
-          ringErr.textContent = '⚠️ ' + this._answerError;
+          ringErr.style.display = 'flex';
+          ringErr.innerHTML = mdi('mdi:alert-circle-outline') + ' ' + this._answerError;
         } else {
           ringErr.style.display = 'none';
         }
@@ -1285,6 +1304,6 @@
     });
   }
 
-  const VC_BUILD = '2026-10-17.lk-2.23';
+  const VC_BUILD = '2026-10-18.mdi-call';
   console.log('[vc-livekit-call-v3] custom card registrata, build=' + VC_BUILD);
 })();

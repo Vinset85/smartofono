@@ -173,25 +173,10 @@ class NfcScreen(BgScreen):
         self.messaggio = f"Benvenuto {nome.replace('_', ' ')}"
         self.dettaglio = "Apertura in corso…"
         ctx = self.app_ctx
-        rest_ok = False
-        try:
-            rest_ok = (
-                ctx.ha.apri_porta() if scope == "porta"
-                else ctx.ha.apri_cancello()
-            )
-        except Exception as e:
-            LOG.warning("nfc REST err: %s", e)
-        try:
-            ctx.mqtt.publish_apertura(metodo="nfc", utente=nome, scope=scope)
-        except Exception:
-            pass
-        try:
-            ctx.record_open(
-                method="nfc", user=nome, scope=scope, success=True,
-                label=rec.get("label", ""),
-            )
-        except Exception:
-            pass
+        ctx.open_access(
+            method="nfc", user=nome, scope=scope,
+            label=rec.get("label", ""),
+        )
         # Saluto con nome utente (nome), non etichetta tag (label es. "cerchio blu").
         nome_h = nome.replace("_", " ")
         genere = (rec.get("genere") or "").upper()

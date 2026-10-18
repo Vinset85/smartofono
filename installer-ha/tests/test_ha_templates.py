@@ -1,6 +1,7 @@
 """Controlli statici + logica dei template MQTT/notify (stdlib only)."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +78,47 @@ def test_cmd_mqtt_non_espone_helper_negli_script():
     assert "action: pyscript.videocitofono_mqtt_cmd" in scripts
     mqtt_cmd = (ROOT / "pyscript" / "mqtt_cmd.py").read_text()
     assert "videocitofono_cmd_secret" in mqtt_cmd
+    assert "_purge_cmd_retain" in mqtt_cmd
+    assert 'payload=""' in mqtt_cmd.replace(" ", "") or 'payload=""' in mqtt_cmd
+    assert "retain=True" in mqtt_cmd
+    icone = (ROOT / "pyscript" / "icone.py").read_text()
+    assert "videocitofono_mqtt_cmd" in icone
+    assert AUTO.count("pyscript.videocitofono_mqtt_cmd") >= 1
+    assert "Videocitofono - Alert NFC non in ascolto" in AUTO
+    assert "notification_id: videocitofono_nfc_down" in AUTO
+    assert "Videocitofono - NFC ascolto ripristinato" in AUTO
+    assert "- id: '1761000000026'" in AUTO
+    assert "- id: '1761000000027'" in AUTO
+    assert AUTO.count("- id: '1761000000024'") == 1
+
+
+def test_fingerprint_rimosso():
+    assert "videocitofono_finger_enabled" not in CFG
+    assert "videocitofono_metodo_fingerprint_icona" not in CFG
+    assert "videocitofono_finger_enabled" not in AUTO
+    scripts = (PKG / "scripts.yaml.fixed").read_text()
+    assert "fingerprint" not in scripts
+    assert "finger_enabled" not in scripts
+    icone = (ROOT / "pyscript" / "icone.py").read_text()
+    assert "metodo_fingerprint_icona" not in icone
+    lov = (ROOT / "lovelace" / "lovelace.lovelace.fixed").read_text()
+    data = json.loads(lov)
+    views = ((data.get("data") or {}).get("config") or {}).get("views") or []
+    assert len(views) >= 1
+    assert "finger_enabled" not in lov
+    assert "metodo_fingerprint_icona" not in lov
+    assert "Iscrivi nuova impronta" not in lov
+
+
+def test_call_card_usa_icone_mdi():
+    js = (ROOT / "www" / "vc-livekit-call.js").read_text()
+    assert "mdi:door-open" in js
+    assert "mdi:phone-hangup" in js
+    assert "mdi:microphone" in js
+    assert "mdi:video" in js
+    assert "mdi:phone-ring" in js
+    assert "🎙" not in js
+    assert "🔓" not in js
 
 
 def test_quota_video_e_purge_avvio():

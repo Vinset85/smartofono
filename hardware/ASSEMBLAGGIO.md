@@ -44,11 +44,13 @@ tag a 2 cm.
 | Switch o injector **802.3at** | — | PoE+, non PoE semplice |
 | Cavo ethernet | RJ45 | porta rete **e** alimentazione; il WiFi non è usato |
 
-Nella scatola **non entra nessun relè**: l'apertura del cancello passa da Home
-Assistant, che chiama `script.cancello_ingresso`. Con il PoE nei corrugati va
-quindi **un solo cavo**, quello di rete. Il secondo passaggio resta e va
-lasciato libero con un filo pilota: nel tufo, murato, tirare un cavo nuovo
-domani costa più di predisporlo oggi.
+Nella scatola **non entra nessun relè**. L'apertura essenziale esce dal
+Raspberry: impulso 3,3 V da **GPIO12 (pin fisico 32)** per la porta e da
+**GPIO13 (pin 33)** per il cancello strada, massa sui pin 30 o 34, durata 1 s.
+In quadro, sul filo pilota del secondo corrugato, un relè o un optoisolatore
+commuta la serratura. Home Assistant resta un canale in più, non l'unico:
+PIN, NFC e volto aprono anche se HA è giù. Con il PoE nei corrugati va un
+cavo di rete; il secondo passaggio porta il pilota del relè.
 
 ### Minuteria e consumabili
 
@@ -232,7 +234,9 @@ monta sul retro, tranne il display.
 9. Reed switch su GPIO27 e massa. Il progetto tiene GPIO17 libero per un
    eventuale pulsante di chiamata, quindi non usare quello. Tieni presente che
    l'HAT audio occupa GPIO25 per il suo LED.
-10. Ethernet lasciato uscire verso il fondo, con un'ansa di scarico.
+10. Relè apertura: GPIO12 (pin 32) porta, GPIO13 (pin 33) cancello, massa
+    pin 30 o 34. Impulso 1 s a 3,3 V verso relè in quadro, non in cassa.
+11. Ethernet lasciato uscire verso il fondo, con un'ansa di scarico.
 
 Fissa i cavi con fascette alla piastra, lontano dal percorso dell'aria e dal
 dissipatore. Un flat che sventola davanti alla ventola fa rumore in chiamata.

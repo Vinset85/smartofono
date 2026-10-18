@@ -31,7 +31,10 @@ while IFS= read -r pkg; do
   if [[ "${loc}" != *"${VENV}/"* ]]; then
     continue
   fi
-  if [[ "${pkg}" == "bcrypt" || "${pkg}" == "numpy" || "${pkg}" == "scipy" || "${pkg}" == "pydantic-core" ]]; then
+  if [[ "${pkg}" == "bcrypt" || "${pkg}" == "numpy" || "${pkg}" == "scipy" || "${pkg}" == "pydantic-core" || "${pkg}" == "numba" || "${pkg}" == "llvmlite" ]]; then
+    continue
+  fi
+  if [[ "${pkg}" == nvidia-* ]]; then
     continue
   fi
   # Catena InsightFace/ArcFace: versioni piu' nuove rompono l'import

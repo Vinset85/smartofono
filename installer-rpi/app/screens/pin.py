@@ -134,36 +134,14 @@ class PinScreen(BgScreen):
 
     def _apri(self, utente: dict) -> None:
         scope = utente.get("apre", "porta")
-        # Triggeriamo l'apertura via DUE canali (ridondanza):
-        #  1) REST diretto a HA (richiede long-lived token in config)
-        #  2) MQTT publish su videocitofono/apertura, ascoltato da
-        #     un'automazione HA che esegue lo stesso script.
-        # Il successo finale e' garantito dal canale MQTT (sempre attivo)
-        # quindi il feedback all'utente non dipende dal codice di ritorno
-        # REST: se il PIN e' valido la conferma "Porta aperta" e' mostrata
-        # comunque. Eventuali fallimenti del canale REST sono solo loggati.
-        rest_ok = False
-        try:
-            rest_ok = (
-                self.app_ctx.ha.apri_porta() if scope == "porta"
-                else self.app_ctx.ha.apri_cancello()
-            )
-        except Exception as e:
-            LOG.warning("apri (REST) failed: %s", e)
         is_guest = bool(utente.get("_guest_id"))
         method = "guest" if is_guest else "pin"
         utente_audit = utente.get("nome") or ""
-        self.app_ctx.mqtt.publish_apertura(metodo=method, utente=utente_audit, scope=scope)
-        LOG.info("apri scope=%s method=%s rest_ok=%s mqtt=published",
-                 scope, method, rest_ok)
-        try:
-            self.app_ctx.record_open(
-                method=method, user=utente_audit, scope=scope, success=True,
-                guest_id=utente.get("_guest_id"),
-                label=utente.get("label", ""),
-            )
-        except Exception:
-            pass
+        self.app_ctx.open_access(
+            method=method, user=utente_audit, scope=scope,
+            guest_id=utente.get("_guest_id"),
+            label=utente.get("label", ""),
+        )
         # Auto-enroll incrementale: salva un sample del volto nella libreria
         # dell'utente che ha appena aperto col PIN. Skippa se ospite.
         if not is_guest:

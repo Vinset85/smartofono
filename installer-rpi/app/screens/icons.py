@@ -2,9 +2,9 @@
 
 Usato per pulsanti e schermate dove serve un'icona scalabile e nitida senza
 ricorrere a file PNG. Tipi supportati:
-    - "fingerprint" : impronta digitale (archi concentrici + spirale centrale)
     - "dialpad"     : tastierino numerico 3x3 + 1 dot centrale in basso
     - "face"        : silhouette volto/spalle (testa + busto)
+    - "nfc"         : onde wireless / NFC
 """
 from __future__ import annotations
 
@@ -50,29 +50,6 @@ class VectorIcon(Widget):
         cy = self.y + self.height / 2.0
         lw = float(self.stroke) if self.stroke > 0 else max(1.6, side * 0.055)
         return cx, cy, side, lw
-
-    def _draw_fingerprint(self):
-        cx, cy, side, lw = self._box()
-        # Centro leggermente sotto la mediana per dare "appoggio" all'arco esterno
-        ccy = cy - side * 0.05
-        # 5 archi concentrici "a tetto" con ampiezza decrescente verso l'esterno
-        arcs = [
-            (0.46, 150),
-            (0.36, 175),
-            (0.27, 195),
-            (0.18, 220),
-        ]
-        for r_factor, sweep in arcs:
-            r = side * r_factor
-            a_start = 360 - sweep / 2.0
-            a_end = 360 + sweep / 2.0
-            Line(circle=(cx, ccy, r, a_start, a_end), width=lw, cap="round")
-        # Spirale centrale: piccolo arco quasi-chiuso che simula il "loop"
-        Line(
-            circle=(cx, ccy + side * 0.04, side * 0.09, 30, 330),
-            width=lw,
-            cap="round",
-        )
 
     def _draw_dialpad(self):
         cx, cy, side, _lw = self._box()

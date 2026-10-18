@@ -23,6 +23,15 @@ home_assistant:
   token: ''
   script_apri_porta: script.cancello_ingresso
   script_apri_cancello: script.cancello_strada
+# Relè locale: impulso 3,3 V su GPIO, indipendente da Home Assistant.
+# Porta = GPIO12 (pin fisico 32), cancello = GPIO13 (pin 33). Massa pin 30/34.
+# In quadro: relè/optoisolatore, non la serratura diretta.
+relay:
+  enabled: true
+  porta_gpio: 12
+  cancello_gpio: 13
+  pulse_ms: 1000
+  active_high: true
 ui:
   fullscreen: true
   cursor: false
@@ -82,7 +91,6 @@ campanelli:
   nome: Click
 access_icons:
   face: icons8-face-id-100.png
-  fingerprint: icons8-fingerprint-100.png
   nfc: icons8-rfid-500.png
   pin: icons8-keypad-100.png
 pin:
@@ -152,10 +160,6 @@ call_recognition:
   vote_window: 5
   vote_required: 2
   match_threshold: 0
-fingerprint:
-  enabled: false
-  device: /dev/ttyAMA0
-  baudrate: 57600
 nfc:
   enabled: true
   device: tty:USB0:pn532

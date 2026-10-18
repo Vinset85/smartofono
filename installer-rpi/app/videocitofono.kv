@@ -211,7 +211,7 @@
 
 
 # ============================================================================
-# Stile condiviso schermate "interne" (Calling/Pin/Face/Finger/Nfc/Result)
+# Stile condiviso schermate "interne" (Calling/Pin/Face/Nfc/Result)
 # Sfondo dinamico identico a HomeScreen (root.bg_source con fallback assets/bg.png),
 # velo scuro per leggibilita', card "dark glass" per i contenuti.
 # ============================================================================
@@ -729,14 +729,6 @@
                 Line:
                     rounded_rectangle: (self.x, self.y, self.width, self.height, 28)
                     width: 1.4
-
-
-<FingerScreen>:
-    titolo: 'Riconoscimento impronta'
-    icon_type: 'fingerprint'
-    icona_emoji: ''
-    sottotitolo: 'Posiziona il dito sul lettore'
-    nota: 'Modulo non ancora installato (Fase 2 hardware)'
 
 
 <NfcScreen>:

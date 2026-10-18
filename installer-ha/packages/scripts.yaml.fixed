@@ -261,12 +261,10 @@ videocitofono_cambia_pin_admin:
         value_template: "{{ pin_value not in ['unavailable','unknown',''] and\n   pin_value.isdigit() and 4 <= pin_value |\
           \ length <= 8 }}"
       sequence:
-      - action: mqtt.publish
+      - action: pyscript.videocitofono_mqtt_cmd
         data:
-          topic: videocitofono/cmd
-          qos: 1
-          retain: false
-          payload: '{"action":"set_admin_pin","pin": {{ pin_value | tojson }} }'
+          action: set_admin_pin
+          pin: '{{ pin_value }}'
       - action: input_text.set_value
         target:
           entity_id: input_text.videocitofono_admin_pin
@@ -355,9 +353,7 @@ videocitofono_applica_config:
       \ -%} {%- if faliv not in ['unavailable','unknown'] %}{% set fa = dict(fa, liveness_enabled=(faliv=='on')) %}{% endif\
       \ -%} {%- set faauto = states('input_boolean.videocitofono_auto_recognize') -%} {%- if faauto not in ['unavailable','unknown']\
       \ -%}\n  {%- set ar = {'enabled': (faauto=='on')} -%}\n  {%- set fa = dict(fa, auto_recognize=ar) -%}\n{%- endif -%}\
-      \ {%- if fa %}{% set out = dict(out, face_recognition=fa) %}{% endif -%}\n{%- set fi = {} -%} {%- set fie = states('input_boolean.videocitofono_finger_enabled')\
-      \ -%} {%- if fie not in ['unavailable','unknown'] %}{% set fi = dict(fi, enabled=(fie=='on')) %}{% endif -%} {%- if\
-      \ fi %}{% set out = dict(out, fingerprint=fi) %}{% endif -%}\n{%- set nf = {} -%} {%- set nfe = states('input_boolean.videocitofono_nfc_enabled')\
+      \ {%- if fa %}{% set out = dict(out, face_recognition=fa) %}{% endif -%}\n{%- set nf = {} -%} {%- set nfe = states('input_boolean.videocitofono_nfc_enabled')\
       \ -%} {%- if nfe not in ['unavailable','unknown'] %}{% set nf = dict(nf, enabled=(nfe=='on')) %}{% endif -%} {%- if\
       \ nf %}{% set out = dict(out, nfc=nf) %}{% endif -%}\n{%- set au = {} -%} {%- set ae = states('input_boolean.videocitofono_audio_locale_enabled')\
       \ -%} {%- if ae not in ['unavailable','unknown'] %}{% set au = dict(au, enabled=(ae=='on')) %}{% endif -%} {%- set vsp = states('input_number.videocitofono_volume_speaker')\
@@ -370,7 +366,7 @@ videocitofono_applica_config:
       \ set out = dict(out, tts=tt) %}{% endif -%}\n{#- Bug Jinja: 'set' dentro un for crea variabile scope-locale al\n  \
       \  loop, quindi accumulare con `set ai = dict(ai, **{...})` ricrea\n    un dict vuoto ad ogni iterazione e fuori dal\
       \ loop ai resta {}.\n    Workaround: namespace mutabile. -#}\n{%- set ains = namespace(d={}) -%} {%- for k, ent in [('pin','input_select.videocitofono_metodo_pin_icona'),\n\
-      \                   ('face','input_select.videocitofono_metodo_face_icona'),\n                   ('fingerprint','input_select.videocitofono_metodo_fingerprint_icona'),\n\
+      \                   ('face','input_select.videocitofono_metodo_face_icona'),\n\
       \                   ('nfc','input_select.videocitofono_metodo_nfc_icona')] -%}\n  {%- set v = states(ent) -%}\n  {%-\
       \ if v in ['unavailable','unknown','default',''] %}{% set v = '' %}{% endif -%}\n  {%- set ains.d = dict(ains.d, **{k:\
       \ v}) -%}\n{%- endfor -%} {%- if ains.d %}{% set out = dict(out, access_icons=ains.d) %}{% endif -%}\n{{ out | tojson\
@@ -379,12 +375,11 @@ videocitofono_applica_config:
   - choose:
     - conditions: '{{ cfg | from_json | length > 0 }}'
       sequence:
-      - action: mqtt.publish
+      - action: pyscript.videocitofono_mqtt_cmd
         data:
-          topic: videocitofono/cmd
-          qos: 1
-          retain: false
-          payload: '{"action":"set_config","persist_default":true,"config": {{ cfg }} }'
+          action: set_config
+          persist_default: true
+          config: '{{ cfg }}'
       - action: pyscript.videocitofono_refresh_icone
       - action: persistent_notification.create
         data:
@@ -402,12 +397,10 @@ videocitofono_applica_config:
     - condition: template
       value_template: '{{ states(''input_text.videocitofono_admin_pin'') not in [''unavailable'',''unknown'',''''] }}'
     then:
-    - action: mqtt.publish
+    - action: pyscript.videocitofono_mqtt_cmd
       data:
-        topic: videocitofono/cmd
-        qos: 1
-        retain: false
-        payload: '{"action":"set_admin_pin","pin": {{ states(''input_text.videocitofono_admin_pin'') | tojson }} }'
+        action: set_admin_pin
+        pin: '{{ states(''input_text.videocitofono_admin_pin'') }}'
 videocitofono_beep_call_open:
   alias: Videocitofono - Beep apertura chiamata
   description: 'Feedback acustico breve "pickup" (due toni ascendenti) quando l''utente risponde audio o video. Suoni sintetizzati

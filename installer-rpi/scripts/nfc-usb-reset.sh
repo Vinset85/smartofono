@@ -62,31 +62,88 @@ recover_touch_port() {
   return 1
 }
 
-# Power-cycle reale della porta USB del CH340 via uhubctl (se disponibile).
-# NB: su RPi5 alcuni hub espongono il flag ppps ma NON tagliano davvero VBUS:
-# in quel caso questo equivale a una ri-enumerazione (come unbind/bind) e non
-# resetta il PN532 — l'unico reset hardware certo resta lo scollegamento fisico.
-# Best-effort: mai fatale, e tocca solo la porta del CH340 (non il touch).
-uhubctl_power_cycle_ch340() {
-  # Su Pi5 uhubctl non taglia VBUS: ri-enumera il CH340 e lascia il PN532 muto.
-  return 1
-  command -v uhubctl >/dev/null 2>&1 || return 1
-  local id bus hubpath loc port
+find_ch340_dwc3() {
+  local id path base
   id=$(find_ch340_usb_id) || return 1
-  # id es. "1-1" (porta su root hub) oppure "1-1.2" (hub annidato).
-  bus="${id%%-*}"
-  hubpath="${id#*-}"
-  if [[ "${hubpath}" == *.* ]]; then
-    port="${hubpath##*.}"
-    loc="${bus}-${hubpath%.*}"
-  else
-    port="${hubpath}"
-    loc="${bus}"
+  path=$(readlink -f "/sys/bus/usb/devices/${id}") || return 1
+  while [[ -n "${path}" && "${path}" != "/" ]]; do
+    base=$(basename "${path}")
+    if [[ "${base}" == *.usb ]]; then
+      echo "${base}"
+      return 0
+    fi
+    path=$(dirname "${path}")
+  done
+  return 1
+}
+
+dwc3_has_touch() {
+  local dev="$1" d v p
+  [[ -n "${dev}" && -d "/sys/bus/platform/drivers/dwc3/${dev}" ]] || return 1
+  while IFS= read -r d; do
+    [[ -f "${d}/idVendor" && -f "${d}/idProduct" ]] || continue
+    v=$(<"${d}/idVendor")
+    p=$(<"${d}/idProduct")
+    if [[ "${v}" == "1a86" && "${p}" == "e5e3" ]]; then
+      return 0
+    fi
+  done < <(find "/sys/bus/platform/drivers/dwc3/${dev}" -maxdepth 6 -type d 2>/dev/null)
+  return 1
+}
+
+# Reset DWC3 del solo controller del CH340 (1f00200000.usb).
+# Equivalente software dello stacco USB: il PN532 perde HSU appeso.
+# Non tocca 1f00300000.usb (touch).
+dwc3_reset_ch340_controller() {
+  local dev i
+  dev=$(find_ch340_dwc3) || {
+    if [[ -d /sys/bus/platform/drivers/dwc3/1f00200000.usb ]]; then
+      dev="1f00200000.usb"
+    else
+      return 1
+    fi
+  }
+  if [[ "${dev}" == "1f00300000.usb" ]] || dwc3_has_touch "${dev}"; then
+    log "dwc3 ${dev} ha il touch — skip"
+    return 1
   fi
-  log "uhubctl power-cycle CH340 (loc=${loc} port=${port})"
-  uhubctl -l "${loc}" -p "${port}" -a cycle -d 2 >/dev/null 2>&1 || true
+  if [[ ! -w /sys/bus/platform/drivers/dwc3/unbind ]]; then
+    return 1
+  fi
+  log "dwc3 unbind/bind ${dev} (controller CH340)"
+  echo "${dev}" > /sys/bus/platform/drivers/dwc3/unbind 2>/dev/null || true
   sleep 2
-  return 0
+  echo "${dev}" > /sys/bus/platform/drivers/dwc3/bind 2>/dev/null || true
+  for ((i = 1; i <= 8; i++)); do
+    if [[ -e /sys/bus/platform/drivers/dwc3/${dev} ]] && lsusb -d 1a86:7523 >/dev/null 2>&1; then
+      sleep 1
+      return 0
+    fi
+    if [[ ! -e /sys/bus/platform/drivers/dwc3/${dev} ]]; then
+      echo "${dev}" > /sys/bus/platform/drivers/dwc3/bind 2>/dev/null || true
+    fi
+    sleep 1
+  done
+  [[ -e /sys/bus/platform/drivers/dwc3/${dev} ]] || \
+    echo "${dev}" > /sys/bus/platform/drivers/dwc3/bind 2>/dev/null || true
+  lsusb -d 1a86:7523 >/dev/null 2>&1
+}
+
+# Compat: hard/power usano dwc3 (non xhci-hcd, il bind a volte fallisce).
+xhci_reset_ch340_controller() {
+  dwc3_reset_ch340_controller
+}
+
+# GPIO42 USB_VBUS_EN e' condiviso con il touch: non usarlo.
+vbus_power_cycle() {
+  log "skip VBUS GPIO42 (spegnerebbe il touch)"
+  return 1
+}
+
+# Power-cycle reale della porta USB del CH340 via uhubctl (se disponibile).
+# NB: su RPi5 uhubctl NON taglia VBUS. Usiamo xhci + GPIO VBUS_EN.
+uhubctl_power_cycle_ch340() {
+  return 1
 }
 
 # Reset leggero: solo CH340 (mai unbind della porta USB padre del device).
@@ -130,41 +187,51 @@ usb_reset_ch340() {
 }
 
 libnfc_wake() {
-  # Non usare libnfc (stato incoerente per nfcpy). Wake HSU: preamble +
-  # GetFirmwareVersion, poi nfcpy apre la seriale.
-  log "wake UART PN532 (no libnfc)"
+  # Non usare libnfc (stato incoerente per nfcpy). Wake HSU: DTR/RTS +
+  # preamble + GetFirmwareVersion, poi nfcpy apre la seriale.
+  log "wake UART PN532 (DTR/RTS, no libnfc)"
   /opt/videocitofono/venv/bin/python3 - <<'PY' || true
-import time
+import time, os
 try:
     import serial
 except ImportError:
     raise SystemExit(0)
 dev = "/dev/ttyUSB0"
-if not __import__("os").path.exists(dev):
+if not os.path.exists(dev):
     raise SystemExit(0)
 body = bytes([0xD4, 0x02])
 ln = len(body) + 1
 frame = (bytes([0x00, 0x00, 0xFF, ln, (-ln) & 0xFF])
          + body + bytes([(-sum(body)) & 0xFF, 0x00]))
-for _ in range(4):
+pols = ((False, False, True, True), (True, True, False, False),
+        (False, True, True, False), (True, False, False, True))
+for dtr0, rts0, dtr1, rts1 in pols:
     try:
-        with serial.Serial(dev, baudrate=115200, timeout=0.5) as ser:
-            ser.dtr = False
-            ser.rts = False
-            time.sleep(0.05)
-            ser.dtr = True
-            time.sleep(0.15)
+        with serial.Serial(dev, baudrate=115200, timeout=0.4) as ser:
+            ser.dtr = dtr0
+            ser.rts = rts0
+            time.sleep(0.25)
+            ser.dtr = dtr1
+            ser.rts = rts1
+            time.sleep(0.2)
+            try:
+                ser.send_break(duration=0.08)
+            except Exception:
+                pass
             ser.reset_input_buffer()
-            ser.write(b"\x55" * 16)
-            time.sleep(0.05)
+            ser.write(b"\x55" * 32)
+            time.sleep(0.08)
+            ser.reset_input_buffer()
             ser.write(frame)
             time.sleep(0.25)
-            rx = ser.read(32)
+            rx = ser.read(64)
             if len(rx) >= 7 and 0xD5 in rx:
                 raise SystemExit(0)
+    except SystemExit:
+        raise
     except Exception:
         pass
-    time.sleep(0.5)
+    time.sleep(0.3)
 PY
 }
 
@@ -197,21 +264,25 @@ fi
 
 if ! wait_ch340_tty; then
   log "CH340 assente — skip reset NFC"
-  recover_touch_port || true
   exit 0
 fi
 
-usb_reset_ch340 || log "reset CH340 non riuscito (continuo)"
+case "${MODE}" in
+  power|hard)
+    # Mai VBUS: GPIO42 e' condiviso col touch. Solo DWC3 del bus CH340.
+    dwc3_reset_ch340_controller || usb_reset_ch340 || true
+    ;;
+  *)
+    usb_reset_ch340 || log "reset CH340 non riuscito (continuo)"
+    ;;
+esac
 
 if ! wait_ch340_tty; then
   log "CH340 non tornato — skip wake"
-  recover_touch_port || true
   exit 0
 fi
 
-# libnfc e nfcpy non devono essere aperti insieme; wake solo a fine script (porta libera).
-libnfc_wake
-recover_touch_port || true
+# Non toccare il touch e non pulse DTR (tiene il PN532 in reset).
 disable_ch340_autosuspend || true
 date -Iseconds | tee /run/videocitofono-nfc-ready >/dev/null 2>&1 || true
 log "ok (${MODE})"

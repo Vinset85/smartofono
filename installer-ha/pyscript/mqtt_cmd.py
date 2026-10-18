@@ -5,6 +5,7 @@ from pathlib import Path
 
 _SECRETS = Path("/config/secrets.yaml")
 _SECRET_KEY = "videocitofono_cmd_secret"
+TOPIC_CMD = "videocitofono/cmd"
 
 
 def _cmd_token() -> str:
@@ -33,10 +34,27 @@ def cmd_payload(action: str, **kwargs) -> str:
     return json.dumps(body, ensure_ascii=False)
 
 
+def _coerce_kwargs(kwargs: dict) -> dict:
+    out = dict(kwargs)
+    cfg = out.get("config")
+    if isinstance(cfg, str):
+        try:
+            out["config"] = json.loads(cfg)
+        except Exception:
+            pass
+    return out
+
+
 @service
 def videocitofono_mqtt_cmd(action, **kwargs):
-    """Pubblica su videocitofono/cmd con token da secrets.yaml."""
-    topic = "videocitofono/cmd"
-    payload = cmd_payload(action, **kwargs)
-    mqtt.publish(topic=topic, payload=payload, qos=1)
-    log.info(f"MQTT cmd {action} -> {topic}")
+    """Pubblica su videocitofono/cmd con token da secrets.yaml (mai retain)."""
+    payload = cmd_payload(action, **_coerce_kwargs(kwargs))
+    mqtt.publish(topic=TOPIC_CMD, payload=payload, qos=1, retain=False)
+    log.info(f"MQTT cmd {action} -> {TOPIC_CMD}")
+
+
+@time_trigger("startup")
+def _purge_cmd_retain():
+    """Svuota un eventuale retain vecchio su videocitofono/cmd."""
+    mqtt.publish(topic=TOPIC_CMD, payload="", qos=1, retain=True)
+    log.info("MQTT cmd retain azzerato")

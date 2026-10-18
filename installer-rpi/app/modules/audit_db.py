@@ -7,7 +7,7 @@ Schema:
         kind TEXT NOT NULL           (open | open_fail | face_match
                                        | face_unknown | pin_fail
                                        | error | guest_used | guest_expired)
-        method TEXT                  (face | pin | nfc | finger | remote | guest)
+        method TEXT                  (face | pin | nfc | remote | guest)
         user TEXT                    (nome utente o 'unknown')
         scope TEXT                   (porta | cancello | -)
         success INTEGER              (0/1)

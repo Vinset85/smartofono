@@ -73,7 +73,6 @@ def build_ha_json(st: dict[str, str]) -> dict:
         "input_select.videocitofono_campanello4_icona": g("input_select.videocitofono_campanello4_icona", "default"),
         "input_select.videocitofono_metodo_pin_icona": g("input_select.videocitofono_metodo_pin_icona"),
         "input_select.videocitofono_metodo_face_icona": g("input_select.videocitofono_metodo_face_icona"),
-        "input_select.videocitofono_metodo_fingerprint_icona": g("input_select.videocitofono_metodo_fingerprint_icona"),
         "input_select.videocitofono_metodo_nfc_icona": g("input_select.videocitofono_metodo_nfc_icona"),
         "input_number.videocitofono_brightness_idle": _num(g("input_number.videocitofono_brightness_idle"), 20),
         "input_number.videocitofono_brightness_active": _num(g("input_number.videocitofono_brightness_active"), 100),
@@ -90,7 +89,6 @@ def build_ha_json(st: dict[str, str]) -> dict:
         "input_number.videocitofono_volume_tts": _num(g("input_number.videocitofono_volume_tts"), 85),
         "input_boolean.videocitofono_motion_enabled": _bool_on(g("input_boolean.videocitofono_motion_enabled", "on")),
         "input_boolean.videocitofono_face_enabled": _bool_on(g("input_boolean.videocitofono_face_enabled", "on")),
-        "input_boolean.videocitofono_finger_enabled": _bool_on(g("input_boolean.videocitofono_finger_enabled", "off")),
         "input_boolean.videocitofono_pin_enabled": _bool_on(g("input_boolean.videocitofono_pin_enabled", "on")),
         "input_boolean.videocitofono_nfc_enabled": _bool_on(g("input_boolean.videocitofono_nfc_enabled", "on")),
         "input_boolean.videocitofono_dnd": _bool_on(g("input_boolean.videocitofono_dnd", "off")),
@@ -135,7 +133,6 @@ def patch_example(cfg: dict, ha: dict) -> dict:
     cfg.setdefault("access_icons", {})
     cfg["access_icons"]["pin"] = ha["input_select.videocitofono_metodo_pin_icona"]
     cfg["access_icons"]["face"] = ha["input_select.videocitofono_metodo_face_icona"]
-    cfg["access_icons"]["fingerprint"] = ha["input_select.videocitofono_metodo_fingerprint_icona"]
     cfg["access_icons"]["nfc"] = ha["input_select.videocitofono_metodo_nfc_icona"]
 
     cfg.setdefault("motion", {})
@@ -150,9 +147,6 @@ def patch_example(cfg: dict, ha: dict) -> dict:
     cfg["face_recognition"]["liveness_enabled"] = ha["input_boolean.videocitofono_liveness"]
     cfg["face_recognition"].setdefault("auto_recognize", {})
     cfg["face_recognition"]["auto_recognize"]["enabled"] = ha["input_boolean.videocitofono_auto_recognize"]
-
-    cfg.setdefault("fingerprint", {})
-    cfg["fingerprint"]["enabled"] = ha["input_boolean.videocitofono_finger_enabled"]
 
     cfg.setdefault("nfc", {})
     cfg["nfc"]["enabled"] = ha["input_boolean.videocitofono_nfc_enabled"]

@@ -354,13 +354,11 @@
       {% endfor %}
       {{ out.items }}
   actions:
-  - action: mqtt.publish
+  - action: pyscript.videocitofono_mqtt_cmd
     data:
-      topic: videocitofono/cmd
-      qos: 1
-      retain: false
-      payload: >-
-        {"action":"set_config","persist_default":true,"config":{"campanelli": {{ campanelli | tojson }} }}
+      action: set_config
+      persist_default: true
+      config: '{"campanelli": {{ campanelli | tojson }}}'
   # restart e non single: modificando id/nome/icona di piu' campanelli (o al
   # riavvio di HA, quando gli input_text si popolano insieme) i trigger scattano
   # a raffica e "single" scartava le esecuzioni con un warning "Already running".
@@ -453,7 +451,6 @@
     - input_boolean.videocitofono_motion_enabled
     - input_boolean.videocitofono_pin_enabled
     - input_boolean.videocitofono_face_enabled
-    - input_boolean.videocitofono_finger_enabled
     - input_boolean.videocitofono_nfc_enabled
     # Riconoscimento automatico al risveglio e anti-foto: hanno un pulsante nella
     # plancia, quindi devono arrivare al citofono subito e non al prossimo
@@ -462,7 +459,6 @@
     - input_boolean.videocitofono_liveness
     - input_select.videocitofono_metodo_pin_icona
     - input_select.videocitofono_metodo_face_icona
-    - input_select.videocitofono_metodo_fingerprint_icona
     - input_select.videocitofono_metodo_nfc_icona
     for:
       seconds: 2
@@ -612,6 +608,64 @@
       {{ last is none or (as_timestamp(now()) - as_timestamp(last)) > 3600 }}
   actions:
   - action: script.videocitofono_riavvia_app
+  mode: single
+- id: '1761000000026'
+  alias: Videocitofono - Alert NFC non in ascolto
+  description: >-
+    Notifica se il lettore NFC resta down 3+ minuti. Impianto sigillato:
+    recover solo software (unbind CH340 / riavvio app), niente stacco USB.
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_nfc_reader
+    to: offline
+    for:
+      minutes: 3
+  - trigger: state
+    entity_id: sensor.videocitofono_health
+    attribute: nfc_status
+    to: down
+    for:
+      minutes: 3
+  conditions:
+  - condition: state
+    entity_id: input_boolean.videocitofono_nfc_enabled
+    state: 'on'
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: Videocitofono — NFC non in ascolto
+      message: >-
+        Il lettore NFC non è in ascolto da 3 minuti
+        ({{ states('sensor.videocitofono_nfc_reader') }},
+        {{ state_attr('sensor.videocitofono_health', 'nfc_error') | default('') }}).
+        Retry software in corso; se persiste l'app RPi si riavvia da sola.
+      notification_id: videocitofono_nfc_down
+  - action: notify.videocitofono
+    data:
+      title: Videocitofono
+      message: Lettore NFC non in ascolto. Retry automatico in corso.
+      data:
+        tag: videocitofono_nfc_down
+        group: videocitofono
+        channel: Videocitofono
+  mode: single
+- id: '1761000000027'
+  alias: Videocitofono - NFC ascolto ripristinato
+  description: Toglie l'alert quando il lettore NFC torna in ascolto.
+  triggers:
+  - trigger: state
+    entity_id: sensor.videocitofono_nfc_reader
+    to: ready
+  conditions: []
+  actions:
+  - action: persistent_notification.dismiss
+    data:
+      notification_id: videocitofono_nfc_down
+  - action: notify.videocitofono
+    data:
+      message: clear_notification
+      data:
+        tag: videocitofono_nfc_down
   mode: single
 - id: '1761000000022'
   alias: Videocitofono - Alert apertura anomala

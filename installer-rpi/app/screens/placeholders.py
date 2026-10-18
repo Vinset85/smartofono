@@ -1,4 +1,4 @@
-"""Schermata placeholder per l'impronta (hardware non collegato) e screensaver."""
+"""Schermate risultato accesso e screensaver."""
 from __future__ import annotations
 
 from kivy.clock import Clock
@@ -32,10 +32,6 @@ class PlaceholderScreen(PlaceholderScreenBase):
     def on_touch_down(self, touch):
         self.app_ctx.activity_touch()
         return super().on_touch_down(touch)
-
-
-class FingerScreen(PlaceholderScreen):
-    pass
 
 
 class ResultScreen(BgScreen):

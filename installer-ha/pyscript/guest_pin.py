@@ -21,28 +21,25 @@ def videocitofono_create_guest_pin(label="", valid_hours=24,
                                     max_uses=1, scope="porta"):
     """Crea un PIN ospite. Il PIN generato viene esposto come
     persistent_notification sulla dashboard (titolo: "PIN ospite")."""
-    payload = json.dumps({
-        "action": "guest_pin_create",
-        "label": str(label or ""),
-        "valid_hours": float(valid_hours or 24),
-        "max_uses": int(max_uses or 1),
-        "scope": str(scope or "porta"),
-    })
-    mqtt.publish(topic=CMD_TOPIC, payload=payload, qos=1, retain=False)
+    videocitofono_mqtt_cmd(
+        action="guest_pin_create",
+        label=str(label or ""),
+        valid_hours=float(valid_hours or 24),
+        max_uses=int(max_uses or 1),
+        scope=str(scope or "porta"),
+    )
 
 
 @service
 def videocitofono_revoke_guest_pin(id_=""):
     if not id_:
         return
-    payload = json.dumps({"action": "guest_pin_revoke", "id": str(id_)})
-    mqtt.publish(topic=CMD_TOPIC, payload=payload, qos=1, retain=False)
+    videocitofono_mqtt_cmd(action="guest_pin_revoke", id=str(id_))
 
 
 @service
 def videocitofono_list_guest_pins():
-    payload = json.dumps({"action": "guest_pin_list"})
-    mqtt.publish(topic=CMD_TOPIC, payload=payload, qos=1, retain=False)
+    videocitofono_mqtt_cmd(action="guest_pin_list")
 
 
 @mqtt_trigger("videocitofono/guest_pins/created")

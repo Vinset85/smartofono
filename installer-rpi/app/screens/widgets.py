@@ -50,7 +50,7 @@ class PinActionButton(SafeButtonBehavior, Button):
 
 
 class PlaceholderScreenBase(BgScreen):
-    """Base per schermate placeholder (Finger, NFC)."""
+    """Base per schermate placeholder (NFC)."""
     titolo = StringProperty("")
     icona_emoji = StringProperty("")
     icon_type = StringProperty("")

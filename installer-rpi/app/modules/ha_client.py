@@ -31,7 +31,7 @@ class HaClient:
         domain, name = self._domain_service(entity_id)
         url = f"{self.base}/api/services/{domain}/turn_on"
         try:
-            r = self._session.post(url, json={"entity_id": entity_id}, timeout=10)
+            r = self._session.post(url, json={"entity_id": entity_id}, timeout=3)
             ok = r.status_code in (200, 201)
             LOG.info("HA service %s -> %s", entity_id, r.status_code)
             return ok

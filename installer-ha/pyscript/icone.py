@@ -28,7 +28,6 @@ SELECT_ENTITIES = [
     "input_select.videocitofono_campanello4_icona",
     "input_select.videocitofono_metodo_pin_icona",
     "input_select.videocitofono_metodo_face_icona",
-    "input_select.videocitofono_metodo_fingerprint_icona",
     "input_select.videocitofono_metodo_nfc_icona",
 ]
 TOPIC_CMD = "videocitofono/cmd"
@@ -83,12 +82,11 @@ def _set_options(options):
 
 def _publish_library(files):
     try:
-        payload = {
-            "action": "set_icone_library",
-            "base_url": "/local/vc-icone/",
-            "files": files,
-        }
-        mqtt.publish(topic=TOPIC_CMD, payload=json.dumps(payload), qos=1, retain=False)
+        videocitofono_mqtt_cmd(
+            action="set_icone_library",
+            base_url="/local/vc-icone/",
+            files=files,
+        )
     except Exception as e:
         log.warning(f"MQTT publish library icone fallito: {e}")
 
