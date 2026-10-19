@@ -136,6 +136,31 @@
         }
     }
 
+    # ---- go2rtc MSE (video+audio in Lovelace, senza WebRTC/ICE) ----------
+    # stream.mp4 e' fMP4: il browser lo mette in un <video>, niente ICE.
+    # Upstream = go2rtc sul Pi (rpicam-vid + mic).
+    # Esposto solo a sessioni HA (cookie) o LAN.
+    @go2rtc_mse_deny {
+        path /go2rtc/api/stream.mp4
+        not header Cookie *session*
+        not remote_ip 192.168.0.0/16 10.0.0.0/8 172.16.0.0/12 127.0.0.1
+    }
+    handle @go2rtc_mse_deny {
+        respond "unauthorized" 401
+    }
+    handle /go2rtc/api/stream.mp4 {
+        uri strip_prefix /go2rtc
+        reverse_proxy 192.168.1.185:1984 {
+            header_up Host {http.reverse_proxy.upstream.hostport}
+            flush_interval -1
+            transport http {
+                versions 1.1
+                read_timeout 0
+                write_timeout 0
+            }
+        }
+    }
+
     # ---- Home Assistant (catch-all) --------------------------------------
     # HA ascolta su localhost:8123 in HTTPS: configuration.yaml ha
     # ssl_certificate/ssl_key su /ssl/ (cert dell'addon Duck DNS), quindi

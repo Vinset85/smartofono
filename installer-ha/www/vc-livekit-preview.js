@@ -1,136 +1,53 @@
-/* Videocitofono - Anteprima live dell'ingresso (LiveKit), sola ricezione.
+/* Videocitofono - Anteprima ingresso.
  *
- * Card da dashboard: mostra cosa vede la telecamera del citofono FUORI da una
- * chiamata. Non parte da sola, si avvia con un tocco e si spegne da sola.
- *
- * Perche' "a richiesta" e non un flusso sempre attivo
- * ---------------------------------------------------
- * Sul Pi libcamera e' esclusiva: mentre LiveKit pubblica, il rilevamento
- * movimento e il riconoscimento volti locali non possono usare il sensore (e
- * go2rtc/rpicam-vid resta fermo). Un'anteprima permanente significherebbe
- * rinunciare a quelle funzioni 24 ore al giorno. Quindi:
- *
- *   tap "Guarda ora"
- *     -> MQTT videocitofono/cmd {"action":"livekit_preview","on":true,"ttl":N}
- *     -> il Pi libera la camera, entra nella room e pubblica video+audio
- *     -> questa card, con un token SENZA diritto di pubblicare, si iscrive
- *   scadenza / "Chiudi" / uscita dalla pagina
- *     -> {"on":false} e il citofono torna alle sue funzioni
- *
- * Il timeout lato Pi e' la garanzia che la camera venga restituita anche se il
- * browser sparisce senza chiudere nulla (kiosk che si riavvia, tab uccisa).
- *
- * Differenze rispetto a vc-livekit-call
- * -------------------------------------
- * Quella card e' una videochiamata: chiede camera e microfono al browser,
- * pubblica, gestisce squillo, risposta e apertura porta. Questa non pubblica
- * niente (`can_publish: false` nel token) e non ha nulla a che vedere con il
- * ciclo della chiamata: se una chiamata e' in corso non si avvia affatto e
- * rimanda alla scheda della videochiamata, perche' in quel caso il video del
- * visitatore e' gia' nella room e una seconda sessione del Pi con la stessa
- * identita' espellerebbe la prima.
- *
- * Uso in Lovelace:
- *   type: custom:vc-livekit-preview
- *   title: Ingresso dal vivo      # opzionale
- *   ttl: 120                      # opzionale, secondi di anteprima
- *   room: videocitofono           # opzionale
+ * WebRTC (LiveKit, player isolato) nel tab di Lovelace ricarica
+ * il frontend. Qui il video e l'audio arrivano come stream HTTP (fMP4)
+ * in un <video> nella card: niente ICE nel browser.
  */
 
 (function () {
   'use strict';
 
-  const VC_PREV_BUILD = 'vc-livekit-preview 2026.08.18-2';
-  const SDK_URL = '/local/livekit-client-2.23.0.umd.min.js';
-  // Entita' opzionali: token del token-issuer (i comandi MQTT passano
-  // da pyscript.videocitofono_mqtt_cmd, senza esporre il secret al browser).
-  const LK_TOKEN_ENTITY = 'input_text.videocitofono_lk_token';
+  const VC_PREV_BUILD = 'vc-livekit-preview 2026.10.18-28';
   const CALL_ENTITY = 'binary_sensor.stato_chiamata_videocitofono';
-  // Quanto attendere il primo fotogramma prima di dire che non arriva: il Pi
-  // deve fermare rpicam-vid, riaprire il sensore e negoziare WebRTC.
-  const ATTESA_VIDEO_MS = 15000;
+  const STREAM = '/go2rtc/api/stream.mp4?src=pi5cam_h264';
+  const ATTESA_VIDEO_MS = 25000;
+  const RETRY_MS = 1200;
 
-  /* --- Filtro ICE ---------------------------------------------------------
-   * Sulla LAN due Pi rispondono a 192.168.1.52 e uno risponde anche a
-   * 192.168.1.185: se il browser annuncia quegli IP come propri host
-   * candidate, il DTLS del server finisce sul Pi sbagliato e il video resta
-   * verde. La patch e' la stessa di vc-livekit-call.js (dove e' documentata per
-   * esteso) e usa il medesimo flag globale, quindi si applica una volta sola
-   * indipendentemente da quale delle due card viene caricata per prima. */
-  const VC_BLOCKED_IPS = new Set(['192.168.1.185', '192.168.1.52']);
-  function vcCandBlocked(c) {
-    if (!c) return false;
-    const p = String(c).split(/\s+/);
-    return p.length >= 5 && VC_BLOCKED_IPS.has(p[4]);
-  }
-  if (!window.__vcRtcPatched && typeof window.RTCPeerConnection === 'function') {
-    window.__vcRtcPatched = true;
-    const PC = window.RTCPeerConnection;
-    const origAdd = PC.prototype.addEventListener;
-    PC.prototype.addEventListener = function (type, listener, opts) {
-      if (type === 'icecandidate' && typeof listener === 'function') {
-        return origAdd.call(this, type, function (ev) {
-          if (ev && ev.candidate && vcCandBlocked(ev.candidate.candidate)) return;
-          return listener.call(this, ev);
-        }, opts);
+  const SESS = {
+    stato: 'idle', deadline: 0, liveDa: 0,
+    ttl: 120, tentativo: 0,
+    voglio: false, bootId: 0, tick: null,
+    attesaTimer: null, retryTimer: null, video: null, audio: false,
+  };
+  let _card = null;
+  let _cmdLast = { on: null, t: 0 };
+
+  function eCopiaLovelace(el) {
+    if (!el || !el.isConnected) return true;
+    let n = el;
+    for (let i = 0; i < 14 && n; i++) {
+      if (n.nodeType === 1) {
+        const st = n.getAttribute('style') || '';
+        if (/left:\s*-\d{3,}/.test(st) || /top:\s*-\d{3,}/.test(st)) return true;
       }
-      return origAdd.call(this, type, listener, opts);
-    };
-    const origSetLocal = PC.prototype.setLocalDescription;
-    PC.prototype.setLocalDescription = function (desc) {
-      if (desc && desc.sdp) {
-        const sdp = desc.sdp.split(/\r?\n/)
-          .filter((l) => !l.startsWith('a=candidate:') || !vcCandBlocked(l.slice(2)))
-          .join('\r\n');
-        if (sdp !== desc.sdp) desc = { type: desc.type, sdp };
-      }
-      return origSetLocal.call(this, desc);
-    };
+      n = n.parentNode;
+      if (n && n.nodeType === 11) n = n.host || n.parentNode;
+    }
+    return false;
   }
 
-  /* --- SDK e URL: stessa logica di vc-livekit-call ------------------------
-   * Caddy espone /livekit-token e /livekit solo sulla 443, quindi se HA e'
-   * aperto su una porta diversa (port-forward diretto al core) la porta va
-   * scartata, altrimenti la richiesta finisce sul core che non sa cosa farne. */
-  let sdkPromise = null;
-  function loadSdk() {
-    const w = window;
-    if (w.LivekitClient || w.LiveKitClient) {
-      return Promise.resolve(w.LivekitClient || w.LiveKitClient);
+  function adottaSessione(c) {
+    if (!c || !SESS.voglio) return false;
+    if (SESS.stato !== 'live' && SESS.stato !== 'attesa' && SESS.stato !== 'avvio') {
+      return false;
     }
-    if (sdkPromise) return sdkPromise;
-    sdkPromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = SDK_URL;
-      s.async = true;
-      s.onload = () => {
-        const lk = w.LivekitClient || w.LiveKitClient;
-        lk ? resolve(lk) : reject(new Error('SDK livekit-client non esposto'));
-      };
-      s.onerror = () => reject(new Error('SDK livekit-client non caricato'));
-      document.head.appendChild(s);
-    });
-    return sdkPromise;
-  }
-
-  function edgeOrigin() {
-    if (location.protocol === 'https:') {
-      const std = !location.port || location.port === '443';
-      return std ? location.origin : 'https://' + location.hostname;
-    }
-    return location.origin;
-  }
-  function defaultTokenUrl() {
-    if (location.protocol === 'https:') return edgeOrigin() + '/livekit-token/token';
-    return 'http://' + location.hostname + ':8081/token';
-  }
-  function defaultWsUrl() {
-    // Senza `/rtc`: il SDK lo appende da solo.
-    if (location.protocol === 'https:') {
-      const std = !location.port || location.port === '443';
-      return 'wss://' + (std ? location.host : location.hostname) + '/livekit';
-    }
-    return 'ws://' + location.hostname + ':7880';
+    c._stato = SESS.stato === 'avvio' ? 'attesa' : SESS.stato;
+    c._deadline = SESS.deadline;
+    c._liveDa = SESS.liveDa;
+    c._ttl = SESS.ttl;
+    c._tentativo = SESS.tentativo;
+    return true;
   }
 
   function statoEntita(hass, entity) {
@@ -145,7 +62,17 @@
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   }
 
-  // -------------------------------------------------------------------------
+  function edgeOrigin() {
+    if (location.protocol === 'https:') {
+      const std = !location.port || location.port === '443';
+      return std ? location.origin : ('https://' + location.hostname);
+    }
+    return location.origin;
+  }
+
+  function streamUrl() {
+    return edgeOrigin() + STREAM + '&t=' + Date.now();
+  }
 
   class VcLivekitPreview extends HTMLElement {
     static getStubConfig() { return { title: 'Ingresso dal vivo', ttl: 120 }; }
@@ -154,42 +81,34 @@
       super();
       this._cfg = {};
       this._hass = null;
-      this._room = null;
-      this._lk = null;
-      // idle | avvio | attesa | live | scaduta | errore | in_chiamata
       this._stato = 'idle';
       this._errore = '';
-      this._audioOn = false;
       this._deadline = 0;
-      this._tick = null;
-      this._attesaTimer = null;
+      this._liveDa = 0;
+      this._tentativo = 0;
+      this._ttl = 120;
+      this._lockClick = 0;
       this._root = this.attachShadow({ mode: 'open' });
+      this._onPlaying = () => this._segnaLive();
+      this._onError = () => this._retryStream();
       this._renderShell();
     }
 
     setConfig(cfg) {
-      this._cfg = Object.assign({
-        title: 'Ingresso dal vivo',
-        ttl: 120,
-        room: 'videocitofono',
-        // Non 'ha' come la card chiamata: quella riconosce gli altri
-        // rispondenti dal prefisso dell'identita' e un giorno potrebbe
-        // scambiare uno spettatore per qualcuno che ha risposto.
-        identity_prefix: 'viewer',
-        token_url: defaultTokenUrl(),
-        ws_url: defaultWsUrl(),
-      }, cfg || {});
+      this._cfg = Object.assign({ title: 'Ingresso dal vivo', ttl: 120 }, cfg || {});
       this._ttl = Math.max(15, Math.min(600, parseInt(this._cfg.ttl, 10) || 120));
-      // Il contenuto va disegnato qui: `set hass` ridisegna solo quando lo stato
-      // cambia, quindi a riposo la card resterebbe un rettangolo vuoto senza il
-      // pulsante di avvio.
-      this._render();
+      if (this._stato === 'live' || this._stato === 'attesa' || this._stato === 'avvio') {
+        return;
+      }
+      if (adottaSessione(this)) this._riaggancia();
+      else this._render();
     }
 
     set hass(hass) {
       this._hass = hass;
-      // In chiamata l'anteprima non si puo' avviare: si mostra il rimando alla
-      // videochiamata, dove il video del visitatore c'e' gia'.
+      if (this._stato === 'live' || this._stato === 'attesa' || this._stato === 'avvio') {
+        return;
+      }
       const inCall = statoEntita(hass, CALL_ENTITY) === 'on';
       if (inCall && (this._stato === 'idle' || this._stato === 'scaduta')) {
         this._stato = 'in_chiamata';
@@ -201,294 +120,299 @@
     }
 
     getCardSize() { return 6; }
-
-    // --- ciclo di vita ----------------------------------------------------
+    getGridOptions() {
+      return { columns: 'full', rows: 6, min_rows: 6, max_rows: 6 };
+    }
 
     connectedCallback() {
-      // Lovelace puo' spostare la card nel DOM (cambio di colonne, ritorno sulla
-      // vista): dopo un `disconnectedCallback` che ha chiuso la sessione serve
-      // ridisegnare, altrimenti resta il messaggio dello stato precedente.
-      if (this._cfg && !this._root.getElementById('msg')) this._render();
+      if (eCopiaLovelace(this)) return;
+      if (_card && _card !== this && _card.isConnected && !eCopiaLovelace(_card)) {
+        return;
+      }
+      const riprendi = adottaSessione(this)
+        || this._stato === 'live' || this._stato === 'attesa' || this._stato === 'avvio';
+      _card = this;
+      if (riprendi) this._riaggancia();
+      else if (this._cfg && !this._root.getElementById('msg')) this._render();
     }
 
     disconnectedCallback() {
-      // La pagina e' stata cambiata o la card rimossa: si chiude tutto, cosi'
-      // il citofono non resta a pubblicare per il resto del timeout.
-      if (this._stato !== 'idle') this._ferma('uscita dalla pagina');
+      if (_card !== this) return;
+      _card = null;
     }
 
-    // --- comandi al Pi ----------------------------------------------------
+    _riaggancia() {
+      if (eCopiaLovelace(this)) return;
+      _card = this;
+      this._render();
+      if (SESS.voglio && (this._stato === 'live' || this._stato === 'attesa'
+          || this._stato === 'avvio')) {
+        this._agganciaStream();
+        if (this._stato === 'live' && !SESS.tick) this._avviaConto();
+      }
+    }
 
     _comando(on) {
       if (!this._hass) return;
-      const data = { action: 'livekit_preview', on: !!on };
+      on = !!on;
+      if (on && !SESS.voglio) return;
+      if (!on && SESS.voglio) return;
+      const now = Date.now();
+      if (_cmdLast.on === on && (now - _cmdLast.t) < (on ? 8000 : 1500)) return;
+      _cmdLast = { on: on, t: now };
+      const data = { action: 'livekit_preview', on: on, enabled: on };
       if (on) data.ttl = this._ttl;
       try {
-        this._hass.callService('pyscript', 'videocitofono_mqtt_cmd', data);
+        const conn = this._hass.connection;
+        const p = (conn && conn.sendMessagePromise)
+          ? conn.sendMessagePromise({
+              type: 'call_service',
+              domain: 'pyscript',
+              service: 'videocitofono_mqtt_cmd',
+              service_data: data,
+            })
+          : this._hass.callService('pyscript', 'videocitofono_mqtt_cmd', data);
+        if (p && typeof p.then === 'function') {
+          p.catch((e) => console.warn('[vc-livekit-preview] comando MQTT fallito:', e));
+        }
       } catch (e) {
         console.warn('[vc-livekit-preview] comando MQTT fallito:', e);
       }
     }
 
-    async _avvia() {
-      if (this._stato === 'avvio' || this._stato === 'attesa'
-          || this._stato === 'live') return;
+    _montaVideo() {
+      const box = this._root.getElementById('video');
+      if (!box) return null;
+      let v = this._root.getElementById('player');
+      if (v && v.tagName === 'VIDEO' && v.isConnected) {
+        SESS.video = v;
+        return v;
+      }
+      v = document.createElement('video');
+      v.id = 'player';
+      v.setAttribute('playsinline', '');
+      v.setAttribute('autoplay', '');
+      v.playsInline = true;
+      v.autoplay = true;
+      v.muted = !SESS.audio;
+      v.controls = false;
+      v.disablePictureInPicture = true;
+      v.addEventListener('playing', this._onPlaying);
+      v.addEventListener('canplay', this._onPlaying);
+      v.addEventListener('error', this._onError);
+      box.appendChild(v);
+      SESS.video = v;
+      return v;
+    }
+
+    _chiudiVideo() {
+      if (SESS.retryTimer) {
+        clearTimeout(SESS.retryTimer);
+        SESS.retryTimer = null;
+      }
+      const v = SESS.video || (this._root && this._root.getElementById('player'));
+      SESS.video = null;
+      SESS.audio = false;
+      if (!v) return;
+      try { v.removeEventListener('playing', this._onPlaying); } catch (_) {}
+      try { v.removeEventListener('canplay', this._onPlaying); } catch (_) {}
+      try { v.removeEventListener('error', this._onError); } catch (_) {}
+      try { v.pause(); } catch (_) {}
+      try { v.removeAttribute('src'); v.load(); } catch (_) {}
+      try { v.remove(); } catch (_) {}
+    }
+
+    _agganciaStream() {
+      const v = this._montaVideo();
+      if (!v || !SESS.voglio) return;
+      try {
+        v.muted = !SESS.audio;
+        v.src = streamUrl();
+        v.play().catch(function () {});
+      } catch (e) {
+        console.warn('[vc-livekit-preview] stream:', e);
+      }
+    }
+
+    _retryStream() {
+      if (!SESS.voglio) return;
+      if (SESS.stato === 'live') return;
+      if (SESS.retryTimer) return;
+      SESS.retryTimer = setTimeout(() => {
+        SESS.retryTimer = null;
+        if (!SESS.voglio || SESS.stato === 'live') return;
+        this._agganciaStream();
+      }, RETRY_MS);
+    }
+
+    _segnaLive() {
+      if (!SESS.voglio) return;
+      if (SESS.attesaTimer) {
+        clearTimeout(SESS.attesaTimer);
+        SESS.attesaTimer = null;
+      }
+      if (SESS.retryTimer) {
+        clearTimeout(SESS.retryTimer);
+        SESS.retryTimer = null;
+      }
+      const giaLive = this._stato === 'live' && this._deadline > Date.now();
+      this._stato = 'live';
+      SESS.stato = 'live';
+      if (!giaLive) {
+        this._liveDa = Date.now();
+        this._deadline = Date.now() + this._ttl * 1000;
+        SESS.deadline = this._deadline;
+        this._avviaConto();
+        this._render();
+      } else {
+        this._nascondiMsg();
+      }
+    }
+
+    _nascondiMsg() {
+      const msg = this._root.getElementById('msg');
+      if (msg) msg.classList.add('off');
+    }
+
+    _avvia(riprova) {
+      if (!riprova && this._lockClick && Date.now() < this._lockClick) return;
+      if (!riprova && SESS.voglio
+          && (SESS.stato === 'live' || SESS.stato === 'attesa' || SESS.stato === 'avvio')) {
+        this._agganciaStream();
+        if (adottaSessione(this)) this._riaggancia();
+        return;
+      }
+      if (!riprova && (this._stato === 'avvio' || this._stato === 'attesa'
+          || this._stato === 'live')) {
+        this._agganciaStream();
+        return;
+      }
       if (statoEntita(this._hass, CALL_ENTITY) === 'on') {
         this._stato = 'in_chiamata';
         this._render();
         return;
       }
       this._errore = '';
-      this._audioOn = false;
       this._stato = 'avvio';
+      SESS.voglio = true;
+      SESS.stato = 'avvio';
+      SESS.audio = false;
       this._render();
-
       this._comando(true);
-
-      try {
-        const lk = await loadSdk();
-        this._lk = lk;
-        const token = await this._chiediToken();
-        // Nessun publishDefaults: questa card non pubblica nulla.
-        const room = new lk.Room({ adaptiveStream: true, dynacast: false });
-        this._room = room;
-        room
-          .on(lk.RoomEvent.TrackSubscribed, (track) => this._attacca(track))
-          .on(lk.RoomEvent.TrackUnsubscribed, (track) => {
-            try { track.detach().forEach((el) => el.remove()); } catch (_) {}
-            // Il Pi ha smesso di pubblicare mentre guardavamo: succede se
-            // suona il campanello (la chiamata ha la precedenza sulla camera)
-            // o se il timeout e' scaduto lato Pi prima che scadesse qui. In
-            // entrambi i casi la card non deve restare a mostrare "in diretta"
-            // su un fotogramma congelato; `set hass` la portera' poi su
-            // "chiamata in corso" se e' quello il motivo.
-            if (track.kind === 'video' && this._stato === 'live') {
-              this._chiudiSessione();
-              this._stato = 'scaduta';
-              this._render();
-            }
-          })
-          .on(lk.RoomEvent.Disconnected, () => {
-            if (this._stato === 'live' || this._stato === 'attesa') {
-              this._stato = 'scaduta';
-              this._render();
-            }
-          });
-        await room.connect(this._cfg.ws_url, token);
-        for (const p of room.remoteParticipants.values()) {
-          for (const pub of p.trackPublications.values()) {
-            if (pub.track) this._attacca(pub.track);
-          }
-        }
-        if (this._stato === 'avvio') {
-          this._stato = 'attesa';
-          this._render();
-        }
-        // Se il Pi non arriva, non lasciare la card in attesa perenne: il caso
-        // tipico e' la camera occupata da un'altra funzione locale.
-        this._attesaTimer = setTimeout(() => {
-          if (this._stato === 'attesa') {
-            this._errore = 'Il citofono non ha inviato immagini. '
-              + 'Puo' + '\u2019' + ' essere occupato dal riconoscimento del volto '
-              + 'o da una chiamata appena conclusa: riprova tra qualche secondo.';
-            this._stato = 'errore';
-            this._render();
-            this._chiudiSessione();
-            this._comando(false);
-          }
-        }, ATTESA_VIDEO_MS);
-      } catch (e) {
-        console.warn('[vc-livekit-preview] avvio fallito:', e);
-        this._errore = String((e && e.message) || e).slice(0, 200);
-        this._stato = 'errore';
-        this._render();
-        this._chiudiSessione();
-        this._comando(false);
-      }
-    }
-
-    async _chiediToken() {
-      const headers = { 'Content-Type': 'application/json' };
-      const secret = statoEntita(this._hass, LK_TOKEN_ENTITY);
-      if (secret) headers['X-VC-Token'] = secret;
-      const identita = (this._cfg.identity_prefix || 'ha') + '-view-'
-        + Math.random().toString(36).slice(2, 8);
-      const r = await fetch(this._cfg.token_url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          identity: identita,
-          name: identita,
-          room: this._cfg.room,
-          ttl_seconds: 3600,
-          // Il punto della card: guardare senza poter pubblicare. Cosi' il Pi
-          // non riceve tracce da riprodurre sull'altoparlante dell'ingresso.
-          can_publish: false,
-          can_subscribe: true,
-          prefer_lan: false,
-        }),
-      });
-      if (!r.ok) {
-        throw new Error('token issuer HTTP ' + r.status + ': '
-          + (await r.text()).slice(0, 160));
-      }
-      const j = await r.json();
-      if (!j.token) throw new Error('token issuer: risposta senza token');
-      return j.token;
-    }
-
-    _attacca(track) {
-      const box = this._root.getElementById('video');
-      if (!box) return;
-      if (track.kind === 'video') {
-        const el = track.attach();
-        el.setAttribute('playsinline', '');
-        el.setAttribute('autoplay', '');
-        el.id = 'v-live';
-        const prec = this._root.getElementById('v-live');
-        if (prec) prec.remove();
-        box.appendChild(el);
-        el.play().catch(() => {});
-        if (this._attesaTimer) {
-          clearTimeout(this._attesaTimer);
-          this._attesaTimer = null;
-        }
-        this._stato = 'live';
-        this._deadline = Date.now() + this._ttl * 1000;
-        this._avviaConto();
-        this._render();
-      } else if (track.kind === 'audio') {
-        const el = track.attach();
-        el.id = 'a-live';
-        el.setAttribute('autoplay', '');
-        // Muto all'apertura: l'ascolto dell'ingresso si attiva con un tocco.
-        el.muted = !this._audioOn;
-        el.volume = this._audioOn ? 1 : 0;
-        const prec = this._root.getElementById('a-live');
-        if (prec) prec.remove();
-        box.appendChild(el);
-      }
+      this._tentativo += 1;
+      SESS.bootId = (SESS.bootId || 0) + 1;
+      this._stato = 'attesa';
+      SESS.stato = 'attesa';
+      this._render();
+      this._agganciaStream();
+      if (SESS.attesaTimer) clearTimeout(SESS.attesaTimer);
+      SESS.attesaTimer = setTimeout(() => {
+        if (SESS.stato === 'live' || !SESS.voglio) return;
+        const c = _card || this;
+        c._errore = 'Il citofono non ha inviato il video. '
+          + 'Puo\u2019 essere occupato dal riconoscimento del volto '
+          + 'o da una chiamata appena conclusa: riprova tra qualche secondo.';
+        c._stato = 'errore';
+        SESS.voglio = false;
+        SESS.stato = 'errore';
+        c._comando(false);
+        c._chiudiVideo();
+        c._render();
+      }, ATTESA_VIDEO_MS);
     }
 
     _avviaConto() {
-      if (this._tick) clearInterval(this._tick);
-      this._tick = setInterval(() => {
-        const resto = this._deadline - Date.now();
+      if (SESS.tick) return;
+      SESS.tick = setInterval(() => {
+        if (!SESS.voglio) return;
+        const deadline = SESS.deadline;
+        if (!deadline) return;
+        const resto = deadline - Date.now();
+        const c = _card;
         if (resto <= 0) {
-          // Il Pi si ferma da solo allo scadere: qui si allinea la card.
-          this._stato = 'scaduta';
-          this._chiudiSessione();
-          this._render();
+          if (c) c._ferma('tempo scaduto');
           return;
         }
-        const el = this._root.getElementById('conto');
+        if (!c) return;
+        c._deadline = deadline;
+        const el = c._root && c._root.getElementById('conto');
         if (el) el.textContent = mmss(resto);
       }, 1000);
     }
 
     _prolunga() {
+      SESS.voglio = true;
       this._comando(true);
       this._deadline = Date.now() + this._ttl * 1000;
-      this._render();
+      SESS.deadline = this._deadline;
+      const el = this._root.getElementById('conto');
+      if (el) el.textContent = mmss(this._ttl * 1000);
     }
 
-    _toggleAudio() {
-      this._audioOn = !this._audioOn;
-      const a = this._root.getElementById('a-live');
-      if (a) {
-        a.muted = !this._audioOn;
-        a.volume = this._audioOn ? 1 : 0;
-        if (this._audioOn) a.play().catch(() => {});
+    _audio() {
+      SESS.audio = !SESS.audio;
+      const v = SESS.video || (this._root && this._root.getElementById('player'));
+      if (v) {
+        v.muted = !SESS.audio;
+        v.volume = SESS.audio ? 1 : 0;
+        if (SESS.audio) v.play().catch(function () {});
       }
-      this._render();
-    }
-
-    _chiudiSessione() {
-      if (this._tick) { clearInterval(this._tick); this._tick = null; }
-      if (this._attesaTimer) { clearTimeout(this._attesaTimer); this._attesaTimer = null; }
-      const room = this._room;
-      this._room = null;
-      if (room) { try { room.disconnect(); } catch (_) {} }
-      const v = this._root.getElementById('v-live');
-      if (v) v.remove();
-      const a = this._root.getElementById('a-live');
-      if (a) a.remove();
+      const b = this._root.getElementById('btn-audio');
+      if (b) b.setAttribute('title', SESS.audio ? 'Muto' : 'Audio');
+      const ic = b && b.querySelector('ha-icon');
+      if (ic) ic.setAttribute('icon', SESS.audio ? 'mdi:volume-high' : 'mdi:volume-off');
     }
 
     _ferma(motivo) {
-      this._chiudiSessione();
+      SESS.voglio = false;
+      SESS.bootId = (SESS.bootId || 0) + 1;
+      this._lockClick = Date.now() + 1000;
       this._comando(false);
       this._stato = 'idle';
+      this._tentativo = 0;
+      if (SESS.tick) { clearInterval(SESS.tick); SESS.tick = null; }
+      if (SESS.attesaTimer) { clearTimeout(SESS.attesaTimer); SESS.attesaTimer = null; }
+      this._chiudiVideo();
       this._render();
       if (motivo) console.log('[vc-livekit-preview] chiusa:', motivo);
     }
-
-    // --- interfaccia ------------------------------------------------------
 
     _renderShell() {
       this._root.innerHTML = `
 <style>
   ha-card { overflow: hidden; }
-  .hdr {
-    display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px 8px;
-  }
-  .tit {
-    flex: 1; font-size: 1rem; font-weight: 600;
-    color: var(--primary-text-color);
-  }
-  .stato {
-    font-size: 0.72rem; font-weight: 600; letter-spacing: .04em;
-    text-transform: uppercase; color: var(--secondary-text-color);
-  }
+  .hdr { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+  .tit { flex: 1; font-size: 1rem; font-weight: 600; color: var(--primary-text-color); }
+  .stato { font-size: 0.72rem; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--secondary-text-color); }
   .stato.live { color: #e53935; }
-  .box {
-    position: relative; width: 100%; aspect-ratio: 4 / 3;
-    background: #10141a; display: flex;
-    align-items: center; justify-content: center;
-  }
-  .box video { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .msg {
-    position: absolute; inset: 0; display: flex; gap: 10px;
+  .box { position: relative; width: 100%; aspect-ratio: 4 / 3;
+    background: #10141a; display: flex; align-items: center; justify-content: center; }
+  .box video { position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; background: #000; z-index: 0; }
+  .msg { position: absolute; inset: 0; z-index: 1; display: flex; gap: 10px;
     flex-direction: column; align-items: center; justify-content: center;
     padding: 18px; box-sizing: border-box; text-align: center;
     color: rgba(255,255,255,.86); font-size: 0.86rem; line-height: 1.45;
-  }
+    background: #10141a; }
+  .msg.off { display: none; }
   .msg ha-icon { --mdc-icon-size: 34px; opacity: .75; }
-  .avvia {
-    display: inline-flex; align-items: center; gap: 8px;
-    border: none; border-radius: 999px; cursor: pointer;
-    padding: 11px 20px; font: inherit; font-weight: 600; font-size: 0.9rem;
-    background: #2f7d4f; color: #fff;
-  }
+  .avvia { display: inline-flex; align-items: center; gap: 8px; border: none;
+    border-radius: 999px; cursor: pointer; padding: 11px 20px; font: inherit;
+    font-weight: 600; font-size: 0.9rem; background: #2f7d4f; color: #fff; }
   .avvia:hover { background: #276a43; }
   .avvia.grigio { background: rgba(255,255,255,.16); }
-  .barra {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px;
-  }
-  .conto {
-    font-variant-numeric: tabular-nums; font-size: 0.85rem; font-weight: 600;
-    color: var(--secondary-text-color); margin-right: auto; padding-left: 4px;
-  }
-  .tondo {
-    width: 40px; height: 40px; border-radius: 50%; border: none;
-    cursor: pointer; display: inline-flex;
-    align-items: center; justify-content: center;
+  .sotto { min-height: 60px; box-sizing: border-box; }
+  .barra { display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    min-height: 60px; box-sizing: border-box; }
+  .conto { font-variant-numeric: tabular-nums; font-size: 0.85rem; font-weight: 600;
+    color: var(--secondary-text-color); margin-right: auto; padding-left: 4px; }
+  .tondo { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
     background: var(--secondary-background-color, rgba(0,0,0,.06));
-    color: var(--primary-text-color); --mdc-icon-size: 20px;
-  }
-  .tondo.on { background: #2f7d4f; color: #fff; }
+    color: var(--primary-text-color); --mdc-icon-size: 20px; }
   .tondo.stop { background: #c62828; color: #fff; }
   .tondo:hover { filter: brightness(.94); }
-  .nota {
-    padding: 0 16px 12px; font-size: 0.74rem; line-height: 1.4;
-    color: var(--secondary-text-color);
-  }
-  .vai {
-    color: var(--primary-color); font-weight: 600;
-    text-decoration: none; cursor: pointer;
-  }
 </style>
 <ha-card>
   <div class="hdr">
@@ -511,8 +435,8 @@
     _azione(act) {
       if (act === 'avvia') this._avvia();
       else if (act === 'ferma') this._ferma('richiesta utente');
-      else if (act === 'audio') this._toggleAudio();
       else if (act === 'prolunga') this._prolunga();
+      else if (act === 'audio') this._audio();
       else if (act === 'chiamata') {
         history.pushState(null, '', '/lovelace/conversazione');
         window.dispatchEvent(new CustomEvent('location-changed'));
@@ -526,7 +450,6 @@
       const sotto = this._root.getElementById('sotto');
       if (!tit) return;
       tit.textContent = this._cfg.title || 'Ingresso dal vivo';
-
       const etichette = {
         idle: '', avvio: 'avvio…', attesa: 'in attesa',
         live: 'in diretta', scaduta: 'terminata', errore: 'errore',
@@ -535,12 +458,11 @@
       badge.textContent = etichette[this._stato] || '';
       badge.className = 'stato' + (this._stato === 'live' ? ' live' : '');
 
-      // Il video resta appeso al box: si sostituisce solo il messaggio sopra.
       const vecchio = this._root.getElementById('msg');
       if (vecchio) vecchio.remove();
-      const msg = (html) => {
+      const msg = (html, cls) => {
         const d = document.createElement('div');
-        d.className = 'msg';
+        d.className = 'msg' + (cls ? ' ' + cls : '');
         d.id = 'msg';
         d.innerHTML = html;
         box.appendChild(d);
@@ -548,13 +470,15 @@
 
       if (this._stato === 'idle') {
         msg(`<ha-icon icon="mdi:cctv"></ha-icon>
-             <div>Guarda cosa vede il citofono in questo momento.</div>
+             <div>Guarda e ascolta cosa vede il citofono.</div>
              <button class="avvia" data-act="avvia">
                <ha-icon icon="mdi:play"></ha-icon>Guarda ora
              </button>`);
       } else if (this._stato === 'avvio' || this._stato === 'attesa') {
         msg(`<ha-icon icon="mdi:video-wireless-outline"></ha-icon>
-             <div>Sto accendendo la telecamera dell${'\u2019'}ingresso…</div>`);
+             <div>Sto accendendo la telecamera.</div>`);
+      } else if (this._stato === 'live') {
+        msg('', 'off');
       } else if (this._stato === 'scaduta') {
         msg(`<ha-icon icon="mdi:timer-off-outline"></ha-icon>
              <div>Anteprima terminata. La telecamera è tornata alle sue
@@ -570,21 +494,22 @@
              </button>`);
       } else if (this._stato === 'in_chiamata') {
         msg(`<ha-icon icon="mdi:phone-in-talk"></ha-icon>
-             <div>C${'\u2019'}è una chiamata in corso: le immagini sono nella
+             <div>C\u2019è una chiamata in corso: le immagini sono nella
              videochiamata.</div>
              <button class="avvia" data-act="chiamata">
                <ha-icon icon="mdi:video"></ha-icon>Apri la videochiamata
              </button>`);
       }
 
-      if (this._stato === 'live') {
-        const resto = mmss(Math.max(0, this._deadline - Date.now()));
+      if (this._stato === 'live' || this._stato === 'attesa' || this._stato === 'avvio') {
+        const resto = this._stato === 'live'
+          ? mmss(Math.max(0, this._deadline - Date.now())) : '';
+        const icAudio = SESS.audio ? 'mdi:volume-high' : 'mdi:volume-off';
         sotto.innerHTML = `
 <div class="barra">
   <span class="conto" id="conto">${resto}</span>
-  <button class="tondo ${this._audioOn ? 'on' : ''}" data-act="audio"
-          title="${this._audioOn ? 'Disattiva l\u2019ascolto' : 'Ascolta l\u2019ingresso'}">
-    <ha-icon icon="${this._audioOn ? 'mdi:volume-high' : 'mdi:volume-off'}"></ha-icon>
+  <button class="tondo" id="btn-audio" data-act="audio" title="${SESS.audio ? 'Muto' : 'Audio'}">
+    <ha-icon icon="${icAudio}"></ha-icon>
   </button>
   <button class="tondo" data-act="prolunga" title="Aggiungi tempo">
     <ha-icon icon="mdi:timer-plus-outline"></ha-icon>
@@ -593,13 +518,6 @@
     <ha-icon icon="mdi:stop"></ha-icon>
   </button>
 </div>`;
-      } else if (this._stato === 'idle' || this._stato === 'scaduta') {
-        sotto.innerHTML = `<div class="nota">Mentre l${'\u2019'}anteprima è attiva
-          il citofono non usa la telecamera per il rilevamento del movimento e
-          per il riconoscimento dei volti. Si spegne da sola dopo
-          ${Math.round(this._ttl / 60) >= 1
-            ? Math.round(this._ttl / 60) + ' minuti'
-            : this._ttl + ' secondi'}.</div>`;
       } else {
         sotto.innerHTML = '';
       }

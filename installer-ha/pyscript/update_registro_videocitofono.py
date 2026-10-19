@@ -363,7 +363,9 @@ def _enforce_video_quota(data, max_bytes=VIDEO_MAX_BYTES, max_files=VIDEO_MAX_FI
         log.warning(f"Quota video: scan fallito: {e}")
         return None
     files.sort()
-    total = sum(sz for _m, sz, _p, _n in files)
+    total = 0
+    for _m, sz, _p, _n in files:
+        total += sz
     changed = False
     while files and (len(files) > max_files or total > max_bytes):
         _mtime, size, full, fname = files.pop(0)

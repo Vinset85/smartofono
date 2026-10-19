@@ -250,6 +250,48 @@ def stop_idle_service() -> bool:
         return False
 
 
+def start_for_preview() -> bool:
+    """Avvia go2rtc anche in eco: l'anteprima HA legge lo stream MSE.
+
+    Non tocca il reference count di pause_for_camera: l'anteprima non e'
+    un consumer Picamera2, usa rpicam-vid. Se face/chiamata tengono la
+    pausa, non si avvia.
+    """
+    global _paused
+    with _lock:
+        refs = _pause_refs
+    if refs > 0:
+        LOG.info("go2rtc preview skip (pause ref=%d)", refs)
+        return False
+    if _service_active() and _rpicam_running():
+        with _lock:
+            _paused = False
+        return True
+    if not wait_camera_free(timeout=8.0):
+        LOG.warning("go2rtc preview: libcamera occupata")
+        return False
+    try:
+        cmd = "restart" if _service_active() else "start"
+        r = subprocess.run(
+            ["sudo", "-n", "/bin/systemctl", cmd, SERVICE],
+            capture_output=True, text=True, timeout=45, check=False)
+        if r.returncode != 0:
+            LOG.warning(
+                "go2rtc preview %s rc=%s: %s",
+                cmd, r.returncode, (r.stderr or r.stdout or "")[-200:])
+            return False
+        with _lock:
+            _paused = False
+        if not _wait_rpicam_running():
+            LOG.warning("go2rtc preview: rpicam-vid non partito")
+            return False
+        LOG.info("go2rtc avviato per anteprima HA")
+        return True
+    except Exception as e:
+        LOG.warning("go2rtc preview start err: %s", e)
+        return False
+
+
 def ensure_running_for_motion(*, wait_rpicam: bool = False) -> bool:
     """Se go2rtc e' fermo o rpicam-vid e' assente, riavvialo."""
     global _paused, _pause_refs

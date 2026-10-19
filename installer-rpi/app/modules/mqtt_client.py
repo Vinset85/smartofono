@@ -125,6 +125,26 @@ class MqttPublisher:
                 LOG.info("MQTT availability: online (%s)", self._status_topic)
             except Exception as e:
                 LOG.error("MQTT birth publish err: %s", e)
+            try:
+                disc = json.dumps({
+                    "name": "Anteprima",
+                    "object_id": "anteprima",
+                    "unique_id": "vc_preview_cam",
+                    "topic": "videocitofono/preview/jpeg",
+                    "availability_topic": self._status_topic,
+                    "payload_available": "online",
+                    "payload_not_available": "offline",
+                    "device": {
+                        "identifiers": ["videocitofono_rpi"],
+                        "name": "Videocitofono",
+                    },
+                })
+                client.publish(
+                    "homeassistant/camera/vc_preview/config",
+                    disc, qos=1, retain=True,
+                )
+            except Exception as e:
+                LOG.warning("MQTT camera discovery err: %s", e)
             if self._on_connected_cb:
                 try:
                     self._on_connected_cb()
@@ -143,7 +163,18 @@ class MqttPublisher:
         if msg.topic == topic_cmd and not (msg.payload or b"").strip():
             LOG.debug("MQTT cmd vuoto ignorato")
             return
-        LOG.info("MQTT msg %s = %s", msg.topic, msg.payload[:200])
+        logged = msg.payload[:200]
+        if msg.topic == topic_cmd:
+            try:
+                d = json.loads(msg.payload.decode())
+                if isinstance(d, dict):
+                    for k in ("token", "cmd_token"):
+                        if k in d and d[k]:
+                            d[k] = "***"
+                    logged = json.dumps(d).encode()[:200]
+            except Exception:
+                logged = b"<cmd>"
+        LOG.info("MQTT msg %s = %s", msg.topic, logged)
         topic_responder_video = self.cfg.get(
             "topic_responder_video", "videocitofono/responder/video"
         )
@@ -261,11 +292,16 @@ class MqttPublisher:
         msg = json.dumps({"tipo": tipo, "dati": dati or {}})
         self._publish(topic, msg)
 
-    def publish(self, topic: str, msg: str, retain: bool = False, qos: int = 1) -> None:
+    def publish(self, topic: str, msg, retain: bool = False, qos: int = 1) -> None:
         """Publish pubblico: usato da HealthReporter, UnknownTracker, ecc."""
         try:
             r = self._client.publish(topic, msg, qos=qos, retain=bool(retain))
-            LOG.debug("MQTT pub %s (retain=%s) rc=%s", topic, retain, getattr(r, "rc", "?"))
+            if isinstance(msg, (bytes, bytearray)):
+                LOG.debug("MQTT pub %s (%dB retain=%s) rc=%s",
+                          topic, len(msg), retain, getattr(r, "rc", "?"))
+            else:
+                LOG.debug("MQTT pub %s (retain=%s) rc=%s",
+                          topic, retain, getattr(r, "rc", "?"))
         except Exception as e:
             LOG.error("MQTT publish error: %s", e)
 

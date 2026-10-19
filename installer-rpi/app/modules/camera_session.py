@@ -46,6 +46,11 @@ MODE_CFG: Dict[str, Dict[str, Any]] = {
         "main": {"size": (640, 480), "format": "RGB888"},
         "controls": {"FrameRate": 10.0},
     },
+    # Anteprima dashboard HA: JPEG via MQTT, niente WebRTC nel browser.
+    "preview": {
+        "main": {"size": (640, 360), "format": "YUV420"},
+        "controls": {"FrameRate": 5.0},
+    },
 }
 
 
@@ -70,6 +75,7 @@ class PicamSession:
         self._lock = threading.Lock()
         self._cam = None
         self._mode: Optional[str] = None
+        self._held: Optional[str] = None
         self._available = True  # diventa False se libcamera non disponibile
         self._acquire_fail_count = 0
         self._last_recovery_ts = 0.0
@@ -92,6 +98,22 @@ class PicamSession:
     def is_available(self) -> bool:
         return self._available and self._import_ok()
 
+    def hold(self, mode: str) -> None:
+        """Impedisce agli altri consumatori di cambiare modo.
+
+        LiveKit (chiamata o anteprima) tiene il sensore: senza hold il
+        thread motion, restando su home, rifa' acquire('motion') e
+        riconfigura a 320x240. Il publisher resta senza frame nuovi e
+        il browser HA congela il primo fotogramma.
+        """
+        with self._lock:
+            self._held = str(mode)
+
+    def unhold(self, mode: Optional[str] = None) -> None:
+        with self._lock:
+            if mode is None or self._held == mode:
+                self._held = None
+
     def acquire(self, mode: str) -> bool:
         """Garantisce che la camera sia avviata in `mode`. Idempotente.
         Restituisce True se ok, False altrimenti."""
@@ -99,6 +121,11 @@ class PicamSession:
             LOG.error("PicamSession.acquire: mode sconosciuto %r", mode)
             return False
         with self._lock:
+            if self._held and mode != self._held:
+                LOG.warning(
+                    "PicamSession.acquire(%s) ignorato: hold=%s",
+                    mode, self._held)
+                return False
             if not self._import_ok():
                 self._available = False
                 return False

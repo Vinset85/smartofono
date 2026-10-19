@@ -468,6 +468,10 @@ class LiveKitSubscribeClient:
                             max_bitrate=self._pub_bitrate,
                         ),
                     )
+            # Publish prima, poi capture: e' l'ordine del path chiamata
+            # (che funziona). Catturare prima del publish fa encode di
+            # frame che non partono, poi dopo il publish restano solo
+            # P-frame senza IDR e Chrome congela il primo fotogramma.
             await room.local_participant.publish_track(video_track, pub_opts)
             LOG.info("livekit publish: cam track pubblicata (%dx%d@%dfps %dkbps)",
                      self._pub_w, self._pub_h, self._pub_fps,
@@ -706,6 +710,10 @@ class LiveKitSubscribeClient:
                 "ma senza frame (immagine congelata sul subscriber)"
             )
             return
+        try:
+            sess.hold("call")
+        except Exception:
+            pass
         self._cam_sess = sess
         LOG.info("cam capture loop avviato via PicamSession (%dx%d@%dfps YUV420)",
                  self._pub_w, self._pub_h, self._pub_fps)
@@ -722,9 +730,17 @@ class LiveKitSubscribeClient:
                 try:
                     arr = await loop.run_in_executor(None, sess.capture, "call")
                     if arr is None:
-                        # mode mismatch / capture err transitorio: salta frame
-                        # senza incrementare n_err (evita spam log).
+                        # mode mismatch / capture err transitorio.
                         n_err += 1
+                        if n_err in (1, 12, 60) or n_err % 120 == 0:
+                            LOG.warning(
+                                "cam capture skip #%d: mode=%s (atteso call)",
+                                n_err, getattr(sess, "_mode", "?"))
+                        if n_err in (12, 60):
+                            try:
+                                await loop.run_in_executor(None, sess.acquire, "call")
+                            except Exception:
+                                pass
                         dt0 = loop.time() - t0
                         if dt0 < period:
                             await asyncio.sleep(period - dt0)
@@ -768,6 +784,10 @@ class LiveKitSubscribeClient:
         # PicamSession.release() (o lo switch a 'motion' al resume), un
         # solo ciclo open/close gestito centralmente. Chiudere qui creerebbe
         # di nuovo il conflitto di possesso con motion.
+        try:
+            sess.unhold("call")
+        except Exception:
+            pass
         self._cam_sess = None
         LOG.info("cam capture loop terminato (PicamSession resta gestito da main)")
 

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresso dal vivo</title>
+  <script src="/local/livekit-client-2.23.0.umd.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #10141a; color: #fff;
+      font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+    video { position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; background: #000; }
+    .msg { position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px; padding: 24px;
+      text-align: center; font-size: 15px; line-height: 1.45; color: rgba(255,255,255,.86); }
+    .barra { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+      display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+      background: linear-gradient(transparent, rgba(0,0,0,.72)); }
+    .conto { font-variant-numeric: tabular-nums; font-weight: 700; margin-right: auto; }
+    .tondo { width: 44px; height: 44px; border: none; border-radius: 50%;
+      cursor: pointer; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
+    .tondo.stop { background: #c62828; }
+    .tondo.on { background: #2f7d4f; }
+  </style>
+</head>
+<body>
+<video id="v" playsinline autoplay muted></video>
+<div class="msg" id="msg">Sto accendendo la telecamera dell’ingresso…</div>
+<div class="barra" id="barra" hidden style="display:none">
+  <span class="conto" id="conto">2:00</span>
+  <button class="tondo" id="btn-audio" title="Audio">🔇</button>
+  <button class="tondo" id="btn-piu" title="Aggiungi tempo">＋</button>
+  <button class="tondo stop" id="btn-stop" title="Chiudi">■</button>
+</div>
+<script>
+(function () {
+  'use strict';
+  const PREVIEW_ID = 'rpi-preview';
+  let room = null;
+  let boot = 0;
+  let started = false;
+  let audioOn = false;
+  let deadline = 0;
+  let tick = null;
+
+  let embedded = (window.parent && window.parent !== window);
+
+  function hostWin() {
+    if (window.opener && !window.opener.closed) return window.opener;
+    if (window.parent && window.parent !== window) return window.parent;
+    return null;
+  }
+  function send(msg) {
+    const t = hostWin();
+    if (!t) return;
+    try { t.postMessage(Object.assign({ src: 'vc-preview' }, msg), '*'); }
+    catch (_) {}
+  }
+  function isPrev(p) {
+    const id = String((p && p.identity) || '');
+    return id === PREVIEW_ID || id.indexOf(PREVIEW_ID) === 0;
+  }
+  function setMsg(t) {
+    const m = document.getElementById('msg');
+    if (!t) { m.hidden = true; m.textContent = ''; return; }
+    m.hidden = false;
+    m.textContent = t;
+  }
+  function attach(track) {
+    if (track.kind === 'audio') {
+      let a = document.getElementById('a');
+      if (a) a.remove();
+      a = track.attach();
+      a.id = 'a';
+      a.autoplay = true;
+      a.muted = !audioOn;
+      a.volume = audioOn ? 1 : 0;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      if (audioOn) a.play().catch(function () {});
+      return;
+    }
+    if (track.kind !== 'video') return;
+    const v = document.getElementById('v');
+    track.attach(v);
+    v.muted = true;
+    v.playsInline = true;
+    v.play().catch(function () {});
+    document.getElementById('barra').hidden = !!embedded;
+    setMsg('');
+    send({ type: 'playing' });
+  }
+  function stopRoom() {
+    boot += 1;
+    started = false;
+    const r = room;
+    room = null;
+    try { document.querySelectorAll('audio').forEach(function (a) { a.remove(); }); }
+    catch (_) {}
+    const v = document.getElementById('v');
+    try { v.pause(); v.srcObject = null; } catch (_) {}
+    if (r) {
+      setTimeout(function () { try { r.disconnect(); } catch (_) {} }, 0);
+    }
+  }
+  function chiudi() {
+    stopRoom();
+    send({ type: 'closed' });
+    if (!embedded) {
+      try { window.close(); } catch (_) {}
+    }
+  }
+  async function start(msg) {
+    if (started && room) return;
+    stopRoom();
+    started = true;
+    embedded = !!msg.embedded;
+    document.getElementById('barra').hidden = embedded;
+    const my = boot;
+    deadline = Date.now() + (parseInt(msg.ttl, 10) || 120) * 1000;
+    avviaConto();
+    const lk = window.LivekitClient || window.LiveKitClient;
+    if (!lk) { setMsg('SDK LiveKit non caricato'); send({ type: 'error', error: 'sdk' }); return; }
+    const rtcConfig = msg.lan ? { iceServers: [], iceTransportPolicy: 'all' } : undefined;
+    const r = new lk.Room({ adaptiveStream: false, dynacast: false, rtcConfig: rtcConfig });
+    room = r;
+    r.on(lk.RoomEvent.TrackSubscribed, function (t, _pub, p) {
+      if (boot !== my) return;
+      if (isPrev(p)) attach(t);
+    });
+    try {
+      setMsg('Collegamento in corso…');
+      await r.connect(msg.wsUrl, msg.token);
+      if (boot !== my) return;
+      r.remoteParticipants.forEach(function (p) {
+        if (!isPrev(p)) return;
+        p.trackPublications.forEach(function (pub) {
+          if (pub.track) attach(pub.track);
+        });
+      });
+      send({ type: 'connected' });
+    } catch (e) {
+      setMsg('Collegamento non riuscito. Riprova dalla dashboard.');
+      send({ type: 'error', error: String((e && e.message) || e).slice(0, 200) });
+    }
+  }
+  function audio(on) {
+    audioOn = !!on;
+    const b = document.getElementById('btn-audio');
+    b.textContent = audioOn ? '🔊' : '🔇';
+    b.classList.toggle('on', audioOn);
+    const a = document.getElementById('a');
+    if (!a) return;
+    a.muted = !audioOn;
+    a.volume = audioOn ? 1 : 0;
+    if (audioOn) a.play().catch(function () {});
+  }
+  function avviaConto() {
+    if (tick) return;
+    tick = setInterval(function () {
+      const el = document.getElementById('conto');
+      const resto = Math.max(0, deadline - Date.now());
+      const s = Math.round(resto / 1000);
+      el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      if (resto <= 0) chiudi();
+    }, 1000);
+  }
+  function mmss(sec) {
+    sec = Math.max(0, parseInt(sec, 10) || 0);
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+
+  window.addEventListener('message', function (ev) {
+    const fromHost = ev.source === window.parent || ev.source === window.opener;
+    if (!fromHost) return;
+    const d = ev.data || {};
+    if (d.src !== 'vc-preview-parent') return;
+    if (d.type === 'start') start(d);
+    else if (d.type === 'stop') stopRoom();
+    else if (d.type === 'audio') audio(!!d.on);
+    else if (d.type === 'ttl' && d.ttl) {
+      deadline = Date.now() + d.ttl * 1000;
+      document.getElementById('conto').textContent = mmss(d.ttl);
+    }
+    else if (d.type === 'ping') send({ type: 'ready' });
+  });
+  document.getElementById('btn-audio').onclick = function () { audio(!audioOn); };
+  document.getElementById('btn-piu').onclick = function () { send({ type: 'prolunga' }); };
+  document.getElementById('btn-stop').onclick = function () { chiudi(); };
+  window.addEventListener('beforeunload', function () {
+    stopRoom();
+    send({ type: 'closed' });
+  });
+  setInterval(function () {
+    if (!started) send({ type: 'ready' });
+  }, 400);
+  send({ type: 'ready' });
+})();
+</script>
+</body>
+</html>

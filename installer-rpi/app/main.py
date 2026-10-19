@@ -940,6 +940,18 @@ class VideocitofonoApp(App):
         mcfg = self.cfg.get("motion") or {}
         if not mcfg.get("enabled", True):
             return
+        # Anteprima o chiamata LiveKit: il watchdog idle girerebbe comunque
+        # ogni secondo e, restando su home, riaccenderebbe il motion che
+        # ruba PicamSession (freeze sul primo frame in dashboard).
+        if (getattr(self.ctx, "lk_preview", None) is not None
+                or getattr(self, "_preview_camera_held", False)):
+            if self._motion_thread_alive():
+                self._motion_stop_fast()
+            return
+        if getattr(self.ctx, "lk_session", None) is not None:
+            if self._motion_thread_alive():
+                self._motion_stop_fast()
+            return
         screen = self.sm.current
         if screen in ("calling", "conversation", "face"):
             return
@@ -987,7 +999,9 @@ class VideocitofonoApp(App):
         try:
             if (source.startswith("motion")
                     and getattr(self, "auto_face", None)
-                    and self.sm.current == "home"):
+                    and self.sm.current == "home"
+                    and getattr(self.ctx, "lk_preview", None) is None
+                    and getattr(self.ctx, "lk_session", None) is None):
                 Clock.schedule_once(
                     lambda *_: self.auto_face.trigger(), 0.25)
         except Exception:
@@ -1085,6 +1099,7 @@ class VideocitofonoApp(App):
         try:
             from modules.camera_session import PicamSession
             PicamSession.instance().release()
+            PicamSession.instance().hold("call")
             LOG.info("PicamSession released for LiveKit (screen=%s)", screen)
         except Exception as e:
             LOG.warning("PicamSession.release err: %s", e)
@@ -1136,6 +1151,7 @@ class VideocitofonoApp(App):
             self.ctx.lk_session = None
         try:
             from modules.camera_session import PicamSession
+            PicamSession.instance().unhold("call")
             PicamSession.instance().release()
         except Exception as e:
             LOG.warning("PicamSession.release post-call err: %s", e)
@@ -1191,24 +1207,23 @@ class VideocitofonoApp(App):
             LOG.warning("ensure go2rtc for motion err: %s", e)
 
     # ---------------------------------------------------------------- #
-    # Anteprima live on-demand richiesta da Home Assistant
+    # Anteprima on-demand richiesta da Home Assistant
     # ---------------------------------------------------------------- #
     # La card `vc-livekit-preview` in dashboard chiede di vedere l'ingresso
-    # fuori chiamata: il Pi entra nella room LiveKit e pubblica camera+mic per
-    # un tempo limitato, poi smette da solo.
+    # fuori chiamata. WebRTC nel tab Lovelace ricarica il frontend: l'anteprima
+    # accende go2rtc (rpicam-vid + mic) e HA legge lo stream MSE HTTP.
     #
-    # Non e' un flusso permanente per un motivo fisico: libcamera e' esclusiva.
-    # Mentre l'anteprima e' attiva, rilevamento movimento e riconoscimento volti
-    # locali non possono usare il sensore, ed e' fermo anche go2rtc (rpicam-vid).
-    # Da qui il timeout, l'unico modo per garantire che il citofono torni alle
-    # sue funzioni anche se la dashboard resta aperta o il browser sparisce
-    # senza chiudere la sessione.
+    # Non e' un flusso permanente: libcamera e' esclusiva. Timeout lato Pi
+    # se il browser sparisce.
     PREVIEW_TTL_DEFAULT = 120
     PREVIEW_TTL_MAX = 600
 
     def _handle_livekit_preview(self, payload: dict) -> None:
         """{"action":"livekit_preview","on":true,"ttl":120}"""
-        if not bool(payload.get("on", True)):
+        accendi = payload.get("on")
+        if accendi is None:
+            accendi = payload.get("enabled", True)
+        if not bool(accendi):
             self._stop_preview_livekit("richiesta di HA")
             return
         try:
@@ -1247,66 +1262,79 @@ class VideocitofonoApp(App):
             LOG.info("anteprima ignorata: riconoscimento volto in corso")
             self._preview_stato("occupato", motivo="riconoscimento volto")
             return
-        if getattr(self.ctx, "lk_preview", None) is not None:
+        if getattr(self, "_preview_camera_held", False):
             # Gia' attiva: la richiesta vale come rinnovo del tempo residuo.
             self._arm_preview_timeout(ttl_sec)
             self._preview_stato("on", scade_in=ttl_sec)
             LOG.info("anteprima prolungata (%ds)", ttl_sec)
             return
 
-        LOG.info("anteprima: libero libcamera (ttl=%ds)", ttl_sec)
+        LOG.info("anteprima: avvio go2rtc per MSE (ttl=%ds)", ttl_sec)
         if self.motion:
             self._motion_stop_fast()
-        pause_for_camera("preview")
         self._preview_camera_held = True
         try:
             from modules.camera_session import PicamSession
             PicamSession.instance().release()
+            PicamSession.instance().hold("preview")
         except Exception as e:
             LOG.warning("PicamSession.release preview err: %s", e)
         self._preview_stato("avvio", scade_in=ttl_sec)
-        # Stesso ritardo usato per la chiamata: rpicam-vid deve aver mollato
-        # libcamera, altrimenti il publisher LiveKit non apre il sensore.
-        Clock.schedule_once(lambda *_: self._preview_connect(ttl_sec), 0.8)
+        Clock.schedule_once(lambda *_: self._preview_connect(ttl_sec), 0.4)
 
     def _preview_connect(self, ttl_sec: int) -> None:
         if self.sm.current in ("calling", "conversation"):
-            # Campanello suonato durante gli 800 ms di attesa: vince la chiamata.
             LOG.info("anteprima annullata: chiamata arrivata durante l'avvio")
             self._stop_preview_livekit("chiamata in arrivo", riavvia_go2rtc=False)
             return
+        if self.sm.current == "face":
+            LOG.info("anteprima annullata: volto durante l'avvio")
+            self._stop_preview_livekit("schermata volto", riavvia_go2rtc=False)
+            return
         try:
-            from modules.livekit_client import LiveKitSubscribeClient
-            # Anteprima piu' leggera della chiamata (che pubblica 1080p a
-            # 6 Mbps): qui serve capire chi c'e' alla porta, spesso guardando da
-            # rete mobile, quindi 720p a 12 fps. Meno banda e meno lavoro per il
-            # Pi, che intanto ha comunque fermato go2rtc e il motion.
-            lkcfg = (self.cfg.get("livekit") or {})
-            lk = LiveKitSubscribeClient(
-                # Nessun backchannel audio: la card chiede un token senza
-                # diritto di pubblicare, quindi non c'e' voce in arrivo da
-                # riprodurre sull'altoparlante del citofono.
-                audio_backchannel=None,
-                on_video_frame=None,
-                # Forzato a True e non legato a VC_LK_PUBLISH: senza publish
-                # l'anteprima non avrebbe nulla da mostrare.
-                publish_av=True,
-                publish_video_size=(
-                    int(lkcfg.get("preview_width", 1280)),
-                    int(lkcfg.get("preview_height", 720)),
-                ),
-                publish_video_fps=int(lkcfg.get("preview_fps", 12)),
-                publish_video_bitrate=int(lkcfg.get("preview_bitrate", 2_000_000)),
+            from modules.go2rtc_control import (
+                recover_stale_pause, start_for_preview,
             )
-            lk.start()
-            self.ctx.lk_preview = lk
+            recover_stale_pause(
+                idle_screen=self.sm.current in ("home", "screensaver", "result"),
+                camera_consumer_active=False)
+            if not start_for_preview():
+                raise RuntimeError("go2rtc non disponibile")
+            self.ctx.lk_preview = "go2rtc"
             self._arm_preview_timeout(ttl_sec)
             self._preview_stato("on", scade_in=ttl_sec)
-            LOG.info("anteprima attiva (ttl=%ds)", ttl_sec)
+            LOG.info("anteprima go2rtc attiva (ttl=%ds)", ttl_sec)
         except Exception as e:
             LOG.warning("anteprima start err: %s", e)
             self._preview_stato("errore", motivo=str(e)[:120])
             self._stop_preview_livekit("errore di avvio")
+
+    def _preview_jpeg_tick(self, *_):
+        try:
+            import cv2
+            from modules.camera_session import PicamSession
+            sess = PicamSession.instance()
+            arr = sess.capture("preview")
+            if arr is None:
+                sess.acquire("preview")
+                return
+            w, h = 640, 360
+            yuv = arr.reshape((h * 3 // 2, w))
+            rgb = cv2.cvtColor(yuv, cv2.COLOR_YUV420p2RGB)
+            bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            ok, buf = cv2.imencode(
+                ".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+            if not ok:
+                return
+            raw = buf.tobytes()
+            self.mqtt.publish(
+                "videocitofono/preview/jpeg", raw,
+                retain=False, qos=0)
+            if not getattr(self, "_preview_jpeg_ok", False):
+                self._preview_jpeg_ok = True
+                LOG.info("anteprima jpeg primo frame %dB", len(raw))
+        except Exception as e:
+            LOG.debug("preview jpeg: %s", e)
 
     def _arm_preview_timeout(self, ttl_sec: int) -> None:
         ev = getattr(self, "_preview_timer", None)
@@ -1329,14 +1357,20 @@ class VideocitofonoApp(App):
             ev.cancel()
             self._preview_timer = None
 
-        lk = getattr(self.ctx, "lk_preview", None)
-        if lk is not None:
-            try:
-                lk.stop(timeout=4.0)
-            except Exception as e:
-                LOG.warning("anteprima stop err: %s", e)
+        evj = getattr(self, "_preview_jpeg_ev", None)
+        if evj is not None:
+            evj.cancel()
+            self._preview_jpeg_ev = None
+        self._preview_jpeg_ok = False
+        if getattr(self.ctx, "lk_preview", None) is not None:
             self.ctx.lk_preview = None
             LOG.info("anteprima fermata (%s)", motivo or "-")
+        try:
+            from modules.camera_session import PicamSession
+            PicamSession.instance().unhold("preview")
+            PicamSession.instance().unhold("call")
+        except Exception as e:
+            LOG.debug("PicamSession.unhold post-anteprima: %s", e)
 
         if not getattr(self, "_preview_camera_held", False):
             self._preview_stato("off", motivo=motivo)
@@ -1348,13 +1382,20 @@ class VideocitofonoApp(App):
         except Exception as e:
             LOG.warning("PicamSession.release post-anteprima err: %s", e)
         if riavvia_go2rtc:
-            self._schedule_post_call_camera(self.sm.current, ref="preview")
-        else:
             try:
-                from modules.go2rtc_control import resume_after_camera
-                resume_after_camera("preview", start_service=False)
+                from modules.go2rtc_control import stop_idle_service
+                if self._eco_enabled() and not self._go2rtc_for_motion():
+                    stop_idle_service()
             except Exception as e:
-                LOG.warning("resume_after_camera preview err: %s", e)
+                LOG.warning("stop go2rtc post-anteprima err: %s", e)
+            def _start_motion(_dt):
+                if self.sm.current in ("face", "pin", "nfc", "calling", "conversation"):
+                    return
+                if (self.motion
+                        and self._should_start_motion(self.sm.current)
+                        and self.sm.current in ("home", "screensaver", "result")):
+                    self.motion.start()
+            Clock.schedule_once(_start_motion, 1.5)
         self._preview_stato("off", motivo=motivo)
 
     def _mqtt_republish_idle(self) -> None:

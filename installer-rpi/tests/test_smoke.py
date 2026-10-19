@@ -69,6 +69,11 @@ def test_nfc_usb_recover_max():
     assert "reset software" in src
     assert "USB_RECOVER_RETRY_SEC" in src
     assert "_emit_status" in src
+    assert "_disable_pn532_sleep" in src
+    assert "power_down" in src
+    assert 2.0 <= nr.USB_REOPEN_SETTLE_SEC <= 2.5
+    assert 'RemoteTarget("106A")' in src
+    assert "reset_lines=False" in src
     script = Path(nr.__file__).resolve().parents[2] / "scripts" / "nfc-usb-reset.sh"
     sh = script.read_text(encoding="utf-8")
     assert "dwc3_reset_ch340_controller" in sh
@@ -234,7 +239,7 @@ def test_version_unica():
 
     v = get_version()
     assert v == (ROOT / "version.txt").read_text(encoding="utf-8").strip()
-    assert v == "1.5.3"
+    assert v == "1.5.10"
     main = (ROOT / "main.py").read_text(encoding="utf-8")
     assert "from modules.version import get_version" in main
     assert '"0.1.0"' not in main
@@ -355,3 +360,32 @@ def test_motion_health_non_ok_se_camera_ko():
     m = MotionDetector(camera=None)
     assert m.health_status("home", expected_running=False) == "idle"
     assert m.health_status("screensaver", expected_running=True) == "down"
+
+
+def test_picam_hold_blocca_motion_durante_anteprima():
+    from modules.camera_session import PicamSession
+    sess = PicamSession()
+    sess.hold("call")
+    assert sess.acquire("motion") is False
+    assert sess.acquire("face") is False
+    sess.unhold("call")
+    sess.hold("preview")
+    assert sess.acquire("motion") is False
+    sess.unhold("preview")
+    main = (ROOT / "main.py").read_text(encoding="utf-8")
+    assert "PicamSession.instance().hold(\"call\")" in main
+    assert "start_for_preview" in main
+    assert "identity=\"rpi-preview\"" not in main
+    js = Path(__file__).resolve().parents[2] / "installer-ha" / "www" / "vc-livekit-preview.js"
+    src = js.read_text(encoding="utf-8")
+    assert "const SESS =" in src
+    assert "adottaSessione" in src
+    assert "SESS.voglio" in src
+    assert "createElement('video')" in src
+    assert "stream.mp4" in src
+    assert "data-act=\"audio\"" in src
+    assert "LivekitClient" not in src
+    assert "RTCPeerConnection" not in src
+    assert "requestFullscreen" not in src
+    assert "window.open" not in src
+    assert "createElement('iframe')" not in src

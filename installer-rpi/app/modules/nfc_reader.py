@@ -38,10 +38,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 LOG = logging.getLogger(__name__)
 
-# Su Raspberry Pi, riaprire ttyUSB entro ~1 s dalla chiusura puo' ritardare
-# il primo byte fino a ~1 s (bug USB BCM). nfcpy usa 1500 ms di ACK timeout;
-# qui aspettiamo almeno 3 s tra close e reopen.
-USB_REOPEN_SETTLE_SEC = 3.0
+# Bug USB BCM: attesa ~1 s o ~3 s tra close e open ritarda il primo byte
+# fino a 1 s. nfcpy: a ~2 s la finestra e' buona. Non usare 3.0.
+USB_REOPEN_SETTLE_SEC = 2.2
 USB_RECOVER_SETTLE_SEC = 8.0
 # DWC3 del CH340 fa over-current e stacca anche il touch (1a86:e5e3).
 # Il recover automatico è solo UART (DTR/RTS). USB_RECOVER_MAX=0: mai hard.
@@ -53,6 +52,7 @@ USB_RECOVER_MODES = ("hard",)
 # cadere il touch. nfcpy va ritentato molte volte prima di un DWC3.
 NFC_OPEN_FAILS_BEFORE_USB = 8
 NFC_GIVE_UP_BACKOFF_SEC = 12.0
+UART_MUTE_BACKOFF_SEC = 12.0
 
 # Path nfcpy da provare in ordine (PN532 UART/I2C, ACR122U).
 DEFAULT_DEVICE_CANDIDATES = (
@@ -84,12 +84,12 @@ def uart_pn532_responds(path: str) -> bool:
 def uart_pn532_reset_and_wake(
     path: str,
     attempts: int = 3,
-    reset_lines: bool = True,
+    reset_lines: bool = False,
 ) -> bool:
-    """Reset HSU via DTR/RTS/break + preamble 0x55 + GetFirmwareVersion.
+    """Preamble 0x55 + GetFirmwareVersion. DTR/RTS solo se reset_lines.
 
-    Sui cloni CH340 il RSTPD_N del PN532 e' spesso sul DTR o RTS.
-    Non serve staccare la USB: un impulso di 250 ms riavvia il chip.
+    Su questo hardware il pulse DTR tiene il PN532 in reset (vedi
+    nfc-usb-reset.sh). Il default e' solo ping, senza toccare le linee.
     """
     dev = _uart_dev_from_nfcpy(path)
     if not dev or not os.path.exists(dev):
@@ -186,7 +186,7 @@ def ensure_pn532_ready(path: str, attempts: int = 4) -> bool:
             if os.path.exists(dev):
                 break
             time.sleep(0.5)
-    if uart_pn532_reset_and_wake(path, attempts=attempts, reset_lines=True):
+    if uart_pn532_reset_and_wake(path, attempts=attempts, reset_lines=False):
         time.sleep(0.4)
         return True
     LOG.info("PN532 wake UART senza risposta su %s", path)
@@ -413,10 +413,6 @@ class NfcReader:
             return True
         self._stop.clear()
         self._ready.clear()
-        try:
-            ensure_pn532_ready(self.device, attempts=4)
-        except Exception as e:
-            LOG.debug("nfc uart wake start: %s", e)
         self._thread = threading.Thread(
             target=self._loop, name="nfc-reader", daemon=True)
         self._thread.start()
@@ -496,11 +492,20 @@ class NfcReader:
                 LOG.error("on_tag callback err: %s", e)
         return False  # release subito (non vogliamo entrare in NDEF rdwr)
 
+    def _disable_pn532_sleep(self, clf) -> None:
+        """nfcpy Device.close() manda il PN532 in power_down: al reopen
+        il ping UART corto lo dichiara muto. Disattiva solo lo sleep."""
+        try:
+            clf.device.chipset.power_down = lambda *a, **k: None
+        except Exception:
+            pass
+
     def _close_clf(self) -> None:
         clf = self._clf
         self._clf = None
         if clf is None:
             return
+        self._disable_pn532_sleep(clf)
         try:
             clf.close()
         except Exception:
@@ -518,11 +523,8 @@ class NfcReader:
         from nfc.clf import RemoteTarget  # type: ignore
         self._emit_status()
         backoff = 2.0
-        targets = [
-            RemoteTarget("106A"),  # MIFARE Classic/Ultralight, NTAG
-            RemoteTarget("106B"),  # ISO14443B
-            RemoteTarget("212F"),  # FeliCa 212
-        ]
+        # Solo 106A (MIFARE/NTAG): 106B/FeliCa ogni 80ms satura i cloni HSU.
+        targets = [RemoteTarget("106A")]
         while not self._stop.is_set():
             try:
                 self._sync_device_candidates()
@@ -572,7 +574,10 @@ class NfcReader:
                     self._mark_serial_closed()
                     if not self._wait_usb_settle():
                         break
+                if not self._wait_usb_settle():
+                    break
                 self._clf = nfc.ContactlessFrontend(self.device)
+                self._disable_pn532_sleep(self._clf)
                 self._ready.set()
                 self._last_error = None
                 self._open_failures = 0
@@ -585,7 +590,7 @@ class NfcReader:
                 while not self._stop.is_set():
                     try:
                         tgt = self._clf.sense(*targets, iterations=1,
-                                              interval=0.05)
+                                              interval=0.25)
                     except (IOError, OSError):
                         consec_err += 1
                         disable_ch340_autosuspend()
@@ -599,21 +604,18 @@ class NfcReader:
                         class _T:
                             identifier = bytes(tgt.sdd_res)
                         self._on_connect(_T())
-                    self._stop.wait(0.08)
+                    self._stop.wait(0.20)
             except Exception as e:
                 self._ready.clear()
                 self._last_error = str(e)
                 self._open_failures += 1
                 self._emit_status()
-                backoff = 1.5 if self._listen_ok else min(max(backoff, 2.0) * 1.4, NFC_GIVE_UP_BACKOFF_SEC)
+                backoff = USB_REOPEN_SETTLE_SEC if self._listen_ok else min(
+                    max(backoff, USB_REOPEN_SETTLE_SEC) * 1.2,
+                    NFC_GIVE_UP_BACKOFF_SEC)
                 LOG.warning("NFC loop err: %s (riapertura ascolto in %.1fs)",
                             e, backoff)
                 self._close_clf()
-                if not self._listen_ok:
-                    try:
-                        ensure_pn532_ready(self.device, attempts=2)
-                    except Exception:
-                        pass
                 self._stop.wait(backoff)
                 continue
             self._close_clf()

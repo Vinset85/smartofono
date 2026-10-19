@@ -26,23 +26,44 @@ def _cmd_token() -> str:
     return ""
 
 
-def cmd_payload(action: str, **kwargs) -> str:
-    token = _cmd_token()
-    body = {"action": action, **kwargs}
-    if token:
-        body["token"] = token
-    return json.dumps(body, ensure_ascii=False)
+# HA passa `context` (e a volte altri oggetti) nella service call:
+# json.dumps esplode e il comando non parte. La card LiveKit resta nera.
+_SKIP_KEYS = {"context", "user_id"}
 
 
-def _coerce_kwargs(kwargs: dict) -> dict:
-    out = dict(kwargs)
+def jsonable_kwargs(kwargs: dict) -> dict:
+    """Solo chiavi JSON-serializzabili; ignora il context di HA."""
+    out = {}
+    for key, val in (kwargs or {}).items():
+        if key in _SKIP_KEYS or str(key).startswith("_"):
+            continue
+        try:
+            json.dumps(val)
+        except TypeError:
+            continue
+        out[key] = val
     cfg = out.get("config")
     if isinstance(cfg, str):
         try:
             out["config"] = json.loads(cfg)
         except Exception:
             pass
+    # HA/YAML trattano `on` in modo ambiguo: accetta anche `enabled`.
+    if "on" not in out and "enabled" in out:
+        out["on"] = out.get("enabled")
     return out
+
+
+def cmd_payload(action: str, **kwargs) -> str:
+    token = _cmd_token()
+    body = {"action": str(action), **jsonable_kwargs(kwargs)}
+    if token:
+        body["token"] = token
+    return json.dumps(body, ensure_ascii=False)
+
+
+def _coerce_kwargs(kwargs: dict) -> dict:
+    return jsonable_kwargs(kwargs)
 
 
 @service

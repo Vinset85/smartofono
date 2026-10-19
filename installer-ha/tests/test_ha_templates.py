@@ -78,6 +78,7 @@ def test_cmd_mqtt_non_espone_helper_negli_script():
     assert "action: pyscript.videocitofono_mqtt_cmd" in scripts
     mqtt_cmd = (ROOT / "pyscript" / "mqtt_cmd.py").read_text()
     assert "videocitofono_cmd_secret" in mqtt_cmd
+    assert "jsonable_kwargs" in mqtt_cmd
     assert "_purge_cmd_retain" in mqtt_cmd
     assert 'payload=""' in mqtt_cmd.replace(" ", "") or 'payload=""' in mqtt_cmd
     assert "retain=True" in mqtt_cmd
@@ -101,6 +102,24 @@ def test_cmd_mqtt_non_espone_helper_negli_script():
         assert "pyscript.videocitofono_mqtt_cmd" in src
         assert "    videocitofono_mqtt_cmd(" not in src
         assert "\nvideocitofono_mqtt_cmd(" not in src
+
+
+def test_mqtt_cmd_ignora_context_ha():
+    ns: dict = {}
+    src = (ROOT / "pyscript" / "mqtt_cmd.py").read_text().split("@service")[0]
+    exec(src, ns)
+
+    class Ctx:
+        pass
+
+    out = ns["jsonable_kwargs"]({"ttl": 120, "on": True, "context": Ctx()})
+    assert out == {"ttl": 120, "on": True}
+    out2 = ns["jsonable_kwargs"]({"enabled": False, "ttl": 15})
+    assert out2["on"] is False
+    body = json.loads(ns["cmd_payload"]("livekit_preview", context=Ctx(), ttl=30, on=True))
+    assert body["action"] == "livekit_preview"
+    assert body["ttl"] == 30
+    assert "context" not in body
 
 
 def test_fingerprint_rimosso():

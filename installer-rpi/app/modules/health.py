@@ -10,7 +10,7 @@ Payload JSON:
         "disk_pct": 41.2,
         "temp_c": 52.1,
         "load1": 0.8,
-        "version": "1.5.3",
+        "version": "1.5.10"
         "screen": "home",
         "last_face_match_ts": 1746543010,
         "last_open_ts": 1746542880,
